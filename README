@@ -1,0 +1,146 @@
+HARP Documentation
+
+Contents:
+	I.Installation and Setup
+	II.Manager Interface
+		1)Insert
+		2)Edit
+		3)List
+		4)Admin
+	III.Customization
+		1)Configuration File
+	IV.Requirements
+
+
+I.	Installation and Setup
+
+Installing harp:
+	./configure
+	make
+	make install
+
+
+Installing plugins:
+	cd plugins
+		To build without certain plugins use --without-pluginname:
+			./configure --without-flac --without-vorbis
+		Currently available are mp3, aac, vorbis, and flac
+	./configure
+	make
+	make install
+
+Enable the plugins in harp:
+	harp -a
+		select plugin management:
+	admin> m
+		add a plugin:
+	manage plugins> a
+	Library (e.g., libharpmp3): libharpmp3
+	manage plugins> a
+	Library (e.g., libharpmp3): libharpaac
+		...
+
+Check that the plugins have been installed:
+		list added plugins:
+	manage plugins> l
+
+(optional) Create a configuration file:
+Note: your paths may be different.
+	cp /usr/local/share/harp/defaults.conf ~/.harp/defaults.conf
+
+
+
+
+II.	Manager Interface
+
+1.  Insert
+Song
+	Insert a song into the system. If the insert flag is given with no 
+	argument, songs may be entered at the prompt. Inserts may be given with
+	an argument of the song path to add a song from the command line.
+Playlist
+	Insert a new playlist into the system. If the insert flag is given with 
+	no argument, the playlist name may be entered at the prompt.
+
+2.  List
+	List detailed song information or list the songs related to an album,
+	artist, or playlist. If given no argument, all members of that category
+	are listed.
+
+
+3.  Edit
+Song
+	Name: Change the name of the song.
+	Location: Change the location of the song.
+	Artist: Change the song's artist.
+	Album: Change the song's album.
+	Delete: Remove the song from the database.
+			The original file remains intact.
+	Toggle Activation: Toggle the active status of the song.
+			Deactivated songs are similar to deleted songs except that
+			they keep their play statistics and may be played only if
+			reactivated or if directly chosen to be played with the
+			--type=s flag.
+
+Album
+	Artist: Change the album's artist.
+	Album title: Change the album's title.
+
+Artist
+	Name: Change the artist's name.
+
+Playlist
+	Name: Change the name of the playlist.
+	Delete: Delete the playlist. Songs will remain in the database.
+	Song: Preform an action on the specified song.  If the song is not already
+		in the playlist, it will be added. Otherwise, you may choose to:
+			[a]dd it again (duplicate).
+			[r]emove from the playlist.
+			Change its [o]rder in the playlist.
+
+
+4.  Admin
+
+Manage Plugins
+	a Add
+		Add a plugin to the system. Plugin must already be installed.
+	l List
+		List all plugins in the system
+	r Remove
+		Remove a plugin from the system.
+	t Toggle activation
+		Toggle the activation status of a plugin. Deactivated plugins will
+		only be used if all activated plugins of the correct type are
+		unavailable.
+		PluginID can either be given as:
+			manage plugins> t x
+				or
+			manage plugins> t
+			PluginID: x
+		where x is the PluginID
+
+
+
+III.	Customization
+
+1.	Configuration File:
+	This located at ~/.harp/defaults.conf
+
+General format for this file:
+	-Comments start with #
+	-Section names are enclosed in []
+	-Options are in the format: option=argument
+
+
+
+IV.  Requirements
+
+Sound output: 
+	ALSA or OSS
+Database: 
+	SQLite3
+Default Decoders: 
+	MP3: libmpg123
+	AAC: libfaad2
+	OGG: libvorbisfile
+	FLAC: libFLAC

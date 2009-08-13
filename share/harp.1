@@ -1,0 +1,124 @@
+.TH HARP 1 "August 2009" "HARP 0.1" "User Commands"
+.SH NAME
+harp \- play and manage music
+.SH SYNOPSIS
+\fBharp\fP [\fBoptions\fP]
+.SH OPTIONS
+.TP
+\fB\-t\fP,\fB --type=\fP[type]
+Specify the type of object to perform an action on. Required for insert, edit, list, or play. Valid types are: [s]ong, [p]laylist, a[r]tist, [a]lbum
+.TP
+\fB\-i\fP,\fB --insert=\fP{song path | playlist name}
+Insert song(s) or playlist(s) into the database. Use with no argument to enter information at a prompt.
+.TP
+\fB\-e\fP,\fB --edit=\fP[unique name | id]
+Edit information stored in the database.
+.TP
+\fB\-l\fP,\fB --list=\fP{unique name | id}
+List information from the database. Use with no argument to display all entries.
+.TP
+\fB\-s\fP,\fB --shuffle\fP
+When combined with the play option, shuffle the selected songs.
+.TP
+\fB\-z\fP,\fB --zshuffle\fP
+When combined with the play option, shuffle the selected songs with statistical modifiers.
+.TP
+\fB\-p\fP,\fB --play=\fP[unique name | id]
+Play the songs listed under the name or id  in the specified type
+.TP
+\fB\-a\fP,\fB --admin\fP
+Enter the admin utility to manage plugins and song statistics.
+.TP
+\fB\-v\fP,\fB --verbose\fP
+Print debug messages. Call more than once for more messages.
+.SH PLAYER CONTROLS
+.TP
+.B q
+Quit
+.TP
+.B n
+Next
+.TP
+.B N
+Next without updating play statistics
+.TP
+.B p
+Restart song (not implemented)
+.TP
+.B 9
+Volume down
+.TP
+.B 0
+Volume up
+.TP
+.B m
+Mute
+.TP
+.B ,
+Seek backward
+.TP 
+.B .
+Seek forward
+.TP
+.B [space]
+Pause
+.TP
+.B r
+Decrease rating
+.TP
+.B R
+Increase rating
+.TP
+.B :
+Enter advanced player command prompt.
+.SH ADVANCED PLAYER COMMANDS
+.TP
+.B l
+List the contents of the current playlist. Provide a numerical argument (e.g., :l25) to specify the maximum number of songs printed. The default value is 30.
+.RS
+.TP
+.B lh
+List from the head of the playlist.
+.TP
+.B lt
+List from the tail of the playlist.
+.TP
+.B lr
+List from the current position the playlist. (default)
+.RE
+.TP
+.B j
+Jump to a new position in the playlist. Provide a numerical argument (e.g., :j34) to specify the location. The jump has an effect similar to next (i.e., increased skip count). To jump without updating the play statistics for the skipped song, substitute 'j' with 'J'.
+.RS
+.TP
+.B js
+Jump to a location based on SongID.
+.TP
+.B jo
+Jump to a location based on Order. (default)
+.RE
+.TP
+.B ,
+Seek backward a specified number of seconds. (e.g., :,50)
+.TP
+.B .
+Seek forward a specified number of seconds. (e.g., :.50)
+.SH FILES
+.TP
+~/.harp/defaults.conf
+HARP user configuration file
+.TP
+/usr/local/share/harp/defaults.conf
+Default HARP configuration file
+.SH EXAMPLES
+.B harp -ts -s -p1,43,SongName,2
+.br
+.RS
+Plays the four selected songs in shuffled order
+.RE
+.br
+.B harp -tp -i -v -v -v
+.br
+.RS
+Inserts a new playlist and displays debug messages with maximum verbosity
+.RE

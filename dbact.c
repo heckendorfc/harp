@@ -1,0 +1,212 @@
+/*
+ *  Copyright (C) 2009  Christian Heckendorf <vaseros@gmail.com>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+int db_exec_file(char *file){
+	FILE *ffd;
+	int x=0,querysize=200,ret=0;
+	char *query=malloc(sizeof(char)*querysize);
+	char *err;
+	
+	if(!query){
+		debug("Cannot malloc query");
+		return 1;
+	}
+
+	if((ffd=fopen(file,"r"))){
+		while(fgets((query+x),querysize-x,ffd)){
+			//fprintf(stderr,"Next batch\n%x %x ",*ptr, query[x]);
+			for(;x<querysize-1 && query[x]!='\n' && query[x];x++);
+			if(x<querysize-1){
+				query[x]=' ';
+				query[++x]=0;
+			}
+			if(!sqlite3_complete(query)){
+				if(x>=querysize-100){
+					querysize+=100;
+					if(querysize<2000)
+						query=realloc(query,querysize);
+					else{
+						debug("Limit reached");
+						ret=1;break;
+					}
+					if(!query){
+						debug("Not enough memory");
+						ret=1;break;
+					}
+				}
+				continue;
+			}
+
+			if(sqlite3_exec(conn,query,NULL,NULL,&err)!=SQLITE_OK){
+				if(err){
+					fprintf(stderr,"SQL Error: %s\n",err);
+					sqlite3_free(err);
+				}
+				debug("sqlite3_exec error.");
+				ret=1;break;
+			}
+			x=0;
+		}
+		fclose(ffd);
+	}
+	else{
+		fprintf(stderr,"Cannot open file\n");
+		ret=1;
+	}
+	free(query);
+	return ret;
+}
+
+unsigned int dbInit(){
+	char temp[255];
+	//strcpy(temp,DB);
+	sprintf(temp,"%s%s",DB_PATH,DB);
+	expand(temp);
+	if(sqlite3_open_v2(temp,&conn,SQLITE_OPEN_READWRITE,NULL)!=SQLITE_OK){
+		printf("Database not found. Attempting to create\n");
+		// Try creating
+		strcpy(temp,DB_PATH);
+		expand(temp);
+		mkdir(temp,0700);
+		sprintf(temp,"%s%s",DB_PATH,DB);
+		expand(temp);
+		if(sqlite3_open(temp,&conn)!=SQLITE_OK){
+			printf("Database connection error: %s\n",sqlite3_errmsg(conn));
+			return 0;
+		}
+		sprintf(temp,"%s/harp/create.sql",SHARE_PATH);
+		if(db_exec_file(temp)){
+			printf("Error creating database from file:\n\t%s\n",temp);
+			sqlite3_close(conn);
+			return 0;
+		}
+	}
+	return 1;
+}
+
+void dbiInit(struct dbitem *dbi){
+	dbi->result=NULL;
+	dbi->row=NULL;
+	dbi->err=NULL;
+}
+
+void dbiClean(struct dbitem *dbi){
+	if(dbi->row!=NULL){
+		free(dbi->row);
+		dbi->row=NULL;
+	}
+	if(dbi->result!=NULL){
+		sqlite3_free_table(dbi->result);
+		dbi->result=NULL;
+	}
+}
+
+int fetch_row(struct dbitem *dbi){
+	if(dbi->row_count==0)return 0;
+
+	int x;
+	for(x=0;x<dbi->column_count;x++)
+		dbi->row[x]=dbi->result[dbi->current_row+x];
+
+	x=dbi->current_row<(dbi->row_count+1)*dbi->column_count?1:0;
+	dbi->current_row+=dbi->column_count;
+	return x;
+}
+
+int fetch_row_at(struct dbitem *dbi,int index){
+	int x;
+	if(index>=dbi->row_count || index<0)return 0;
+	for(x=0;x<dbi->column_count;x++)
+		dbi->row[x]=dbi->result[index+x];
+	return 1;
+}
+
+char ** fetch_column_at(struct dbitem *dbi, int index){
+	int x;
+	char **col=malloc(sizeof(char*)*dbi->row_count);
+	index+=dbi->column_count;
+	for(x=0;x<dbi->row_count;x++)
+		col[x]=dbi->result[index+(x*dbi->column_count)];
+	return col;
+}
+
+int doQuery(const char *querystr,struct dbitem *dbi){
+	dbiClean(dbi);
+	sqlite3_get_table(conn,querystr,&dbi->result,&dbi->row_count,&dbi->column_count,&dbi->err);
+	if(dbi->err!=NULL){
+		fprintf(stderr,"Database query error: %s\n",dbi->err);
+		sqlite3_free(dbi->err);
+		dbi->err=NULL;
+		return -1;
+	}
+	if(!dbi->column_count)
+		return sqlite3_changes(conn);
+
+	dbi->current_row=0;
+	dbi->row=malloc(sizeof(char*)*dbi->column_count);
+	fetch_row(dbi);
+	return dbi->row_count;
+}
+
+int doTitleQuery(const char *querystr,struct dbitem *dbi,int *exception, int maxwidth){
+	dbiClean(dbi);
+	sqlite3_get_table(conn,querystr,&dbi->result,&dbi->row_count,&dbi->column_count,&dbi->err);
+	if(dbi->err!=NULL){
+		fprintf(stderr,"Database query error: %s\n",dbi->err);
+		sqlite3_free(dbi->err);
+		dbi->err=NULL;
+		return -1;
+	}
+	if(!dbi->column_count)
+		return sqlite3_changes(conn);
+
+	dbi->current_row=0;
+	dbi->row=malloc(sizeof(char*)*dbi->column_count);
+	int x,len,templen;
+	int *exlen=calloc(dbi->column_count,sizeof(int));
+	while(fetch_row(dbi)){
+		len=maxwidth+3;
+		for(x=0;x<dbi->column_count-1;x++){
+			if(!exception[x]){
+				printf("[%1$.*2$s]%3$n",dbi->row[x],maxwidth,&len);
+				printf("%1$*2$c",' ',(maxwidth+3)-len);
+			}
+			else{
+				printf("[%s]%2$n",dbi->row[x],&templen);
+				if(templen>exlen[x])exlen[x]=templen;
+				printf("%1$*2$c",' ',(exlen[x]-templen)+1);
+			}
+		}
+		if(!exception[x]){ // Ignore end spacing on final field
+			printf("[%1$.*2$s]",dbi->row[x],maxwidth);
+		}
+		else
+			printf("[%s] ",dbi->row[x]);
+		printf("\n");
+	}
+	free(exlen);
+	x=dbi->row_count;
+
+	dbiClean(dbi);
+
+	return x;
+}
+
+void createTempPlaylistSong(){
+	sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempPlaylistSong( PlaylistSongID integer primary key, SongID integer not null, `Order` integer NOT NULL)",NULL,NULL,NULL);
+}
