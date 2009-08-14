@@ -475,24 +475,34 @@ void zrandomize(struct zrandgroup *rg, const int items, int mod){
 	const int ratingmod=mod*.02; // Random 2% (multipled by rating number) bonus
 	const int playcountmod=mod*.05; // Random 5% bonus
 
+	char msg[200];
+
 	srandom((unsigned int)time(NULL));
-	for(x=0;x<items;x++){ // Initial random values (order doesn't matter)
+	for(x=0;x<items;x++){ // Initial random values (order shouldn't matter)
 		rg[x].ran+=(int)random()%mod;
 	}
 
 	// LastPlay Bonus (already in order)
 	for(x=(items-1)/5;x<items;x++)if(rg[x].lastplay!=0)break; // Min 20%; Max total unplayed
+	sprintf(msg,"lastplay\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].lastplay,rg[x].lastplay,rg[items-1].lastplay);
+	debug(msg);
 	for(;x>=0;x--){
 	//for(x=items/5;x>0;x--){
 		rg[x].ran+=(int)random()%lastplaymod;
 	}
+	sprintf(msg,"x: %d | mod: %d\n",x,lastplaymod);
+	debug3(msg);
 
 	// Rating Bonus
 	qsort(rg,items,sizeof(struct zrandgroup),zrg_rating_sort);
 	for(x=items-1;x>=0;x--)if(rg[x].rating!=0)break; // Ignore songs with 0 rating
+	sprintf(msg,"rating\nx: %d | most: %d | least: %d | tail: %d",x,rg[0].rating,rg[x].rating,rg[items-1].rating);
+	debug(msg);
 	for(;x>=0;x--){
 		rg[x].ran+=(int)random()%(ratingmod*rg[x].rating);
 	}
+	sprintf(msg,"x: %d | mod: %d * rating\n",x,ratingmod);
+	debug(msg);
 
 	//PlayCount Bonus
 	qsort(rg,items,sizeof(struct zrandgroup),zrg_play_count_sort);
@@ -510,9 +520,13 @@ void zrandomize(struct zrandgroup *rg, const int items, int mod){
 			if(rg[x].playcount!=0)break; // Max 20%; Ignore unplayed
 		}
 	}
+	sprintf(msg,"playcount\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].playcount,rg[x].playcount,rg[items-1].playcount);
+	debug(msg);
 	for(;x>=0;x--){
 		rg[x].ran+=(int)random()%playcountmod;
 	}
+	sprintf(msg,"x: %d | mod: %d\n",x,playcountmod);
+	debug(msg);
 
 	//SkipCount Penalty
 	qsort(rg,items,sizeof(struct zrandgroup),zrg_skip_count_sort);
@@ -531,9 +545,13 @@ void zrandomize(struct zrandgroup *rg, const int items, int mod){
 			if(rg[x].skipcount!=0)break; // Max 20%; Ignore unskipped
 		}
 	}
+	sprintf(msg,"skipcount\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].skipcount,rg[x].skipcount,rg[items-1].skipcount);
+	debug(msg);
 	for(;x>=0;x--){
 		rg[x].ran-=(int)random()%skipcountmod;
 	}
+	sprintf(msg,"x: %d | mod: -%d\n",x,skipcountmod);
+	debug(msg);
 	
 	// Put in random order
 	qsort(rg,items,sizeof(struct zrandgroup),zrg_random_sort);

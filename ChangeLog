@@ -1,0 +1,13 @@
+Changes in HARP-0.2:
+- Added advanced command interface to player controls.
+	-List current playlist
+	-Jump to a new song in the playlist
+	-Seek a specific number of seconds forward or back in the current song.
+- Multiple players are now able to run simultaneously without conflict
+- Edit has been given an interface smilar to the admin interface.
+	New features:
+	-Edit all songs in an album or artist
+	-List affected items from the editor
+- List can now handle multiple items (--list=2,3,5)
+- Gaps in playlist order numbers have been minimized.
+- Various bug fixes

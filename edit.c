@@ -170,6 +170,7 @@ int editSongAlbum(char *args, void *data){
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	dbiClean(&dbi);
+	return 1;
 }
 
 int deleteSong(char *args, void *data){
@@ -190,6 +191,7 @@ int deleteSong(char *args, void *data){
 			sqlite3_exec(conn,query,NULL,NULL,NULL);
 		}
 		debug("Songs deleted.");
+		return 0;
 	}
 	return 1;
 }
@@ -230,6 +232,7 @@ int editAlbumArtist(char *args, void *data){
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	dbiClean(&dbi);
+	return 1;
 }
 
 int editAlbumTitle(char *args, void *data){
@@ -255,8 +258,9 @@ int editAlbumTitle(char *args, void *data){
 
 	albumid=getAlbum(args,artistid);
 	for(x=0;x<ids->length;x++){
+		sprintf(query,"UPDATE Song SET AlbumID=%d WHERE AlbumID=%d",albumid,ids->songid[x]);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
 		sprintf(query,"UPDATE AlbumArtist SET AlbumID=%d WHERE AlbumID=%d",albumid,ids->songid[x]);
-		debug3(query);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 		if(albumid!=ids->songid[x]){
 			sprintf(query,"DELETE FROM Album WHERE AlbumID=%d",ids->songid[x]);
@@ -264,8 +268,11 @@ int editAlbumTitle(char *args, void *data){
 			sprintf(query,"DELETE FROM AlbumArtist WHERE AlbumID=%d",ids->songid[x]);
 			sqlite3_exec(conn,query,NULL,NULL,NULL);
 		}
+		ids->songid[x]=albumid;
 	}
+	ids->length=1;
 	dbiClean(&dbi);
+	return 1;
 }
 
 int editArtistName(char *args, void *data){
@@ -291,8 +298,11 @@ int editArtistName(char *args, void *data){
 			sprintf(query,"DELETE FROM Artist WHERE ArtistID=%d",ids->songid[x]);
 			sqlite3_exec(conn,query,NULL,NULL,NULL);
 		}
+		ids->songid[x]=artistid;
 	}
+	ids->length=1;
 	dbiClean(&dbi);
+	return 1;
 }
 
 int editPlaylistName(char *args, void *data){
@@ -358,10 +368,13 @@ int editPlaylistSongAdd(char *args, void *data){
 	if((x=getStdArgs(args,"Song: "))<0)return 1;
 	args=&args[x];
 
+	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+	*arglist[ATYPE].subarg='s';
 	if((songid=getID(args))<1){
 		fprintf(stderr,"No song found.\n");
 		return 1;
 	}
+	*arglist[ATYPE].subarg='p';
 
 	for(x=0;x<ids->length;x++){
 		sprintf(query,"SELECT `Order` FROM PlaylistSong WHERE PlaylistID=%d ORDER BY `Order` DESC LIMIT 1",ids->songid[x]);
@@ -548,6 +561,10 @@ int listSongs(char *args, void *data){
 
 int listAlbums(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return 1;
+	}
 	struct dbitem dbi;
 	dbiInit(&dbi);
 	char query[120],*ptr;
@@ -574,6 +591,10 @@ int listAlbums(char *args, void *data){
 
 int listArtists(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return 1;
+	}
 	struct dbitem dbi;
 	dbiInit(&dbi);
 	char query[120],*ptr;
@@ -600,6 +621,10 @@ int listArtists(char *args, void *data){
 
 int listPlaylists(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return 1;
+	}
 	struct dbitem dbi;
 	dbiInit(&dbi);
 	char query[120],*ptr;
@@ -716,22 +741,58 @@ int songPortal(char *args, void *data){
 
 int albumPortal(char *args, void *data){
 	/* artist album */
+	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
-		{'L',listAlbums,"List affected alubms",data},
-		{'t',editAlbumTitle,"Change title",data},
-		{'r',editAlbumArtist,"Change artist",data},
+		{'L',listAlbums,"List affected alubms",ids},
+		{'t',editAlbumTitle,"Change title",ids},
+		{'r',editAlbumArtist,"Change artist",ids},
 		{0,NULL,NULL,NULL}
 	};
+	int x;
+
+	for(x=1;x<200 && args[x] && args[x]<'0';x++);
+	if(!args[x]){
+		fprintf(stderr,"Required argument not given.\n");
+		return 1;
+	}
+
+	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+	arglist[ATYPE].subarg[0]='a';
+
+	ids->songid=getMulti(&args[x],&ids->length);
+	if(ids->songid[0]<1){
+		fprintf(stderr,"No results found.\n");
+		return 1;
+	}
+
 	return portal(portalOptions,"album");
 }
 
 int artistPortal(char *args, void *data){
 	/* artist */
+	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
-		{'L',listArtists,"List affected artists",data},
-		{'n',editArtistName,"Change name",data},
+		{'L',listArtists,"List affected artists",ids},
+		{'n',editArtistName,"Change name",ids},
 		{0,NULL,NULL,NULL}
 	};
+	int x;
+
+	for(x=1;x<200 && args[x] && args[x]<'0';x++);
+	if(!args[x]){
+		fprintf(stderr,"Required argument not given.\n");
+		return 1;
+	}
+
+	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+	arglist[ATYPE].subarg[0]='r';
+
+	ids->songid=getMulti(&args[x],&ids->length);
+	if(ids->songid[0]<1){
+		fprintf(stderr,"No results found.\n");
+		return 1;
+	}
+
 	return portal(portalOptions,"artist");
 }
 
