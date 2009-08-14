@@ -6,12 +6,12 @@ harp \- play and manage music
 .SH OPTIONS
 .TP
 \fB\-t\fP,\fB --type=\fP[type]
-Specify the type of object to perform an action on. Required for insert, edit, list, or play. Valid types are: [s]ong, [p]laylist, a[r]tist, [a]lbum
+Specify the type of object to perform an action on. Required for insert, list, or play. Valid types are: [s]ong, [p]laylist, a[r]tist, [a]lbum.
 .TP
 \fB\-i\fP,\fB --insert=\fP{song path | playlist name}
 Insert song(s) or playlist(s) into the database. Use with no argument to enter information at a prompt.
 .TP
-\fB\-e\fP,\fB --edit=\fP[unique name | id]
+\fB\-e\fP,\fB --edit\fP
 Edit information stored in the database.
 .TP
 \fB\-l\fP,\fB --list=\fP{unique name | id}
@@ -24,7 +24,7 @@ When combined with the play option, shuffle the selected songs.
 When combined with the play option, shuffle the selected songs with statistical modifiers.
 .TP
 \fB\-p\fP,\fB --play=\fP[unique name | id]
-Play the songs listed under the name or id  in the specified type
+Play the songs listed under the name or id in the specified type.
 .TP
 \fB\-a\fP,\fB --admin\fP
 Enter the admin utility to manage plugins and song statistics.

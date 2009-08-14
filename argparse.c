@@ -85,14 +85,16 @@ unsigned int doArgs(int argc,char *argv[]){
 			return 0;
 		}
 
-		if((id=getID(arglist[ALIST].subarg))<0)return 1;
-		list(id);
+		multilist=getMulti(arglist[ALIST].subarg,&multi);
+		if(multi<1 || *multilist<1)return 1;
+		list(multilist,multi);
+		free(multilist);
 		return 0;
 	}
 	//play
 	if(arglist[APLAY].active){
 		multilist=getMulti(arglist[APLAY].subarg,&multi);
-		if(multi<1 || *multilist<0)return 1;
+		if(multi<1 || *multilist<1)return 1;
 		if(multi>0 || *arglist[ATYPE].subarg!='p'){ // Skip for single playlists
 			makeTempPlaylist(multilist,multi);
 			id=0;
@@ -111,6 +113,7 @@ unsigned int doArgs(int argc,char *argv[]){
 			id=0;
 		}
 		player(id);
+		free(multilist);
 		return 0;
 	}
 	//insert
@@ -120,10 +123,7 @@ unsigned int doArgs(int argc,char *argv[]){
 	}
 	//edit
 	if(arglist[AEDIT].active){
-		multilist=getMulti(arglist[AEDIT].subarg,&multi);
-		if(*multilist>-1)
-			batchEdit(multilist,multi);
-		free(multilist);
+		editPortal();
 		return 0;
 	}
 	//admin
@@ -137,12 +137,11 @@ unsigned int doArgs(int argc,char *argv[]){
 
 unsigned int argSearch(int argc,char *argv[]){
 	int opt,optindex;
-	while((opt=getopt_long(argc,argv,"i::l::e:p:st:vza",longopts,&optindex))!=-1){
+	while((opt=getopt_long(argc,argv,"i::l::e::p:st:vza",longopts,&optindex))!=-1){
 		switch(opt){
-			case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=optarg;break;
-	//		case 'i':arglist[AINSERT].active=1;arglist[AINSERT].subarg=optarg;break;
+			//case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=optarg;break;
+			case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
 			case 'i':arglist[AINSERT].active=1;arglist[AINSERT].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
-	//		case 'l':arglist[ALIST].active=1;arglist[ALIST].subarg=optarg;break;
 			case 'l':arglist[ALIST].active=1;arglist[ALIST].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
 			case 'p':arglist[APLAY].active=1;arglist[APLAY].subarg=optarg;break;
 			case 's':arglist[ASHUFFLE].active=1;arglist[AZSHUFFLE].active=0;break;

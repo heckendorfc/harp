@@ -140,6 +140,13 @@ struct playercontrolarg{
 	void *decoder;
 };
 
+struct commandOption{
+	char opt;
+	int (*function)(char *args, void *data);
+	const char *help;
+	void *data;
+};
+
 //harp.c
 void segv_leave(int sig);
 void int_leave(int sig);
@@ -173,6 +180,7 @@ unsigned int insertSong(char *arg);
 
 //edit.c
 int batchEdit(int *ids,int len);
+void editPortal();
 
 //util.c
 void setDefaultConfig();
@@ -201,11 +209,14 @@ void zshuffle(int list);
 void shuffleCleanup(int list);
 
 //list.c
-int list(int id);
+int list(int *ids, int length);
 int listall();
 
 //admin.c
 void adminPortal();
+
+//portal.c
+int portal(struct commandOption *portalOptions, const char *prefix);
 
 #include "dbact.c"
 #include "argparse.c"
@@ -217,3 +228,4 @@ void adminPortal();
 #include "list.c"
 #include "admin.c"
 #include "config.c"
+#include "portal.c"

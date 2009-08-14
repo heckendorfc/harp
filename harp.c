@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
 }
 
 void segv_leave(int sig){
-	sqlite3_exec(conn,"DELETE FROM PlaylistSong WHERE PlaylistID=0",NULL,NULL,NULL);
+	fprintf(stderr,"\nSEGV\n");
 	cleanExit();
 	exit(sig);
 }

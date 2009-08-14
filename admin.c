@@ -16,41 +16,8 @@
  */
 
 
-struct commandOption{
-	char opt;
-	int (*function)(char *args);
-	const char *help;
-};
 
-
-int portal(struct commandOption *portalOptions, const char *prefix){
-	char *choice=malloc(sizeof(char)*200);
-	int x;
-
-	while(printf("%s> ",prefix) && fgets(choice,200,stdin)){
-		for(x=0;choice[x] && choice[x]!='\n';x++);
-		choice[x]=0;
-		for(x=0;portalOptions[x].opt && portalOptions[x].opt!=*choice;x++);
-		if(!portalOptions[x].opt){
-			switch(*choice){
-				case 'q':free(choice);return 0;
-				case 'p':free(choice);return 1;
-				case '?':
-				default:
-					printf("Global:\nq\tQuit\np\tPrevious menu\n?\tPrint help\n\nLocal:\n");
-					for(x=0;portalOptions[x].opt;x++)printf("%c\t%s\n",portalOptions[x].opt,portalOptions[x].help);
-					break;
-			}
-		}
-		else{
-			if(!portalOptions[x].function(choice))break;
-		}
-	}
-	free(choice);
-	return 0;
-}
-
-int addPlugin(char *args){
+int addPlugin(char *args, void *data){
 	char lib[200];
 	int size,x;
 
@@ -68,7 +35,7 @@ int addPlugin(char *args){
 	return 1;
 }
 
-int listPlugins(char *args){
+int listPlugins(char *args, void *data){
 	int *exception=alloca(sizeof(int)*10);
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -79,7 +46,7 @@ int listPlugins(char *args){
 	return 1;
 }
 
-int togglePlugin(char *args){
+int togglePlugin(char *args, void *data){
 	char pid[50];
 	char query[300];
 	int x,id;
@@ -103,7 +70,7 @@ int togglePlugin(char *args){
 	return 1;
 }
 
-int removePlugin(char *args){
+int removePlugin(char *args, void *data){
 	char lib[200];
 	char query[300];
 	int size,x,id;
@@ -133,13 +100,13 @@ int removePlugin(char *args){
 	return 1;
 }
 
-int pluginPortal(char *args){
+int pluginPortal(char *args, void *data){
 	struct commandOption portalOptions[]={
-		{'a',addPlugin,"Add plugin"},
-		{'l',listPlugins,"List plugins"},
-		{'t',togglePlugin,"Toggle activation of plugin"},
-		{'r',removePlugin,"Remove plugin"},
-		{0,NULL,NULL},
+		{'a',addPlugin,"Add plugin",NULL},
+		{'l',listPlugins,"List plugins",NULL},
+		{'t',togglePlugin,"Toggle activation of plugin",NULL},
+		{'r',removePlugin,"Remove plugin",NULL},
+		{0,NULL,NULL}
 	};
 	return portal(portalOptions,"manage plugins");
 }
@@ -149,8 +116,8 @@ void adminPortal(){
 	//	{'e',exportPortal,"Export"},
 	//	{'r',resetPortal,"Reset Stats"},
 	//	{'l',listPortal,"List Stats"},
-		{'m',pluginPortal,"Manage plugins"},
-		{0,NULL,NULL},
+		{'m',pluginPortal,"Manage plugins",NULL},
+		{0,NULL,NULL}
 	};
 	printf("Enter a command. ? for command list.\n");
 	while(portal(portalOptions,"admin"));

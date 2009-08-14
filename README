@@ -69,34 +69,58 @@ Playlist
 
 
 3.  Edit
-Song
-	Name: Change the name of the song.
-	Location: Change the location of the song.
-	Artist: Change the song's artist.
-	Album: Change the song's album.
-	Delete: Remove the song from the database.
-			The original file remains intact.
-	Toggle Activation: Toggle the active status of the song.
+Global commands:
+	q	Quit
+	p	Previous menu
+	?	Print help
+
+Edit commands:
+				NOTE: These commands take an argument of the IDs(or names) separated by commas.
+	s	Edit song(s)
+	sa	Edit songs in specified album	
+	sr	Edit songs in specified artist
+	a	Edit album(s)
+	r	Edit artist(s)
+	p	Edit playlist(s)
+
+Song commands:
+				NOTE: Commands that require additional input can take it as an argument
+						(e.g., t NewTitle)
+	L	List the songs that will be affected.
+	t	Change the title of the song.
+	l	Change the location of the song.
+	r	Change the song's artist.
+	a	Change the song's album.
+	d	Remove the song from the database.
+			The original file will remain intact.
+	v	Toggle Activation: Toggle the active status of the song.
 			Deactivated songs are similar to deleted songs except that
 			they keep their play statistics and may be played only if
 			reactivated or if directly chosen to be played with the
 			--type=s flag.
 
-Album
-	Artist: Change the album's artist.
-	Album title: Change the album's title.
+Album commands:
+				NOTE: Commands that require additional input can take it as an argument
+						(e.g., t NewTitle)
+	L	List the albums that will be affected.
+	t	Change the album's title.
+	r	Change the album's artist.
 
-Artist
-	Name: Change the artist's name.
+Artist commands:
+				NOTE: Commands that require additional input can take it as an argument
+						(e.g., n NewName)
+	L	List the artists that will be affected.
+	n	Change the artist's name.
 
-Playlist
-	Name: Change the name of the playlist.
-	Delete: Delete the playlist. Songs will remain in the database.
-	Song: Preform an action on the specified song.  If the song is not already
-		in the playlist, it will be added. Otherwise, you may choose to:
-			[a]dd it again (duplicate).
-			[r]emove from the playlist.
-			Change its [o]rder in the playlist.
+Playlist commands:
+				NOTE: Commands that require additional input can take it as an argument
+						(n NewName) or (o 10 4)
+	n	Change the name of the playlist.
+	d	Delete the playlist. Songs will remain in the database.
+	a	add a song to the playlist.
+	r	remove a song from the playlist. (Takes an argument of Order. Not SongID)
+	o	Change the order of a song in the playlist.
+			(Takes two arguments: current order and new order)
 
 
 4.  Admin
