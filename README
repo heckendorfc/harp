@@ -58,6 +58,7 @@ Song
 	Insert a song into the system. If the insert flag is given with no 
 	argument, songs may be entered at the prompt. Inserts may be given with
 	an argument of the song path to add a song from the command line.
+
 Playlist
 	Insert a new playlist into the system. If the insert flag is given with 
 	no argument, the playlist name may be entered at the prompt.
@@ -117,8 +118,8 @@ Playlist commands:
 						(n NewName) or (o 10 4)
 	n	Change the name of the playlist.
 	d	Delete the playlist. Songs will remain in the database.
-	a	add a song to the playlist.
-	r	remove a song from the playlist. (Takes an argument of Order. Not SongID)
+	a	Add a song to the playlist.
+	r	Remove a song from the playlist. (Takes an argument of Order. Not SongID)
 	o	Change the order of a song in the playlist.
 			(Takes two arguments: current order and new order)
 
