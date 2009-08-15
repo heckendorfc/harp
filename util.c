@@ -153,6 +153,15 @@ int getPlugin(struct dbitem *dbi, int index, void **module){
 	return 1;
 }
 
+char *getFilename(char *path){
+	char *filestart=path;
+	while(*path){
+		if(*path=='/')
+			filestart=path+1;
+		path++;
+	}
+	return filestart;
+}
 
 int isNumeric(char *argv){
 	while(*argv){
@@ -186,7 +195,7 @@ int strToID(char *argv){ // TODO: add type param
 	dbiInit(&dbi);
 	switch(arglist[ATYPE].subarg[0]){
 		case 's':sprintf(query,"SELECT SongID,Title FROM Song WHERE Title LIKE '%%%s%%'",argv);break;
-		case 'p':sprintf(query,"SELECT PlaylistID,Title FROM Playlist WHERE Title LIKE '%%%s%%' AND PlaylistID>0",argv);break;
+		case 'p':sprintf(query,"SELECT PlaylistID,Title FROM Playlist WHERE Title LIKE '%%%s%%'",argv);break;
 		case 'r':sprintf(query,"SELECT ArtistID,Name FROM Artist WHERE Name LIKE '%%%s%%'",argv);break;
 		case 'a':sprintf(query,"SELECT AlbumID,Title FROM Album WHERE Title LIKE '%%%s%%'",argv);break;
 		default:return -1;
@@ -208,14 +217,23 @@ int strToID(char *argv){ // TODO: add type param
 	return 0;
 }
 
-char *getFilename(char *path){
-	char *filestart=path;
-	while(*path){
-		if(*path=='/')
-			filestart=path+1;
-		path++;
+int verifyID(int id){
+	char query[100];
+	struct dbitem dbi;
+	dbiInit(&dbi);
+	switch(arglist[ATYPE].subarg[0]){
+		case 's':sprintf(query,"SELECT SongID FROM Song WHERE SongID=%d",id);break;
+		case 'p':sprintf(query,"SELECT PlaylistID FROM Playlist WHERE PlaylistID=%d",id);break;
+		case 'r':sprintf(query,"SELECT ArtistID FROM Artist WHERE ArtistID=%d",id);break;
+		case 'a':sprintf(query,"SELECT AlbumID FROM Album WHERE AlbumID=%d",id);break;
+		default:return 0;
 	}
-	return filestart;
+	if(doQuery(query,&dbi)==1){
+		dbiClean(&dbi);
+		return 1;
+	}
+	dbiClean(&dbi);
+	return 0;
 }
 
 int *getMulti(char *arg, int *length){
@@ -233,7 +251,7 @@ int *getMulti(char *arg, int *length){
 
 	x=0;
 	while((token=strsep(&arg,del))!=NULL){
-		if(!(list[x]=(int)strtol(token,NULL,10))){
+		if(!((list[x]=(int)strtol(token,NULL,10))>0 && verifyID(list[x]))){
 			if(!(list[x]=strToID(token))){
 				continue;
 			}
