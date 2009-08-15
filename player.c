@@ -176,7 +176,8 @@ void playerControl(void *arg){
 	new.c_cc[VMIN]=1;
 	tcsetattr(0,TCSANOW,&new);
 
-	while((temp=fgetc(stdin))){
+	while(1){
+		temp=fgetc(stdin);
 		if(getSystemKey(temp,pca))
 			continue;
 		pthread_mutex_lock(&actkey);
