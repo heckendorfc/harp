@@ -19,7 +19,6 @@
 
 int main(int argc, char *argv[]){
 	(void) signal(SIGINT,int_leave);
-	(void) signal(SIGSEGV,segv_leave);
 	if(!dbInit()){
 		fprintf(stderr,"db init error\n");
 		return 1;
@@ -27,12 +26,6 @@ int main(int argc, char *argv[]){
 	doArgs(argc,argv);
 	cleanExit();
 	return 0;
-}
-
-void segv_leave(int sig){
-	fprintf(stderr,"\nSEGV\n");
-	cleanExit();
-	exit(sig);
 }
 
 void int_leave(int sig){

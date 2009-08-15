@@ -4,7 +4,7 @@ Changes in HARP-0.2:
 	-Jump to a new song in the playlist
 	-Seek a specific number of seconds forward or back in the current song.
 - Multiple players are now able to run simultaneously without conflict
-- Edit has been given an interface smilar to the admin interface.
+- Edit has been given an interface similar to the admin interface.
 	New features:
 	-Edit all songs in an album or artist
 	-List affected items from the editor
