@@ -113,7 +113,6 @@ unsigned int doArgs(int argc,char *argv[]){
 			id=0;
 		}
 		player(id);
-		free(multilist);
 		return 0;
 	}
 	//insert
