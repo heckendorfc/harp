@@ -1,13 +1,21 @@
+Changes in HARP-0.2.1:
+- Added directory scanning for song insertion.
+- Added song restarting for mp3s.
+- Debug messages now display on -v.
+- Fixed a bun causing player commands to be ignored.
+- Fixed a bug causing some names to be misinterpreted as IDs.
+- Fixed seg faults occurring on player exit.
+
 Changes in HARP-0.2:
 - Added advanced command interface to player controls.
-	-List current playlist
-	-Jump to a new song in the playlist
+	-List current playlist.
+	-Jump to a new song in the playlist.
 	-Seek a specific number of seconds forward or back in the current song.
-- Multiple players are now able to run simultaneously without conflict
+- Multiple players are now able to run simultaneously without conflict.
 - Edit has been given an interface similar to the admin interface.
 	New features:
-	-Edit all songs in an album or artist
-	-List affected items from the editor
-- List can now handle multiple items (--list=2,3,5)
+	-Edit all songs in an album or artist.
+	-List affected items from the editor.
+- List can now handle multiple items (--list=2,3,5).
 - Gaps in playlist order numbers have been minimized.
-- Various bug fixes
+- Various bug fixes.

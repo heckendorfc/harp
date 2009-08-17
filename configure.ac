@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT(harp, 0.2)
+AC_INIT(harp, 0.2.1)
 AC_CONFIG_SRCDIR(harp.c)
 AM_INIT_AUTOMAKE
 #AC_INIT(harp.c)
