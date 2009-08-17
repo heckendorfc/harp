@@ -220,14 +220,34 @@ int verifySong(int sid){
 	return -1;
 }
 
-	
+#ifdef HAVE_FTW_H
+#include <ftw.h>
+int useFile(const char *fpath, const struct stat *sb, int typeflag) {
+	if(typeflag==FTW_F)
+		insertSong(fpath);
+	return 0;
+}
+
+int directoryInsert(char *arg){
+	if(ftw(arg,&useFile,1)){
+		fprintf(stderr,"FTW Err\n");
+		return 0;
+	}
+	return 1;
+}
+#else
+int directoryInsert(char *arg){
+	return insertSong(arg);
+}
+#endif
 
 int batchInsert(char *arg){
 	if(*arglist[ATYPE].subarg=='s'){//song
 		if(arg){//single argv insert
 			debug("Inserting song at: ");
 			debug(expand(arg));
-			return insertSong(arg);
+			//return insertSong(arg);
+			return directoryInsert(arg);
 		}
 		else{//batch insert
 			char temp[250];

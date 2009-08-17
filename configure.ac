@@ -30,6 +30,7 @@ AC_CHECK_LIB([sqlite3], [sqlite3_exec])
 
 # Checks for header files.
 #AC_CHECK_HEADERS([stdint.h stdlib.h string.h sys/ioctl.h termios.h unistd.h])
+AC_CHECK_HEADERS([ftw.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 #AC_HEADER_STDBOOL

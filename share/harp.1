@@ -8,8 +8,8 @@ harp \- play and manage music
 \fB\-t\fP,\fB --type=\fP[type]
 Specify the type of object to perform an action on. Required for insert, list, or play. Valid types are: [s]ong, [p]laylist, a[r]tist, [a]lbum.
 .TP
-\fB\-i\fP,\fB --insert=\fP{song path | playlist name}
-Insert song(s) or playlist(s) into the database. Use with no argument to enter information at a prompt.
+\fB\-i\fP,\fB --insert=\fP{song path | directory | playlist name}
+Insert song(s) or playlist(s) into the database. By passing a directory as an argument, HARP will recursively scan the directory and insert all valid files. Use with no argument to enter information at a prompt.
 .TP
 \fB\-e\fP,\fB --edit\fP
 Edit information stored in the database.

@@ -57,7 +57,9 @@ II.	Manager Interface
 Song
 	Insert a song into the system. If the insert flag is given with no 
 	argument, songs may be entered at the prompt. Inserts may be given with
-	an argument of the song path to add a song from the command line.
+	an argument of the song path to add a song from the command line. If a
+	directory is given as an argument, HARP will scan the directory
+	recursively and add all valid files into the system.
 
 Playlist
 	Insert a new playlist into the system. If the insert flag is given with 

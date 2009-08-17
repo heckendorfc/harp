@@ -84,6 +84,13 @@ int fileFormat(char *arg){
 
 	ffd=fopen(arg,"rb");
 	if(ffd!=NULL){
+		// Check if it is a file
+		struct stat st;
+		if(!stat(arg,&st) && !S_ISREG(st.st_mode)){
+			fprintf(stderr,"\"%s\" is not a regular file.\n",arg);
+			fclose(ffd);
+			return -1;
+		}
 
 		// Find by magic numbers
 		dbiInit(&dbi);
