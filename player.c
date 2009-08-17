@@ -329,8 +329,7 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 		case KEY_PAUSE: 
 			pca->ph->pflag->pause=!pca->ph->pflag->pause;
 			return 1;
-		case KEY_PREV: // TODO: Make this work :P
-			//if(pca->ph->ffd!=NULL)fseek(pca->ph->ffd,1600,SEEK_SET);
+		case KEY_PREV:
 			if(!pca->decoder)return 1;
 			seek=dlsym(pca->decoder,"plugin_seek");
 			if(seek)seek(pca->ph,0);

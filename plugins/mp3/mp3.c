@@ -67,10 +67,15 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 	}
 
 	struct mp3Handles *h=(struct mp3Handles *)ph->dechandle;
-	mpg123_seek_frame(h->m,mpg123_timeframe(h->m,(int)modtime),SEEK_CUR);
+	mpg123_seek_frame(h->m,mpg123_timeframe(h->m,(int)modtime),modtime?SEEK_CUR:SEEK_SET);
 
-	*h->total+=(modtime*h->accuracy);
-	if(*h->total<0)*h->total=0;
+
+	if(modtime){
+		*h->total+=(modtime*h->accuracy);
+		if(*h->total<0)*h->total=0;
+	}
+	else
+		*h->total=0;
 
 	snd_clear(ph);
 }
