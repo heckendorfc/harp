@@ -17,7 +17,7 @@
 
 
 void debug(char *argv){
-	if(arglist[AVERBOSE].active>1)
+	if(arglist[AVERBOSE].active>0)
 		fprintf(stderr,"%s\n",argv);
 }
 
@@ -27,7 +27,7 @@ void debug3(char *argv){
 }
 
 void debugf(char *msg, int cnt, ...){
-	if(arglist[AVERBOSE].active>1){
+	if(arglist[AVERBOSE].active>0){
 		unsigned int x;
 		int *argv=&cnt;
 		fprintf(stderr,"%s ",msg);
