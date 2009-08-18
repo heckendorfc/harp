@@ -182,7 +182,7 @@ int deleteSong(char *args, void *data){
 	char query[100],*ptr;
 	int x;
 	printf("Delete?: ");
-	*args=fgetc(stdin);
+	fgets(args,200,stdin);
 	if(*args=='y' || *args=='Y'){
 		for(x=0;x<songids->length;x++){
 			sprintf(query,"DELETE FROM Song WHERE SongID=%d",songids->songid[x]);
@@ -191,7 +191,7 @@ int deleteSong(char *args, void *data){
 			sqlite3_exec(conn,query,NULL,NULL,NULL);
 		}
 		debug("Songs deleted.");
-		return 0;
+		return -1;
 	}
 	return 1;
 }
@@ -349,7 +349,7 @@ int deletePlaylist(char *args, void *data){
 				sqlite3_exec(conn,query,NULL,NULL,NULL);
 			}
 		}
-		return 0;
+		return -1;
 	}
 	return 1;
 }

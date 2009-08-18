@@ -15,9 +15,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+/* Portal return values:
+ * 		 1: Previous menu
+ * 		-1: Main menu
+ * 		 0: Quit
+ */
+
 int portal(struct commandOption *portalOptions, const char *prefix){
 	char *choice=malloc(sizeof(char)*200);
-	int x;
+	int x,ret=0;
 
 	while(printf("%s> ",prefix) && fgets(choice,200,stdin)){
 		for(x=0;choice[x] && choice[x]!='\n';x++);
@@ -36,10 +43,11 @@ int portal(struct commandOption *portalOptions, const char *prefix){
 			}
 		}
 		else{
-			if(!portalOptions[x].function(choice,portalOptions[x].data))break;
+			ret=portalOptions[x].function(choice,portalOptions[x].data);
+			if(ret<1)break;
 		}
 	}
 	free(choice);
-	return 0;
+	return ret;
 }
 

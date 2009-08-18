@@ -207,9 +207,7 @@ int strToID(char *argv){ // TODO: add type param
 		case 'a':sprintf(query,"SELECT AlbumID,Title FROM Album WHERE Title LIKE '%%%s%%'",argv);break;
 		default:return -1;
 	}
-	if(doQuery(query,&dbi)==1){
-		fetch_row(&dbi);
-		//printf("%s\t%s\n",dbi.row[0],dbi.row[1]);
+	if(doQuery(query,&dbi)==1 && fetch_row(&dbi)){
 		int id=(int)strtol(dbi.row[0],NULL,10);
 		dbiClean(&dbi);
 		return id;
