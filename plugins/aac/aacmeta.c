@@ -15,62 +15,54 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 struct musicInfo* plugin_meta(FILE *ffd){
 	struct musicInfo *mi=calloc(1,sizeof(struct musicInfo));
-	char single,buf[4],song[61],artist[61],album[61];
-	//int artistid,albumid;
-	int x,y;
-	fseek(ffd,0,SEEK_SET);
-	for(x=0;x<61;x++)
-		song[x]=artist[x]=album[x]=0;
+	mp4ff_t infile;
+	mp4ff_callback_t *mp4cb = malloc(sizeof(mp4ff_callback_t));
+	mp4cb->read=read_callback;
+	mp4cb->seek=seek_callback;
+	mp4cb->user_data=ffd;
 
-	for(x=0;x<50000;x++){
-		//fseek(ffd,x*sizeof(buf),SEEK_SET);
-
-		fread(&single,sizeof(single),1,ffd);
-		buf[x%4]=single;
-		
-		if(buf[(x-3)%4]==0xa9 && buf[(x-2)%4]=='n' && buf[(x-1)%4]=='a' && buf[(x)%4]=='m'){
-			fseek(ffd,(16*sizeof(buf[0])),SEEK_CUR);
-			for(y=0;y<30 && single!=0 ;y++){
-				fread(&single,sizeof(single),1,ffd);
-				if(single==0 || (single>31 && single<127))
-					song[y]=single;
-				else
-					song[y]=' ';
-			}
-			song[y]=0;
-			mi->title=calloc(61,sizeof(char));
-			strcpy(mi->title,song);
-		}
-
-		if(buf[(x-3)%4]==0xa9 && buf[(x-2)%4]=='A' && buf[(x-1)%4]=='R' && buf[(x)%4]=='T'){
-			fseek(ffd,(16*sizeof(buf[0])),SEEK_CUR);
-			for(y=0;y<30 && single!=0 ;y++){
-				fread(&single,sizeof(single),1,ffd);
-				if(single==0 || (single>31 && single<127))
-					artist[y]=single;
-				else
-					artist[y]=' ';
-			}
-			artist[y]=0;
-			mi->artist=calloc(61,sizeof(char));
-			strcpy(mi->artist,artist);
-		}
-		if(buf[(x-3)%4]==0xa9 && buf[(x-2)%4]=='a' && buf[(x-1)%4]=='l' && buf[(x)%4]=='b'){
-			fseek(ffd,(16*sizeof(buf[0])),SEEK_CUR);
-			for(y=0;y<30 && single!=0;y++){
-				fread(&single,sizeof(single),1,ffd);
-				if(single==0 || (single>31 && single<127))
-					album[y]=single;
-				else
-					album[y]=' ';
-			}
-			album[y]=0;
-			mi->album=calloc(61,sizeof(char));
-			strcpy(mi->album,album);
-		}
+	infile=mp4ff_open_read(mp4cb);
+	if(!infile){
+		fprintf(stderr,"mp4ffopenread failed");
+		free(mp4cb);
+		return mi;
 	}
+
+	char *temp;
+	if(mp4ff_meta_get_title(infile,&temp)){
+		mi->title=malloc(sizeof(char)*61);
+		strncpy(mi->title,temp,60);
+		free(temp);
+	}
+
+	if(mp4ff_meta_get_artist(infile,&temp)){
+		mi->artist=malloc(sizeof(char)*61);
+		strncpy(mi->artist,temp,60);
+		free(temp);
+	}
+
+	if(mp4ff_meta_get_album(infile,&temp)){
+		mi->album=malloc(sizeof(char)*61);
+		strncpy(mi->album,temp,60);
+		free(temp);
+	}
+
+	if(mp4ff_meta_get_track(infile,&temp)){
+		mi->track=malloc(sizeof(char)*61);
+		strncpy(mi->track,temp,60);
+		free(temp);
+	}
+
+	if(mp4ff_meta_get_date(infile,&temp)){
+		mi->year=malloc(sizeof(char)*9);
+		strncpy(mi->year,temp,8);
+		free(temp);
+	}
+
+	printf("%s | %s | %s | %s| %s\n\n",mi->title,mi->track,mi->album,mi->artist,mi->year);
+
+	free(mp4cb);
 	return mi;
 }

@@ -18,6 +18,10 @@
 #include "plugin.h"
 #include <mp4ff.h>
 #include <neaacdec.h>
+
+uint32_t read_callback(void *userdata, void *buffer, uint32_t length);
+uint32_t seek_callback(void *userdata, uint64_t position);
+
 #include "aacmeta.c"
 
 struct aacHandles{
