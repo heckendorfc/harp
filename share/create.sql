@@ -81,8 +81,8 @@ INNER JOIN Album ON Song.AlbumID=Album.AlbumID
 NATURAL JOIN AlbumArtist
 INNER JOIN Artist ON AlbumArtist.ArtistID=Artist.ArtistID;
 
-INSERT INTO Playlist(PlaylistID,Title) VALUES (0,'Temporary');
 INSERT INTO Playlist(PlaylistID,Title) VALUES (1,'Library');
 INSERT INTO Artist(ArtistID,Name) VALUES (1,'Unknown');
 INSERT INTO Album(AlbumID,Title) VALUES (1,'Unknown');
 INSERT INTO AlbumArtist(ArtistID,AlbumID) VALUES (1,1);
+INSERT INTO Category(CategoryID,Name) VALUES(1,"Unknown");

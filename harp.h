@@ -27,8 +27,6 @@
 #include <dlfcn.h>
 #include <getopt.h>
 #include <glob.h>
-//math.h only used for ceil. use macro instead?
-//#include <math.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
@@ -77,6 +75,7 @@ char subarglist[]={
 	's',	/*Song*/
 	'a',	/*Album*/
 	'r',	/*Artist*/
+	'g',	/*Genre*/
 	0		/*Placeholder*/
 };
 

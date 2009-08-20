@@ -206,14 +206,13 @@ int strToID(char *argv){ // TODO: add type param
 		case 'p':sprintf(query,"SELECT PlaylistID,Title FROM Playlist WHERE Title LIKE '%%%s%%'",argv);break;
 		case 'r':sprintf(query,"SELECT ArtistID,Name FROM Artist WHERE Name LIKE '%%%s%%'",argv);break;
 		case 'a':sprintf(query,"SELECT AlbumID,Title FROM Album WHERE Title LIKE '%%%s%%'",argv);break;
+		case 'g':sprintf(query,"SELECT CategoryID,Name FROM Category WHERE Name LIKE '%%%s%%'",argv);break;
 		default:return -1;
 	}
 	if(doQuery(query,&dbi)==1 && fetch_row(&dbi)){
 		id=(int)strtol(dbi.row[0],NULL,10);
-		dbiClean(&dbi);
-		return id;
 	}
-	if(dbi.row_count>1){
+	else if(dbi.row_count>1){
 		printf("Total matches for string '%s': %d\n",argv,dbi.row_count);
 		while(fetch_row(&dbi)){
 			printf("%s\t%s\n",dbi.row[0],dbi.row[1]);
@@ -227,14 +226,11 @@ int strToID(char *argv){ // TODO: add type param
 				}
 			}
 		}
-		if(id){
+		if(id)
 			printf("Using best match: %d\n",id);
-			dbiClean(&dbi);
-			return id;
-		}
 	}
 	dbiClean(&dbi);
-	return 0;
+	return id;
 }
 
 int verifyID(int id){
@@ -246,6 +242,7 @@ int verifyID(int id){
 		case 'p':sprintf(query,"SELECT PlaylistID FROM Playlist WHERE PlaylistID=%d",id);break;
 		case 'r':sprintf(query,"SELECT ArtistID FROM Artist WHERE ArtistID=%d",id);break;
 		case 'a':sprintf(query,"SELECT AlbumID FROM Album WHERE AlbumID=%d",id);break;
+		case 'g':sprintf(query,"SELECT CategoryID FROM Category WHERE CategoryID=%d",id);break;
 		default:return 0;
 	}
 	if(doQuery(query,&dbi)==1){
