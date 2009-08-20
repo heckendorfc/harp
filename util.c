@@ -198,6 +198,7 @@ int getID(char *arg){
 
 int strToID(char *argv){ // TODO: add type param
 	char query[201];
+	int id=0,found=0;
 	struct dbitem dbi;
 	dbiInit(&dbi);
 	switch(arglist[ATYPE].subarg[0]){
@@ -208,7 +209,7 @@ int strToID(char *argv){ // TODO: add type param
 		default:return -1;
 	}
 	if(doQuery(query,&dbi)==1 && fetch_row(&dbi)){
-		int id=(int)strtol(dbi.row[0],NULL,10);
+		id=(int)strtol(dbi.row[0],NULL,10);
 		dbiClean(&dbi);
 		return id;
 	}
@@ -216,6 +217,20 @@ int strToID(char *argv){ // TODO: add type param
 		printf("Total matches for string '%s': %d\n",argv,dbi.row_count);
 		while(fetch_row(&dbi)){
 			printf("%s\t%s\n",dbi.row[0],dbi.row[1]);
+			if(!found){
+				if(!strcmp(argv,dbi.row[1])){ // Perfect matches take priority
+					id=(int)strtol(dbi.row[0],NULL,10);
+					found=id?1:0;
+				}
+				else if(!strcasecmp(argv,dbi.row[1])){  // Case-insensitive matches can be used
+					id=(int)strtol(dbi.row[0],NULL,10); // Continue to look for perfect matches
+				}
+			}
+		}
+		if(id){
+			printf("Using best match: %d\n",id);
+			dbiClean(&dbi);
+			return id;
 		}
 	}
 	dbiClean(&dbi);
