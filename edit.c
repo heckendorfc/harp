@@ -204,8 +204,19 @@ int songActivation(char *args, void *data){
 	}
 	char query[100],*ptr;
 	int x;
+	for(x=1;x<200 && args[x] && args[x]==' ';x++);
+	if(args[x] && args[x]>='0' && args[x]<='9'){
+		sprintf(query,"UPDATE Song SET Active=%d WHERE SongID=",(strtol(&args[x],NULL,10)>0?1:0));
+		debug3(query);
+		ptr=&query[38];
+	}
+	else{
+		sprintf(query,"UPDATE Song SET Active=NOT(Active) WHERE SongID=");
+		debug3(query);
+		ptr=&query[48];
+	}
 	for(x=0;x<songids->length;x++){
-		sprintf(query,"UPDATE Song SET Active=NOT(Active) WHERE SongID=%d",songids->songid[x]);
+		sprintf(ptr,"%d",songids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	return 1;
