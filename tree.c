@@ -101,13 +101,16 @@ void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnod
 	}
 
 	int nextid;
+	struct dbnode *child;
 	while(fetch_row(&cur->dbi)){
-		cur=dbnodeAdd(cur);
-		nextid=(int)strtol(cur->prev->dbi.row[0],NULL,10);
+		child=dbnodeAdd(cur);
+		nextid=(int)strtol(cur->dbi.row[0],NULL,10);
 		if(nextid)
-			printGenreChildren(cur,nextid,action);
+			printGenreChildren(child,nextid,action);
+		else
+			dbnodeClean(child); 
 	}
-	dbnodeClean(cur->prev); // cur->prev is this node now.
+	dbnodeClean(cur); 
 }
 
 void tierChildPrint(struct dbnode *cur){
@@ -154,8 +157,8 @@ void printGenreTree(int head, void *action(struct dbnode *)){
 	for(x=0;headpath[x];x++);
 	depth=x-1;
 	printGenreHeadPath(headpath);
+	if(headpath[0])printf("\n");
 	free(headpath);
-	printf("\n");
 
 	struct dbnode *cur;
 	cur=dbnodeAdd(NULL);
