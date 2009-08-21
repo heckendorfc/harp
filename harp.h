@@ -146,6 +146,14 @@ struct commandOption{
 	void *data;
 };
 
+struct dbnode{
+	struct dbitem dbi;
+	struct dbnode *prev;
+	struct dbnode *next;
+	int depth;
+};
+
+
 //harp.c
 void segv_leave(int sig);
 void int_leave(int sig);
@@ -174,6 +182,7 @@ int getSong(char *arg, char *loc, int id);
 int getPlaylist(char *arg);
 int verifySong(int sid);
 int getPlaylistSong(int sid,int pid);
+int getSongCategory(int sid, int cid);
 int batchInsert(char *arg);
 unsigned int insertSong(char *arg);
 
@@ -217,6 +226,16 @@ void adminPortal();
 //portal.c
 int portal(struct commandOption *portalOptions, const char *prefix);
 
+//tree.c
+struct dbnode *dbnodeAdd(struct dbnode *node);
+struct dbnode *dbnodeClean(struct dbnode *node);
+int *getGenreHeadPath(int head);
+void printGenreHeadPath(int *path);
+void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnode*));
+void tierChildPrint(struct dbnode *cur);
+void tierCatPrint(struct dbnode *cur);
+void printGenreTree(int head, void *action(struct dbnode *));
+
 #include "dbact.c"
 #include "argparse.c"
 #include "insert.c"
@@ -228,3 +247,4 @@ int portal(struct commandOption *portalOptions, const char *prefix);
 #include "admin.c"
 #include "config.c"
 #include "portal.c"
+#include "tree.c"

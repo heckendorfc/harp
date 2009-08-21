@@ -196,6 +196,30 @@ int getPlaylistSong(int sid, int pid){
 	return newid;
 }
 
+int getSongCategory(int sid, int cid){
+	char query[201];
+	struct dbitem dbi;
+	dbiInit(&dbi);
+
+	sprintf(query,"SELECT COUNT(SongCategoryID), SongCategoryID FROM SongCategory WHERE CategoryID=%d AND SongID=%d",cid,sid);
+	debug3(query);
+	doQuery(query,&dbi);
+	fetch_row(&dbi);
+	if(strtol(dbi.row[0],NULL,10)==0){//create songcategory
+		sprintf(query,"INSERT INTO SongCategory(SongID,CategoryID) VALUES(%d,%d)",sid,cid);
+		debug3(query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK){
+			dbiClean(&dbi);
+			return -1;
+		}
+		dbiClean(&dbi);
+		return sqlite3_last_insert_rowid(conn);
+	}
+	int newid=(int)strtol(dbi.row[1],NULL,10);
+	dbiClean(&dbi);
+	return newid;
+}
+
 int verifySong(int sid){
 	char query[201];
 	char ans[4];
@@ -257,32 +281,6 @@ int batchInsert(char *arg){
 			}
 			debug("Done.");
 			return 1;
-		}
-	}
-	if(*arglist[ATYPE].subarg=='p'){//playlist
-		char temp[100],tempc[11],*nl;
-		int pid,sid;
-		if(arg){ // Get name from insert subarg
-			strncpy(temp,arg,sizeof(temp));
-		}
-		else{ // Get name from prompt
-			printf("Name: ");
-			fgets(temp,sizeof(temp),stdin);
-			if((nl=strchr(temp,'\n')))*nl=0;
-		}
-		printf("Inserting playlist: %s\n",temp);
-		pid=getPlaylist(temp);
-		if(pid<1){
-			fprintf(stderr,"Error inserting playlist\n");
-			return 0;
-		}
-		while(printf("SongID: ") && fgets(temp,sizeof(temp),stdin) && *temp!='\n'){
-			if((sid=getID(temp))==-1)continue;
-			sid=verifySong(sid);
-			if(sid>0)
-				getPlaylistSong(sid,pid);
-			printf("Success.\n");
-			sid=0;
 		}
 	}
 	return 0;
@@ -404,6 +402,7 @@ unsigned int insertSong(char *arg){
 	doQuery(dbq,&dbi);
 
 	getPlaylistSong(songid,getPlaylist("Library"));
+	getSongCategory(songid,1); // Unknown
 	debug("Song inserted into Library");
 	return 1;
 }

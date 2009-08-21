@@ -517,6 +517,26 @@ int editPlaylistSongOrder(char *args, void *data){
 	return 1;
 }
 
+int editPlaylistCreate(char *args, void *data){
+	char query[200];
+	int x,pid,sid;
+
+	if((x=getStdArgs(args,"Playlist name: "))<0)return 1;
+	args=&args[x];
+
+	pid=getPlaylist(args);
+	if(pid<1){
+		fprintf(stderr,"Error inserting playlist\n");
+		return 1;
+	}
+	while(printf("SongID: ") && fgets(args,200,stdin) && *args!='\n'){
+		if((sid=getID(args))<1)continue;
+		//if((sid=verifySong(sid))>0) // I don't know if I like this or not. Disabled for now.
+		getPlaylistSong(sid,pid);
+	}
+	return -1;
+}
+
 void cleanOrphans(){
 	// Clean orphaned albums
 	sqlite3_exec(conn,"DELETE FROM Album WHERE AlbumID NOT IN (SELECT AlbumID FROM Song)",NULL,NULL,NULL);
@@ -810,13 +830,46 @@ int artistPortal(char *args, void *data){
 int playlistPortal(char *args, void *data){
 	/* name delete song(a,d,o) */
 	struct IDList *ids=alloca(sizeof(struct IDList));
+
+	int x;
+	for(x=1;x<200 && args[x] && args[x]<'0';x++);
+	if(args[x]){
+		struct commandOption portalOptions[]={
+			{'L',listPlaylists,"List affected playlist\nLC\tList the contents of the selected playlist",ids},
+			{'n',editPlaylistName,"Change name",ids},
+			{'d',deletePlaylist,"Delete playlist from database",ids},
+			{'a',editPlaylistSongAdd,"Add a song",ids},
+			{'r',editPlaylistSongDelete,"Remove a song from playlist",ids},
+			{'o',editPlaylistSongOrder,"Change the order of a song",ids},
+			{0,NULL,NULL,NULL}
+		};
+
+		if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+		arglist[ATYPE].subarg[0]='p';
+
+		ids->songid=getMulti(&args[x],&ids->length);
+		if(ids->songid[0]<1){
+			fprintf(stderr,"No results found.\n");
+			return 1;
+		}
+		return portal(portalOptions,"playlist");
+	}
+	else{
+		struct commandOption portalOptions[]={
+			{'c',editPlaylistCreate,"Create a playlist",ids},
+			{0,NULL,NULL,NULL}
+		};
+		return portal(portalOptions,"playlist");
+	}
+}
+
+int genrePortal(char *args, void *data){
+	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
-		{'L',listPlaylists,"List affected playlist\nLC\tList the contents of the selected playlist",ids},
-		{'n',editPlaylistName,"Change name",ids},
-		{'d',deletePlaylist,"Delete playlist from database",ids},
-		{'a',editPlaylistSongAdd,"Add a song",ids},
-		{'r',editPlaylistSongDelete,"Remove a song from playlist",ids},
-		{'o',editPlaylistSongOrder,"Change the order of a song",ids},
+		//{'L',listGenre,"List affected genre\nLC\tList the contents of the selected genre",ids},
+		//{'n',editGenreName,"Change name of selected genre",ids},
+		//{'o',editGenreParent,"Change the owner of the genre",ids},
+		//{'d',deleteGenre,"Delete genre from database",ids},
 		{0,NULL,NULL,NULL}
 	};
 	int x;
@@ -828,7 +881,7 @@ int playlistPortal(char *args, void *data){
 	}
 
 	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
-	arglist[ATYPE].subarg[0]='p';
+	arglist[ATYPE].subarg[0]='g';
 
 	ids->songid=getMulti(&args[x],&ids->length);
 	if(ids->songid[0]<1){
@@ -845,6 +898,7 @@ void editPortal(){
 		{'a',albumPortal,"Edit albums",NULL},
 		{'r',artistPortal,"Edit artists",NULL},
 		{'p',playlistPortal,"Edit playlists",NULL},
+		{'g',genrePortal,"Edit genres",NULL},
 		{0,NULL,NULL,NULL}
 	};
 	printf("Enter a command. ? for command list.\n");
