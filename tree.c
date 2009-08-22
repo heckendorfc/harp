@@ -17,7 +17,6 @@
 
 struct dbnode *dbnodeAdd(struct dbnode *node){
 	struct dbnode *new=malloc(sizeof(struct dbnode));
-
 	dbiInit(&new->dbi);
 	new->prev=node;
 	if(node){
@@ -39,8 +38,8 @@ struct dbnode *dbnodeClean(struct dbnode *node){
 	struct dbnode *ret=node->prev;
 	dbiClean(&node->dbi);
 
-	if(node->next)
-		node->next->prev=node->prev;
+//	if(node->next)
+//		node->next->prev=node->prev;
 
 	if(node->prev)
 		node->prev->next=node->next;
@@ -95,10 +94,7 @@ void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnod
 		action(cur); // Do self
 
 	sprintf(query,"SELECT CategoryID FROM Category WHERE ParentID=%d",curid);
-	if(doQuery(query,&cur->dbi)<1 || !cur->dbi.row_count){
-		dbnodeClean(cur);
-		return;
-	}
+	doQuery(query,&cur->dbi);
 
 	int nextid;
 	struct dbnode *child;

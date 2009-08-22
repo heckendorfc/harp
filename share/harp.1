@@ -6,10 +6,10 @@ harp \- play and manage music
 .SH OPTIONS
 .TP
 \fB\-t\fP,\fB --type=\fP[type]
-Specify the type of object to perform an action on. Required for insert, list, or play. Valid types are: [s]ong, [p]laylist, a[r]tist, [a]lbum.
+Specify the type of object to perform an action on. Required for insert, list, or play. Valid types are: [s]ong, [p]laylist, a[r]tist, [a]lbum, [g]enre.
 .TP
-\fB\-i\fP,\fB --insert=\fP{song path | directory | playlist name}
-Insert song(s) or playlist(s) into the database. By passing a directory as an argument, HARP will recursively scan the directory and insert all valid files. Use with no argument to enter information at a prompt.
+\fB\-i\fP,\fB --insert=\fP{song path | directory}
+Insert song(s) into the database. By passing a directory as an argument, HARP will recursively scan the directory and insert all valid files. Use with no argument to enter information at a prompt.
 .TP
 \fB\-e\fP,\fB --edit\fP
 Edit information stored in the database.
@@ -117,8 +117,8 @@ Default HARP configuration file
 Plays the four selected songs in shuffled order
 .RE
 .br
-.B harp -tp -i -v -v -v
+.B harp -ts -i ~/music/ -v -v -v
 .br
 .RS
-Inserts a new playlist and displays debug messages with maximum verbosity
+Inserts the songs located under the ~/music/ directory and displays debug messages with maximum verbosity
 .RE

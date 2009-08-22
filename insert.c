@@ -196,6 +196,29 @@ int getPlaylistSong(int sid, int pid){
 	return newid;
 }
 
+int getCategory(char *arg){
+	char query[401];
+	struct dbitem dbi;
+	dbiInit(&dbi);
+
+	sprintf(query,"SELECT COUNT(CategoryID), CategoryID FROM Category WHERE Name=\'%s\'",arg);
+	debug3(query);
+	doQuery(query,&dbi);
+	fetch_row(&dbi);
+	if(strtol(dbi.row[0],NULL,10)==0){//create playlist
+		dbiClean(&dbi);
+		sprintf(query,"INSERT INTO Category (Name) VALUES ('%s')",arg);
+		debug3(query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK){
+			return -1;
+		}
+		return sqlite3_last_insert_rowid(conn);
+	}
+	int newid=(int)strtol(dbi.row[1],NULL,10);
+	dbiClean(&dbi);
+	return newid;
+}
+
 int getSongCategory(int sid, int cid){
 	char query[201];
 	struct dbitem dbi;

@@ -18,6 +18,7 @@
 struct IDList {
 	int *songid;
 	int length;
+	int tempselectid;
 };
 
 void cleanString(char **ostr){
@@ -529,12 +530,155 @@ int editPlaylistCreate(char *args, void *data){
 		fprintf(stderr,"Error inserting playlist\n");
 		return 1;
 	}
+	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+	*arglist[ATYPE].subarg='s';
 	while(printf("SongID: ") && fgets(args,200,stdin) && *args!='\n'){
 		if((sid=getID(args))<1)continue;
 		//if((sid=verifySong(sid))>0) // I don't know if I like this or not. Disabled for now.
 		getPlaylistSong(sid,pid);
 	}
 	return -1;
+}
+
+int editGenreCreate(char *args, void *data){
+	char query[200];
+	int x,gid;
+
+	if((x=getStdArgs(args,"Genre name: "))<0)return 1;
+	args=&args[x];
+
+	gid=getCategory(args);
+	if(gid<1){
+		fprintf(stderr,"Error inserting genre\n");
+		return 1;
+	}
+	return -1;
+}
+
+int editGenreName(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return 1;
+	}
+	char query[200];
+	int x,gid;
+
+	if((x=getStdArgs(args,"Genre name: "))<0)return 1;
+	args=&args[x];
+
+	for(x=0;x<ids->length;x++){
+		sprintf(query,"UPDATE Category SET Name='%s' WHERE CategoryID=%d",args,ids->songid[x]);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+	return 1;
+}
+
+int editGenreParent(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return 1;
+	}
+	char query[200];
+	int x,gid;
+
+	if((x=getStdArgs(args,"Owner: "))<0)return 1;
+	args=&args[x];
+
+	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+	*arglist[ATYPE].subarg='g';
+	if((gid=getID(args))<1){
+		if(!strncasecmp(args,"none",4) || *args=='0')
+			gid=0;
+		else
+			return 1;
+	}
+
+	for(x=0;x<ids->length;x++){
+		if(gid==ids->songid[x])continue;
+		sprintf(query,"UPDATE Category SET ParentID=%d WHERE CategoryID=%d AND CategoryID NOT IN (SELECT ParentID FROM Category WHERE CategoryID=%1$d)",gid,ids->songid[x]);
+		debug3(query);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+	return 1;
+}
+
+int editGenreDelete(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return 1;
+	}
+	if(!editWarn("Delete genre?"))return -1;
+
+	char query[200];
+	int x;
+
+	for(x=0;x<ids->length;x++){
+		if(ids->songid[x]==1)continue;
+
+		sprintf(query,"UPDATE Category SET ParentID=(SELECT ParentID FROM Category WHERE CategoryID=%d) WHERE ParentID=%1$d",ids->songid[x]);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+		sprintf(query,"DELETE FROM Category WHERE CategoryID=%d",ids->songid[x]);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+		sprintf(query,"DELETE FROM SongCategory WHERE CategoryID=%d",ids->songid[x]);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+	return -1;
+}
+
+int editSongGenreAdd(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return 1;
+	}
+
+	char query[300];
+	int x,gid;
+
+	if((x=getStdArgs(args,"Genre to add: "))<0)return 1;
+	args=&args[x];
+
+	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+	*arglist[ATYPE].subarg='g';
+	if((gid=getID(args))<1){
+		fprintf(stderr,"Invalid genre\n");
+		return 1;
+	}
+
+	// Insert songs from list that are not already in the category
+	sprintf(query,"INSERT INTO SongCategory(CategoryID,SongID) SELECT '%d',SongID FROM SongCategory WHERE SongID NOT IN (SELECT SongID FROM SongCategory WHERE CategoryID=%1$d) AND SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",gid,ids->tempselectid);
+	debug3(query);
+	sqlite3_exec(conn,query,NULL,NULL,NULL);
+	return 1;
+}
+
+int editSongGenreRemove(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return 1;
+	}
+
+	char query[200];
+	int x,gid;
+
+	if((x=getStdArgs(args,"Genre to remove: "))<0)return 1;
+	args=&args[x];
+
+	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+	*arglist[ATYPE].subarg='g';
+	if((gid=getID(args))<1){
+		fprintf(stderr,"Invalid genre\n");
+		return 1;
+	}
+
+	sprintf(query,"DELETE FROM SongCategory WHERE CategoryID=%d AND SongID IN (SELECT SongID FROM TempSelect WHERE TempID=%d)",gid,ids->tempselectid);
+	debug3(query);
+	sqlite3_exec(conn,query,NULL,NULL,NULL);
+	return 1;
 }
 
 void cleanOrphans(){
@@ -544,6 +688,8 @@ void cleanOrphans(){
 	sqlite3_exec(conn,"DELETE FROM AlbumArtist WHERE AlbumID NOT IN (SELECT AlbumID FROM Song)",NULL,NULL,NULL);
 	// Clean orphaned artists
 	sqlite3_exec(conn,"DELETE FROM Artist WHERE ArtistID NOT IN (SELECT ArtistID FROM AlbumArtist)",NULL,NULL,NULL);
+	// Put orphaned [category] songs in unknown
+	sqlite3_exec(conn,"INSERT INTO SongCategory (SongID,CategoryID) SELECT SongID,'1' FROM Song WHERE SongID NOT IN (SELECT SongID FROM SongCategory)",NULL,NULL,NULL);
 }
 
 int *getIDs(char *prompt, int *len){
@@ -653,7 +799,10 @@ int listArtists(char *args, void *data){
 int listPlaylists(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
-		fprintf(stderr,"no data\n");
+		if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
+		*arglist[ATYPE].subarg='p';
+		listall();
+		fprintf(stderr,"None selected.\n");
 		return 1;
 	}
 	struct dbitem dbi;
@@ -689,8 +838,62 @@ int listPlaylists(char *args, void *data){
 	return 1;
 }
 
+int listGenre(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	int x=0;
+	if(!ids || !ids->songid){
+		printGenreTree(0,(void *)tierCatPrint);
+		fprintf(stderr,"None selected.\n");
+		return 1;
+	}
+	// List contents of playlist as well.
+	if(args[1]=='C'){
+		for(x=0;x<ids->length;x++){
+			printGenreTree(ids->songid[x],(void *)tierChildPrint);
+		}
+	}
+	else{
+		for(x=0;x<ids->length;x++){
+			printGenreTree(ids->songid[x],(void *)tierCatPrint);
+		}
+	}
+	return 1;
+}
+
+int listSongGenre(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	int x=0;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"None selected.\n");
+		return 1;
+	}
+	char query[401];
+	int y,*exception=alloca(sizeof(int)*10);
+	for(x=2;x<10;x++)exception[x]=listconf.exception;exception[0]=exception[1]=1;
+	struct dbitem dbi;
+	dbiInit(&dbi);
+	sprintf(query,"SELECT CategoryID AS ID,Name FROM Category WHERE ID IN (SELECT DISTINCT CategoryID FROM SongCategory WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d))",ids->tempselectid);
+	debug3(query);
+	doTitleQuery(query,&dbi,exception,listconf.maxwidth);
+	return 1;
+}
+
+int songGenrePortal(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"None selected.\n");
+		return 1;
+	}
+	struct commandOption portalOptions[]={
+		{'L',listSongGenre,"List genres",ids},
+		{'a',editSongGenreAdd,"Add songs to a genre",ids},
+		{'r',editSongGenreRemove,"Remove songs from a genre",ids},
+		{0,NULL,NULL,NULL}
+	};
+
+	return portal(portalOptions,"Song-Genre");
+}
 int songPortal(char *args, void *data){
-	/* name location artist album delete active */
 	struct IDList *songids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
 		{'L',listSongs,"List affected songs",songids},
@@ -700,6 +903,7 @@ int songPortal(char *args, void *data){
 		{'r',editSongArtist,"Change artist",songids}, 
 		{'d',deleteSong,"Delete from database",songids},
 		{'v',songActivation,"Toggle activation",songids},
+		{'g',songGenrePortal,"Manage genre",songids},
 		{0,NULL,NULL,NULL}
 	};
 	int x,y,*ids,*sids=malloc(sizeof(int)),sidlen,idlen;
@@ -725,6 +929,10 @@ int songPortal(char *args, void *data){
 			sprintf(query,"SELECT SongID FROM Song NATURAL JOIN AlbumArtist WHERE ArtistID=");
 			ptr=&query[64];
 			break;
+		case 'g':
+			arglist[ATYPE].subarg[0]='g';
+			sprintf(query,"SELECT SongID FROM Song NATURAL JOIN SongCategory WHERE CategoryID=");
+			ptr=&query[67];
 		case 's':
 			x++;
 		default:
@@ -732,9 +940,11 @@ int songPortal(char *args, void *data){
 			arglist[ATYPE].subarg[0]='s';
 			sids=getMulti(&args[x],&sidlen);
 			if(sids[0]<1)return 1;
+			songids->tempselectid=insertTempSelect(sids,sidlen);
 			songids->songid=sids;
 			songids->length=sidlen;
-			x=portal(portalOptions,"song");
+			x=portal(portalOptions,"Song");
+			cleanTempSelect(songids->tempselectid);
 			free(sids);
 			return x;
 	}
@@ -762,16 +972,17 @@ int songPortal(char *args, void *data){
 		free(sids);
 		return 1;
 	}
+	songids->tempselectid=insertTempSelect(sids,sidlen);
 	songids->songid=sids;
 	songids->length=sidlen;
 	dbiClean(&dbi);
-	x=portal(portalOptions,"song");
+	x=portal(portalOptions,"Song");
+	cleanTempSelect(songids->tempselectid);
 	free(sids);
 	return x;
 }
 
 int albumPortal(char *args, void *data){
-	/* artist album */
 	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
 		{'L',listAlbums,"List affected alubms",ids},
@@ -796,11 +1007,10 @@ int albumPortal(char *args, void *data){
 		return 1;
 	}
 
-	return portal(portalOptions,"album");
+	return portal(portalOptions,"Album");
 }
 
 int artistPortal(char *args, void *data){
-	/* artist */
 	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
 		{'L',listArtists,"List affected artists",ids},
@@ -824,11 +1034,10 @@ int artistPortal(char *args, void *data){
 		return 1;
 	}
 
-	return portal(portalOptions,"artist");
+	return portal(portalOptions,"Artist");
 }
 
 int playlistPortal(char *args, void *data){
-	/* name delete song(a,d,o) */
 	struct IDList *ids=alloca(sizeof(struct IDList));
 
 	int x;
@@ -836,6 +1045,7 @@ int playlistPortal(char *args, void *data){
 	if(args[x]){
 		struct commandOption portalOptions[]={
 			{'L',listPlaylists,"List affected playlist\nLC\tList the contents of the selected playlist",ids},
+			{'c',editPlaylistCreate,"Create a playlist",NULL},
 			{'n',editPlaylistName,"Change name",ids},
 			{'d',deletePlaylist,"Delete playlist from database",ids},
 			{'a',editPlaylistSongAdd,"Add a song",ids},
@@ -852,32 +1062,40 @@ int playlistPortal(char *args, void *data){
 			fprintf(stderr,"No results found.\n");
 			return 1;
 		}
-		return portal(portalOptions,"playlist");
+		return portal(portalOptions,"Playlist");
 	}
 	else{
 		struct commandOption portalOptions[]={
-			{'c',editPlaylistCreate,"Create a playlist",ids},
+			{'L',listPlaylists,"Create a playlist",NULL},
+			{'c',editPlaylistCreate,"Create a playlist",NULL},
 			{0,NULL,NULL,NULL}
 		};
-		return portal(portalOptions,"playlist");
+		fprintf(stderr,"No playlist selected.\n");
+		return portal(portalOptions,"Playlist");
 	}
 }
 
 int genrePortal(char *args, void *data){
 	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
-		//{'L',listGenre,"List affected genre\nLC\tList the contents of the selected genre",ids},
-		//{'n',editGenreName,"Change name of selected genre",ids},
-		//{'o',editGenreParent,"Change the owner of the genre",ids},
-		//{'d',deleteGenre,"Delete genre from database",ids},
+		{'L',listGenre,"List affected genre\nLC\tList the contents of the selected genre",ids},
+		{'n',editGenreName,"Change name of selected genre",ids},
+		{'o',editGenreParent,"Change the owner of the genre",ids},
+		{'d',editGenreDelete,"Delete genre from database",ids},
+		{'a',editGenreCreate,"Add a new genre",NULL},
 		{0,NULL,NULL,NULL}
 	};
 	int x;
 
 	for(x=1;x<200 && args[x] && args[x]<'0';x++);
 	if(!args[x]){
-		fprintf(stderr,"Required argument not given.\n");
-		return 1;
+		fprintf(stderr,"No genre selected.\n");
+		struct commandOption portalOptions[]={
+			{'L',listGenre,"List all genres",NULL},
+			{'a',editGenreCreate,"Add a new genre",NULL},
+			{0,NULL,NULL,NULL}
+		};
+		return portal(portalOptions,"Genre");
 	}
 
 	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
@@ -889,7 +1107,7 @@ int genrePortal(char *args, void *data){
 		return 1;
 	}
 
-	return portal(portalOptions,"playlist");
+	return portal(portalOptions,"Genre");
 }
 
 void editPortal(){
@@ -902,6 +1120,6 @@ void editPortal(){
 		{0,NULL,NULL,NULL}
 	};
 	printf("Enter a command. ? for command list.\n");
-	while(portal(portalOptions,"edit"));
+	while(portal(portalOptions,"Edit"));
 	cleanOrphans();
 }

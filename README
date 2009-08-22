@@ -85,6 +85,7 @@ Edit commands:
 	a	Edit album(s)
 	r	Edit artist(s)
 	p	Edit playlist(s)
+	g	Edit genre(s)
 
 Song commands:
 		NOTE: Commands that require additional input can take it as an argument
@@ -103,6 +104,12 @@ Song commands:
 			they keep their play statistics and may be played only if
 			reactivated or if directly chosen to be played with the
 			--type=s flag.
+	g	Change which genres the song belongs to.
+		
+			Song-Genre commands:
+				L	List the genres the song belongs to.
+				a	Add the song to a genre.
+				r	Remove the song from a genre.
 
 Album commands:
 		NOTE: Commands that require additional input can take it as an argument
@@ -120,6 +127,9 @@ Artist commands:
 Playlist commands:
 		NOTE: Commands that require additional input can take it as an argument
 						(n NewName) or (o 10 4)
+	L	List playlists that will be affected
+	LC	List contents of the playlists that will be affected
+	c	Create a new playlist.
 	n	Change the name of the playlist.
 	d	Delete the playlist. Songs will remain in the database.
 	a	Add a song to the playlist.
@@ -127,6 +137,17 @@ Playlist commands:
 			(Takes an argument of Order. Not SongID)
 	o	Change the order of a song in the playlist.
 			(Takes two arguments: current order and new order)
+
+Genre commands:
+		NOTE: Commands that require additional input can take it as an argument
+						(e.g., n NewName)
+	L	List genres that will be affected
+	LC	List contents of the genres that will be affected
+	a	Add a genre.
+	n	Change the name of the genre.
+	o	Change the genre's owner (parent).
+	d	Delete the genre. If a song is left without any genres, it will be
+		added to the 'Unknown' genre at the end of the session.
 
 
 4.  Admin

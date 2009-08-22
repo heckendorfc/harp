@@ -180,6 +180,7 @@ int getArtist(char *arg);
 int getAlbum(char *arg, int id);
 int getSong(char *arg, char *loc, int id);
 int getPlaylist(char *arg);
+int getCategory(char *arg);
 int verifySong(int sid);
 int getPlaylistSong(int sid,int pid);
 int getSongCategory(int sid, int cid);
@@ -200,6 +201,8 @@ int getID(char *arg);
 int strToID(char *argv);
 char *getFilename(char *path);
 int *getMulti(char *arg, int *length);
+void cleanTempSelect(int tempid);
+int insertTempSelect(int *ids, int idlen);
 void miClean(struct musicInfo *mi);
 
 //message.c

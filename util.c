@@ -179,22 +179,6 @@ int isNumeric(char *argv){
 	return 1;
 }
 
-int getID(char *arg){
-	int id;
-	char *endptr;
-	if(arg==NULL){
-		printf("Required argument not provided\n");
-		return -1;
-	}
-	id=(int)strtol(arg,&endptr,10);
-	if(*endptr!=0){
-		if((id=strToID(arg))<1){
-			debug("No ID found.");
-			return -1;
-		}
-	}
-	return id;
-}
 
 int strToID(char *argv){ // TODO: add type param
 	char query[201];
@@ -253,6 +237,27 @@ int verifyID(int id){
 	return 0;
 }
 
+int getID(char *arg){
+	int id;
+	char *endptr;
+	if(arg==NULL){
+		printf("Required argument not provided\n");
+		return -1;
+	}
+	id=(int)strtol(arg,&endptr,10);
+	if(*endptr!=0){
+		if((id=strToID(arg))<1 ){
+			debug("No ID found.");
+			return -1;
+		}
+	}
+	if(!verifyID(id)){
+		debug("No ID found.");
+		return -1;
+	}
+	return id;
+}
+
 int *getMulti(char *arg, int *length){
 	const char del[]=",";
 	char *token;
@@ -278,6 +283,35 @@ int *getMulti(char *arg, int *length){
 	if(!x)list[0]=-1;
 
 	return list;
+}
+
+void cleanTempSelect(int tempid){
+	char query[150];
+	sprintf(query,"DELETE FROM TempSelect WHERE TempID=%d",tempid);
+	sqlite3_exec(conn,query,NULL,NULL,NULL);
+}
+
+int insertTempSelect(int *ids, int idlen){
+	int x,tempid;
+	struct dbitem dbi;
+	dbiInit(&dbi);
+	char query[150];
+
+	sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempSelect(TempSelectID integer not null primary key, TempID integer not null, SelectID integer not null)",NULL,NULL,NULL);
+
+	doQuery("SELECT TempID FROM TempSelect ORDER BY TempID DESC LIMIT 1",&dbi);
+	if(fetch_row(&dbi))
+		tempid=(int)strtol(dbi.row[0],NULL,10)+1;
+	else
+		tempid=1;
+
+	for(x=0;x<idlen;x++){
+		sprintf(query,"INSERT INTO TempSelect(TempID,SelectID) VALUES(%d,%d)",tempid,ids[x]);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+
+	dbiClean(&dbi);
+	return tempid;
 }
 
 void miClean(struct musicInfo *mi){
