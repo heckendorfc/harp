@@ -61,10 +61,6 @@ Song
 	directory is given as an argument, HARP will scan the directory
 	recursively and add all valid files into the system.
 
-Playlist
-	Insert a new playlist into the system. If the insert flag is given with 
-	no argument, the playlist name may be entered at the prompt.
-
 2.  List
 	List detailed song information or list the songs related to an album,
 	artist, or playlist. If given no argument, all members of that category
