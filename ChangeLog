@@ -1,10 +1,31 @@
+Changes in HARP-0.2.2:
+- Fixed a seg. fault when making a database change followed by
+	a call to strToID on a name not in the database. 
+- Fixed portal returns to allow sub-menus to return to the main menu.
+- Fixed AAC metadata parsing.
+- Added arguments to the song activation edit menu.
+	Users may now specify the desired activation status.
+- When searching for the ID of a string, HARP will now select an ID
+	if one of the results is a match.
+- Added genre tagging.
+	- "--type=g" now available.
+	- List all genres or all songs listed in specific genres.
+	- Add (or remove) songs to genres in the song section of the edit menu.
+	- Genre edit menu now available. 
+	- Play songs in selected genres.
+- Playlists are now created from the edit menu instead of insert.
+- ALERT: There have been changes to the database. If you have used
+		a previous version of HARP, please create the 'Unknown' genre
+		before creating any others. New databases will handle this
+		automatically.
+
 Changes in HARP-0.2.1:
 - Added directory scanning for song insertion.
 - Added song restarting for mp3s.
 - Debug messages now display on -v.
-- Fixed a bun causing player commands to be ignored.
+- Fixed a bug causing player commands to be ignored.
 - Fixed a bug causing some names to be misinterpreted as IDs.
-- Fixed seg faults occurring on player exit.
+- Fixed seg. faults occurring on player exit.
 
 Changes in HARP-0.2:
 - Added advanced command interface to player controls.
