@@ -224,7 +224,7 @@ int getSongCategory(int sid, int cid){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT COUNT(SongCategoryID), SongCategoryID FROM SongCategory WHERE CategoryID=%d AND SongID=%d",cid,sid);
+	sprintf(query,"SELECT COUNT(SongCatID), SongCatID FROM SongCategory WHERE CategoryID=%d AND SongID=%d",cid,sid);
 	debug3(query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
