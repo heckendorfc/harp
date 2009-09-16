@@ -1,4 +1,4 @@
-Changes in HARP-0.2.3:
+Changes in HARP-0.2.2.1:
 - Fixed an error in song insertion caused by a query using the
 	wrong database field
 - Fixed configure scripts
