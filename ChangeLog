@@ -1,3 +1,8 @@
+Changes in HARP-0.2.3:
+- Fixed an error in song insertion caused by a query using the
+	wrong database field
+- Fixed configure scripts
+
 Changes in HARP-0.2.2:
 - Fixed a seg. fault when making a database change followed by
 	a call to strToID on a name not in the database. 

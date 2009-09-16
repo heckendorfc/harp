@@ -4,13 +4,11 @@
 AC_INIT(plugin.h)
 AM_INIT_AUTOMAKE(harp/plugins, 0, 1)
 AC_CONFIG_SRCDIR([mp3/mp3.c],[aac/aac.c],[vorbis/vorbis.c],[flac/flac.c])
-#AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
 AC_PROG_CC
-#AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
-#AC_PROG_RANLIB
 
 CFLAGS="$CFLAGS -I/usr/local/include"
 LDFLAGS="$LDFLAGS -L/usr/local/lib"
@@ -65,23 +63,8 @@ AM_CONDITIONAL([WITH_FLAC], [test "$with_flac" != no])
 
 
 # Checks for header files.
-#AC_CHECK_HEADERS([stdlib.h string.h sys/ioctl.h termios.h unistd.h])
 AC_DEFINE(_FILE_OFFSET_BITS,64)
 
-# Checks for typedefs, structures, and compiler characteristics.
-#AC_TYPE_SIZE_T
-#AC_TYPE_SSIZE_T
-#AC_TYPE_UINT32_T
-#AC_TYPE_UINT64_T
-
-# Checks for library functions.
-#AC_FUNC_ALLOCA
-#AC_FUNC_MALLOC
-#AC_CHECK_FUNCS([memmove pow])
-
 AC_CONFIG_FILES([Makefile])
-#AC_CONFIG_FILES([mp3/Makefile])
-#AC_CONFIG_FILES([aac/Makefile])
-#AC_CONFIG_FILES([vorbis/Makefile])
 
 AC_OUTPUT
