@@ -25,12 +25,22 @@ int snd_init(struct playerHandles *ph){
 
 int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned int *rate){
 	*enc=AFMT_S16_NE;
-	if(ioctl(ph->sndfd,SNDCTL_DSP_SETFMT,enc)==-1)
-		return 1;
-	if(ioctl(ph->sndfd,SNDCTL_DSP_CHANNELS,channels)==-1)
-		return 1;
-	if(ioctl(ph->sndfd,SNDCTL_DSP_SPEED,rate)==-1)
-		return 1;
+	if(ioctl(ph->sndfd,SNDCTL_DSP_RESET,NULL)<0){
+		fprintf(stderr,"reset errno:%d\n",errno);
+		errno=0;
+	}
+	if(ioctl(ph->sndfd,SNDCTL_DSP_SETFMT,enc)<0){
+		fprintf(stderr,"fmt errno:%d\n",errno);
+		errno=0;
+	}
+	if(ioctl(ph->sndfd,SNDCTL_DSP_CHANNELS,channels)<0){
+		fprintf(stderr,"ch errno:%d\n",errno);
+		errno=0;
+	}
+	if(ioctl(ph->sndfd,SNDCTL_DSP_SPEED,rate)<0){
+		fprintf(stderr,"rate errno:%d\n",errno);
+		errno=0;
+	}
 	fprintf(stderr,"param ok");
 	return 0;
 }
@@ -40,12 +50,12 @@ void changeVolume(int mod){
 	int ffd;
 	if((ffd=open("/dev/dsp",O_RDWR,777))<0)return;
 
-	if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\n%d\n",errno);errno=0;close(ffd);return;}
+	if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\nget vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
 	current+=mod<<8;
 	current+=mod;
 	if((current&0xff)>0)
-		if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\n%d\n",errno);errno=0;close(ffd);return;}
+		if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
 	fprintf(stdout,"\r                               Volume: %d%%  ",(0xff&current));
 	fflush(stdout);
@@ -64,14 +74,14 @@ void toggleMute(int *mute){
 		fprintf(stdout,"\r                               Volume: %d%%  ",(0xff&current));
 	}
 	else{ // Mute 
-		if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\n%d\n",errno);errno=0;close(ffd);return;}
+		if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\nget vol errno:%d\n",errno);errno=0;close(ffd);return;}
 		*mute=current;
 		current=0;
 		fprintf(stdout,"\r                               Volume Muted  ");
 	}
 	fflush(stdout);
 
-	if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\n%d\n",errno);errno=0;close(ffd);return;}
+	if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
 	close(ffd);
 }

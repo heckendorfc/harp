@@ -332,17 +332,26 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 		case KEY_PREV:
 			if(!pca->decoder)return 1;
 			seek=dlsym(pca->decoder,"plugin_seek");
-			if(seek)seek(pca->ph,0);
+			if(seek){
+				pca->ph->pflag->pause=0;
+				seek(pca->ph,0);
+			}
 			return 1;
 		case KEY_SEEK_UP:
 			if(!pca->decoder)return 1;
 			seek=dlsym(pca->decoder,"plugin_seek");
-			if(seek)seek(pca->ph,20);
+			if(seek){
+				pca->ph->pflag->pause=0;
+				seek(pca->ph,20);
+			}
 			return 1;
 		case KEY_SEEK_DN:
 			if(!pca->decoder)return 1;
 			seek=dlsym(pca->decoder,"plugin_seek");
-			if(seek)seek(pca->ph,-20);
+			if(seek){
+				pca->ph->pflag->pause=0;
+				seek(pca->ph,-20);
+			}
 			return 1;
 		case KEY_RATEUP:
 			pca->ph->pflag->rating=pca->ph->pflag->rating==10?10:pca->ph->pflag->rating+1;
