@@ -15,8 +15,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_LIBASOUND
+#if WITH_ALSA==1
 	#include <alsa/asoundlib.h>
+#elif WITH_JACK==1
+	#include <jack/jack.h>
 #else
 	#include <sys/fcntl.h>
 	#include <sys/ioctl.h>

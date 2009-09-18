@@ -4,11 +4,6 @@
 AC_INIT(harp, 0.2.2.1)
 AC_CONFIG_SRCDIR(harp.c)
 AM_INIT_AUTOMAKE
-#AC_INIT(harp.c)
-#AM_INIT_AUTOMAKE(harp, 0, 1)
-#LT_INIT(dlopen])
-#AC_CONFIG_SRCDIR([harp.c])
-#AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
 AC_PROG_CC
@@ -18,15 +13,30 @@ AC_PROG_LIBTOOL
 CFLAGS="$CFLAGS -I/usr/local/include"
 LDFLAGS="$LDFLAGS -L/usr/local/lib"
 # Checks for libraries.
-AC_CHECK_LIB([asound], [snd_pcm_open])
-#AC_SEARCH_LIBS([dlopen], [dl])
-#AC_CHECK_LIB([faad], [NeAACDecOpen])
-#AC_CHECK_LIB([mp4ff], [mp4ff_open_read])
-#AC_CHECK_LIB([mpg123], [mpg123_init])
+#AC_CHECK_LIB([asound], [snd_pcm_open])
 AC_CHECK_LIB([pthread], [pthread_create])
-#AC_CHECK_LIB([sndutil], [snd_init])
 AC_CHECK_LIB([sqlite3], [sqlite3_exec])
-#AC_CHECK_LIB([vorbisfile], [ov_open_callbacks])
+
+AC_ARG_WITH([alsa],
+[AS_HELP_STRING(--with-alsa, Enable alsa support)],
+[], [with_alsa=no])
+
+AC_ARG_WITH([jack],
+[AS_HELP_STRING(--with-jack, Enable jack support)],
+[], [with_jack=no])
+
+AS_IF([test "$with_alsa" != no],
+[AC_CHECK_LIB([asound], [snd_pcm_open],
+	[LIBS="$LIBS -lasound" AC_DEFINE([WITH_ALSA],[1],[alsa define])],
+	[with_alsa=no])])
+
+AS_IF([test "$with_jack" != no],
+[AC_CHECK_LIB([jack], [jack_activate],
+	[LIBS="$LIBS -ljack" AC_DEFINE([WITH_JACK],[1],[jack define])],
+	[with_jack=no])])
+
+#AM_CONDITIONAL([WITH_ALSA], [test "$with_alsa" != no])
+#AM_CONDITIONAL([WITH_JACK], [test "$with_jack" != no])
 
 # Checks for header files.
 #AC_CHECK_HEADERS([stdint.h stdlib.h string.h sys/ioctl.h termios.h unistd.h])

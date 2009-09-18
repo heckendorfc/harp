@@ -124,7 +124,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		details.percent=(details.curtime*100)/details.totaltime;
 		crOutput(ph->pflag,&details);
 
-#ifdef HAVE_LIBASOUND
+#if WITH_ALSA==1
 		if(writei_snd(ph,buf,size/sizemod)<0)break; //(datasize)/(encodeBytes*channels)
 #else
 		if(writei_snd(ph,buf,size)<0)break; //(datasize)/(encodeBytes*channels)

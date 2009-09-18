@@ -1,7 +1,15 @@
+Changes in HARP-0.2.3:
+- Added JACK output support.
+- Added volume control to JACK.
+- Added basic upsampling for JACK.
+- Fixed OSS audio settings.
+- Fixed OSS volume control.
+- Player now unpauses when a seek command is entered.
+
 Changes in HARP-0.2.2.1:
 - Fixed an error in song insertion caused by a query using the
-	wrong database field
-- Fixed configure scripts
+	wrong database field.
+- Fixed configure scripts.
 
 Changes in HARP-0.2.2:
 - Fixed a seg. fault when making a database change followed by

@@ -15,8 +15,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_LIBASOUND
+#if WITH_ALSA==1
 	#include <alsa/asoundlib.h>
+#elif WITH_JACK==1
+	#include <jack/jack.h>
 #else
 	#include <sys/soundcard.h>
 	#include <sys/fcntl.h>
@@ -60,19 +62,6 @@ enum decreturns{
 	DEC_RET_NEXT_NOUP
 };
 
-struct playerHandles{
-	FILE *ffd;
-#ifdef HAVE_LIBASOUND
-	snd_pcm_t *sndfd;
-	snd_pcm_hw_params_t *params;
-#else
-	int sndfd;
-	int *params;
-#endif
-	struct playerflag *pflag;
-	void *dechandle;
-};
-
 struct outputdetail{
 	int curtime;
 	int totaltime;
@@ -80,19 +69,43 @@ struct outputdetail{
 	int status;
 };
 
+struct playerHandles{
+	FILE *ffd;
+#if WITH_ALSA==1
+	snd_pcm_t *sndfd;
+	snd_pcm_hw_params_t *params;
+#elif WITH_JACK==1
+	jack_client_t *sndfd;
+	jack_port_t *out_port1, *out_port2;
+	const char **jack_ports;
+	float vol_mod,*outbuf;
+	int fillsize, maxsize;
+	int dec_chan,dec_rate,out_rate;
+	int out_gain;
+#else
+	int sndfd;
+	int *params;
+#endif
+	struct playerflag *pflag;
+	void *dechandle;
+	struct outputdetail *outdetail;
+};
+
 
 //sndutil.c
 int snd_init(struct playerHandles *ph);
 int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned int *rate);
-void toggleMute(int *mute);
-void changeVolume(int mod);
+void toggleMute(struct playerHandles *ph, int *mute);
+void changeVolume(struct playerHandles *ph, int mod);
 void snd_clear(struct playerHandles *ph);
 int writei_snd(struct playerHandles *ph, const char *out, const unsigned int size);
 int writen_snd(struct playerHandles *ph, void *out[], const unsigned int size);
 void snd_close(struct playerHandles *ph);
 
-#ifdef HAVE_LIBASOUND
+#if WITH_ALSA==1
 	#include "sndutil.c"
+#elif WITH_JACK==1
+	#include "jackutil.c"
 #else
 	#include "ossutil.c"
 #endif

@@ -45,10 +45,10 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 	return 0;
 }
 
-void changeVolume(int mod){
+void changeVolume(struct playerHandles *ph, int mod){
 	int current;
-	int ffd;
-	if((ffd=open("/dev/dsp",O_RDWR,777))<0)return;
+	int ffd=ph->sndfd;
+	//if((ffd=open("/dev/dsp",O_RDWR,777))<0)return;
 
 	if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\nget vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
@@ -60,13 +60,13 @@ void changeVolume(int mod){
 	fprintf(stdout,"\r                               Volume: %d%%  ",(0xff&current));
 	fflush(stdout);
 
-	close(ffd);
+	//close(ffd);
 }
 
-void toggleMute(int *mute){
+void toggleMute(struct playerHandles *ph, int *mute){
 	int current;
-	int ffd;
-	if((ffd=open("/dev/dsp",O_RDWR,777))<0)return;
+	int ffd=ph->sndfd;
+	//if((ffd=open("/dev/dsp",O_RDWR,777))<0)return;
 
 	if(*mute>0){ // Unmute and perform volume change
 		current=*mute;
@@ -83,7 +83,7 @@ void toggleMute(int *mute){
 
 	if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
-	close(ffd);
+	//close(ffd);
 }
 
 void snd_clear(struct playerHandles *ph){

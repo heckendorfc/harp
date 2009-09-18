@@ -103,7 +103,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			int channels, enc,enc_bit=2;
 			unsigned int rate;
 			mpg123_getformat(h.m, &ratel, &channels, &enc);
-			//ratel=44100;channels=2;enc=MPG123_ENC_16;
+			//ratel=44100;channels=2;enc=MPG123_ENC_FLOAT_32;
+			//mpg123_format(h.m,ratel,channels,enc);
 			rate=(unsigned int)ratel;
 			//enc=getMp3EncBytes(&enc_bit);
 			fprintf(stderr,"New format: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
@@ -164,7 +165,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		crOutput(ph->pflag,&details);
 		total+=(size*accuracy)/samptime;
 
-#ifdef HAVE_LIBASOUND
+#if WITH_ALSA==1
 		if(writei_snd(ph,(char *)out,size/framesize)<0)break;
 #else
 		if(writei_snd(ph,(char *)out,size)<0)break;

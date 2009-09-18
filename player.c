@@ -77,7 +77,10 @@ int player(int list){//list - playlist number
 	// Play the list!
 	int x,fmt,ret,sid,totaltime;
 
-	snd_init(&ph);
+	if(snd_init(&ph)){
+		fprintf(stderr,"snd_init failed");
+		return 1;
+	}
 
 	void *module;
 	function_play modplay;
@@ -316,15 +319,15 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 	switch(key){
 		case KEY_VOLUP:
 			debug3("KEY_VOLUP");
-			changeVolume(5);
+			changeVolume(pca->ph,5);
 			return 1;
 		case KEY_VOLDN:
 			debug3("KEY_VOLDN");
-			changeVolume(-5);
+			changeVolume(pca->ph,-5);
 			return 1;
 		case KEY_MUTE:
 			debug3("KEY_MUTE");
-			toggleMute(&pca->ph->pflag->mute);
+			toggleMute(pca->ph,&pca->ph->pflag->mute);
 			return 1;
 		case KEY_PAUSE: 
 			pca->ph->pflag->pause=!pca->ph->pflag->pause;

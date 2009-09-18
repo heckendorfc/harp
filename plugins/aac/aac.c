@@ -197,7 +197,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			break;
 		}
 		if(hInfo.samples<1)continue;
-#ifdef HAVE_LIBASOUND
+#if WITH_ALSA==1
 		if(writei_snd(ph,(char *)out,framesize)<0)break;
 #else
 		if(writei_snd(ph,(char *)out,framesize*channels*2)<0)break;

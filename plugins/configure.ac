@@ -31,8 +31,16 @@ AC_ARG_WITH([flac],
 [], [with_flac=yes])
 
 
+AC_ARG_WITH([alsa],
+[AS_HELP_STRING(--with-alsa, Enable alsa support)],
+[], [with_alsa=no])
+
+AC_ARG_WITH([jack],
+[AS_HELP_STRING(--with-jack, Enable jack support)],
+[], [with_jack=no])
+
 # Checks for libraries.
-AC_CHECK_LIB([asound], [snd_pcm_open])
+#AC_CHECK_LIB([asound], [snd_pcm_open])
 
 AS_IF([test "$with_mp3" != no],
 [AC_CHECK_LIB([mpg123], [mpg123_init],
@@ -54,6 +62,17 @@ AS_IF([test "$with_flac" != no],
 [AC_CHECK_LIB([FLAC], [FLAC__stream_decoder_new],
 	AC_CONFIG_FILES([flac/Makefile]),
 	[with_flac=no])])
+
+
+AS_IF([test "$with_alsa" != no],
+[AC_CHECK_LIB([asound], [snd_pcm_open],
+	[LIBS="$LIBS -lasound" AC_DEFINE([WITH_ALSA],[1],[alsa define])],
+	[with_alsa=no])])
+
+AS_IF([test "$with_jack" != no],
+[AC_CHECK_LIB([jack], [jack_activate],
+	[LIBS="$LIBS -ljack" AC_DEFINE([WITH_JACK],[1],[jack define])],
+	[with_jack=no])])
 
 
 AM_CONDITIONAL([WITH_MP3], [test "$with_mp3" != no])
