@@ -16,18 +16,17 @@ I.	Installation and Setup
 
 Installing harp:
 	./configure
-	make
-	make install
-
-
-Installing plugins:
-	cd plugins
 		To build without certain plugins use --without-pluginname:
 			./configure --without-flac --without-vorbis
 		Currently available are mp3, aac, vorbis, and flac
-	./configure
+
+		To use a different sound output (OSS is the default), use:
+			./configure --with-jack
+			or
+			./configure --with-alsa
 	make
 	make install
+
 
 Enable the plugins in harp:
 	harp -a
@@ -183,11 +182,15 @@ General format for this file:
 IV.  Requirements
 
 Sound output: 
-	ALSA or OSS
+	ALSA, OSS, JACK
 Database: 
 	SQLite3
 Default Decoders: 
 	MP3: libmpg123
+		- http://www.mpg123.de/
 	AAC: libfaad2
+		- http://www.audiocoding.com/downloads.html
 	OGG: libvorbisfile
+		- http://www.xiph.org/downloads/
 	FLAC: libFLAC
+		- http://www.xiph.org/downloads/

@@ -1,4 +1,3 @@
-ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = . 
 if WITH_MP3
 SUBDIRS += mp3

@@ -21,8 +21,10 @@
 
 struct mp3Handles{
 	mpg123_handle *m;
-	long *total;
+	long total;
 	int accuracy;
+	int framesize;
+	int samptime;
 }h;
 
 int filetype_by_data(FILE *ffd){
@@ -71,11 +73,11 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 
 
 	if(modtime){
-		*h->total+=(modtime*h->accuracy);
-		if(*h->total<0)*h->total=0;
+		h->total+=(modtime*h->accuracy);
+		if(h->total<0)h->total=0;
 	}
 	else
-		*h->total=0;
+		h->total=0;
 
 	snd_clear(ph);
 }
@@ -88,60 +90,51 @@ void plugin_exit(struct playerHandles *ph){
 int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	size_t size;
 	ssize_t len;
-	int mret=MPG123_NEED_MORE,framesize=4;
+	int mret=MPG123_NEED_MORE;
 	int retval=DEC_RET_SUCCESS;
+	struct outputdetail details;
+	long ratel;
+	int channels, enc,enc_bit=2;
+	unsigned int rate;
 	
 	if(mp3Init(ph)<0)return DEC_RET_ERROR;
 
-	long total=0;
-	int samptime=0,accuracy=1000;
-	struct outputdetail details;
 	details.totaltime=*totaltime>0?*totaltime:-1;
 	details.percent=-1;
-	//len=fread(buf,sizeof(unsigned char),insize,ph->ffd); // trash first frame
-			long ratel;
-			int channels, enc,enc_bit=2;
-			unsigned int rate;
-			mpg123_getformat(h.m, &ratel, &channels, &enc);
-			//ratel=44100;channels=2;enc=MPG123_ENC_FLOAT_32;
-			//mpg123_format(h.m,ratel,channels,enc);
-			rate=(unsigned int)ratel;
-			//enc=getMp3EncBytes(&enc_bit);
-			fprintf(stderr,"New format: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
-			snd_param_init(ph,&enc,&channels,&rate);
-			//mpg123_info(h.m,&fi);
-			//TODO:don't hardcode the padding byte
-			//framesize=ceil((double)fi.framesize/144)+1;
-			framesize=channels*enc_bit;//channels*sample_bits
-			samptime=rate*framesize;
-			//fprintf(stderr,"New Format: framesize samptime %d %d\n",framesize,samptime);
-
 	ph->dechandle=&h;
-	h.total=&total;
-	h.accuracy=accuracy;
+			
+	mpg123_getformat(h.m, &ratel, &channels, &enc);
+	rate=(unsigned int)ratel;
+	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
+	snd_param_init(ph,&enc_bit,&channels,&rate);
+
+	ph->dec_rate=ratel;
+	ph->dec_enc=enc_bit;
+	ph->dec_chan=channels;
+	h.framesize=enc_bit*channels;
+	h.samptime=ratel*h.framesize;
+
+	h.total=0;
+	h.accuracy=1000;
 	int outsize=mpg123_outblock(h.m);
 	unsigned char *out=alloca(sizeof(unsigned char)*outsize);
-	//fprintf(stderr,"Buffers (out): %d\n",outsize);
 
 	do{ /* Read and write until everything is through. */
+
 		//if outbuff isn't big enough to hold all decoded data from inbuff, keep going
 		if(mret != MPG123_NEED_MORE){
-			//mret = mpg123_decode(h.m,NULL,0,out,outsize,&size);
 			mret=mpg123_read(h.m,out,outsize,&len);
 		}
 		else{
-		//	if((len=fread(buf,sizeof(unsigned char),insize,ph->ffd)) <= 0){
 			mret=mpg123_read(h.m,out,outsize,&len);
-			if(mret==MPG123_DONE || mret==MPG123_ERR){
-				// EOF (or read error)
+			if(mret==MPG123_DONE || mret==MPG123_ERR){ // EOF (or read error)
 				retval=DEC_RET_SUCCESS;
 				fprintf(stderr,"\ndone..\n");
 				break;
 			}
-			/* Feed input chunk and get first chunk of decoded audio. */
-			//mret = mpg123_decode(h.m,buf,len,out,outsize,&size);
 		}
 		if(mret==MPG123_NEW_FORMAT){
+			/*
 			mpg123_getformat(h.m, &ratel, &channels, &enc);
 			//ratel=44100;channels=2;enc=MPG123_ENC_16;
 			rate=(unsigned int)ratel;
@@ -155,18 +148,18 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			samptime=rate*framesize;
 			fprintf(stderr,"New Format: framesize samptime %d %d\n",framesize,samptime);
 			//snd_pcm_prepare(ph->sndfd);
+			*/ fprintf(stderr," Should have reformatted here\n");
 		}
-		//if(size==0 || len==0)continue;
 		if(len==0)continue;
 		size=len;
 
-		details.curtime=total/accuracy;
+		details.curtime=h.total/h.accuracy;
 		details.percent=(details.curtime*100)/details.totaltime;
 		crOutput(ph->pflag,&details);
-		total+=(size*accuracy)/samptime;
+		h.total+=(size*h.accuracy)/h.samptime;
 
 #if WITH_ALSA==1
-		if(writei_snd(ph,(char *)out,size/framesize)<0)break;
+		if(writei_snd(ph,(char *)out,size/h.framesize)<0)break;
 #else
 		if(writei_snd(ph,(char *)out,size)<0)break;
 #endif

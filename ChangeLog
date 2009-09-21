@@ -1,7 +1,7 @@
 Changes in HARP-0.2.3:
 - Added JACK output support.
-- Added volume control to JACK.
-- Added basic upsampling for JACK.
+- Added volume control to JACK
+- Added basic resampling for JACK
 - Fixed OSS audio settings.
 - Fixed OSS volume control.
 - Player now unpauses when a seek command is entered.

@@ -80,12 +80,12 @@ struct playerHandles{
 	const char **jack_ports;
 	float vol_mod,*outbuf;
 	int fillsize, maxsize;
-	int dec_chan,dec_rate,out_rate;
 	int out_gain;
 #else
 	int sndfd;
 	int *params;
 #endif
+	int dec_enc,dec_chan,dec_rate,out_rate;
 	struct playerflag *pflag;
 	void *dechandle;
 	struct outputdetail *outdetail;

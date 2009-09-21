@@ -35,28 +35,49 @@ pthread_mutex_t outbuf_lock;
 #define GAIN_MAX 10
 #define GAIN_MIN -40
 
-int resample(float *buf, int len, int maxlen, int in_rate, int out_rate){
-	int x,y,L;
-	if(in_rate>out_rate) // Downsampling not supported yet
-		return len;
+int decimate(float *buf, int len, int M){
+	int x;
+	for(x=0;x<len;x++){
+		buf[x]=buf[x*M];
+	}
+	return len/M;
+}
 
-	if(!(in_rate%out_rate)) // Resampling not supported yet
-		return len;
-
-	L=out_rate/in_rate;
-	if(len*L>maxlen) // Buffer overflow
-		return len;
-
-	fprintf(stderr,"%d ",L);
-
+int interpolate(float *buf, int len, int L){
+	int x,y;
 	for(x=len;x>0;x--){
 		buf[x*L]=buf[x];
 		for(y=0;y<L;y++)
 			buf[y+x]=0;
 	}
-	// TODO" Add a filter
-	
+	// TODO" Add FIR
 	return len*L;
+}
+
+int resample(float *buf, int len, int maxlen, int in_rate, int out_rate){
+	int x,y,L,M,newlen;
+	if(in_rate==out_rate)return len;
+	if(in_rate<out_rate){
+		if(!(in_rate%out_rate)){ // Resampling not supported yet
+			return len;
+		}
+
+		L=out_rate/in_rate;
+		if(len*L>maxlen){ // Buffer overflow
+			return -1;
+		}
+		newlen=interpolate(buf,len,L);
+	}
+	else{
+		if(!(out_rate%in_rate)){ // Resampling not supported yet
+			return len;
+		}
+
+		M=in_rate/out_rate;
+		newlen=decimate(buf,len,M);
+	}
+
+	return newlen;
 }
 
 int char_to_float(float *f, const char *c, int len){
@@ -83,12 +104,14 @@ int jack_process(jack_nframes_t nframes, void *arg){
 	const float vol_mod=ph->vol_mod;
 	int x;
 
-	pthread_mutex_lock(&outbuf_lock);
-		nframes<<=(ph->dec_chan/2);
-		jack_nframes_t actual=(nframes>ph->fillsize)?(ph->fillsize):nframes;
+	if(!ph->dechandle)return 0;
 
-		jack_default_audio_sample_t *out1=(jack_default_audio_sample_t *)jack_port_get_buffer(ph->out_port1,actual>>1);
-		jack_default_audio_sample_t *out2=(jack_default_audio_sample_t *)jack_port_get_buffer(ph->out_port2,actual>>1);
+	pthread_mutex_lock(&outbuf_lock);
+		jack_nframes_t combined_nframes=nframes<<(ph->dec_chan/2);
+		jack_nframes_t actual=(combined_nframes>ph->fillsize)?(ph->fillsize):combined_nframes;
+
+		jack_default_audio_sample_t *out1=(jack_default_audio_sample_t *)jack_port_get_buffer(ph->out_port1,nframes);
+		jack_default_audio_sample_t *out2=(jack_default_audio_sample_t *)jack_port_get_buffer(ph->out_port2,nframes);
 
 		if(!ph->pflag->mute){
 			if(ph->dec_chan==1){
@@ -105,6 +128,7 @@ int jack_process(jack_nframes_t nframes, void *arg){
 		else // Fill with silence
 			x=0;
 
+		// Use memset instead?
 		for(;x<nframes;x++) // Silence any remaining audio
 			out1[x]=out2[x]=0;
 
@@ -128,7 +152,7 @@ void jack_shutdown(void *arg){
 }
 
 int snd_init(struct playerHandles *ph){
-	ph->maxsize=102400;
+	ph->maxsize=40960;
 	ph->fillsize=0;
 	ph->outbuf=calloc((ph->maxsize),sizeof(float));
 	pthread_mutex_init(&outbuf_lock,NULL);
@@ -180,6 +204,7 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 	int x=0;
 	ph->dec_rate=*rate;
 	ph->dec_chan=*channels;
+	ph->dec_enc=*enc;
 	return 0;
 }
 
@@ -215,7 +240,7 @@ void snd_clear(struct playerHandles *ph){
 }
 
 int writei_snd(struct playerHandles *ph, const char *out, const unsigned int size){
-	int ret,remaining=size;
+	int ret,resamp,remaining=size;
 	if(ph->pflag->pause){
 		snd_clear(ph);
 		do{
@@ -227,8 +252,12 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 		if(ph->maxsize-ph->fillsize>remaining){
 			pthread_mutex_lock(&outbuf_lock);
 				if((ret=char_to_float(ph->outbuf+ph->fillsize,out,remaining))>=0){
-					ret=resample(ph->outbuf+ph->fillsize,ret,ph->maxsize-ph->fillsize,ph->dec_rate,ph->out_rate);
-					ph->fillsize+=ret;
+					while((resamp=resample(ph->outbuf+ph->fillsize,ret,ph->maxsize-ph->fillsize,ph->dec_rate,ph->out_rate))<0){
+						pthread_mutex_unlock(&outbuf_lock); // Terrible solution. 
+						usleep(2000);
+						pthread_mutex_lock(&outbuf_lock);
+					}
+					ph->fillsize+=resamp;
 				}
 				else{
 					fprintf(stderr,"JACK | Err: Float conversion returned -1");
