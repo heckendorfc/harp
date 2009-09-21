@@ -24,12 +24,12 @@ int snd_init(struct playerHandles *ph){
 }
 
 int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned int *rate){
-	*enc=AFMT_S16_NE;
+	int oss_enc=AFMT_S16_NE;
 	if(ioctl(ph->sndfd,SNDCTL_DSP_RESET,NULL)<0){
 		fprintf(stderr,"reset errno:%d\n",errno);
 		errno=0;
 	}
-	if(ioctl(ph->sndfd,SNDCTL_DSP_SETFMT,enc)<0){
+	if(ioctl(ph->sndfd,SNDCTL_DSP_SETFMT,&oss_enc)<0){
 		fprintf(stderr,"fmt errno:%d\n",errno);
 		errno=0;
 	}

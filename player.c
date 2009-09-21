@@ -60,7 +60,7 @@ int player(int list){//list - playlist number
 	char key=KEY_NULL;
 	struct playercontrolarg pca;
 	struct playerHandles ph;
-	struct playerflag pflag={0,0,1,32,32};
+	struct playerflag pflag={0,0,1,0,32,32};
 
 	ph.ffd=NULL;
 	ph.dechandle=NULL;
