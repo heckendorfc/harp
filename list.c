@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <vaseros@gmail.com>
+ *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it AND/or modify
  *  it under the terms of the GNU General Public License AS published by

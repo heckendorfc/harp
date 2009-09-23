@@ -5,6 +5,8 @@ Changes in HARP-0.2.3:
 - Fixed OSS audio settings.
 - Fixed OSS volume control.
 - Player now unpauses when a seek command is entered.
+- Fixed a bug causing a song insert to fail when trying to insert a song
+	without any meta data that has unescaped characters in the file name.
 
 Changes in HARP-0.2.2.1:
 - Fixed an error in song insertion caused by a query using the

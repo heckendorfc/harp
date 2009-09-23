@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <vaseros@gmail.com>
+ *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -406,7 +406,8 @@ unsigned int insertSong(char *arg){
 
 	if(mi->title==NULL){
 		mi->title=malloc(sizeof(char)*100);
-		strcpy(mi->title,getFilename(arg));
+		strcpy(tempname,getFilename(arg));
+		db_insert_safe(mi->title,tempname,100);
 	}
 	else{
 		db_insert_safe(tempname,mi->title,255);

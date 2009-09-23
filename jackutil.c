@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <vaseros@gmail.com>
+ *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ pthread_mutex_t outbuf_lock;
 #include <math.h>
 
 #define NORMFACT (float)0x8000
-#define MAXSAMPLE (float)0x7FFFF
 #define GAIN_MAX 10
 #define GAIN_MIN -40
 
@@ -64,7 +63,7 @@ int resample(float *buf, int len, int maxlen, int in_rate, int out_rate){
 
 		L=out_rate/in_rate;
 		if(len*L>maxlen){ // Buffer overflow
-			return -1;
+			return -(len*L);
 		}
 		newlen=interpolate(buf,len,L);
 	}
@@ -128,8 +127,8 @@ int jack_process(jack_nframes_t nframes, void *arg){
 		else // Fill with silence
 			x=0;
 
-		// Use memset instead?
-		for(;x<nframes;x++) // Silence any remaining audio
+		// Silence any remaining audio
+		for(;x<nframes;x++)
 			out1[x]=out2[x]=0;
 
 		// Move remaining data to the front.
@@ -149,20 +148,22 @@ int jack_srate(jack_nframes_t nframes, void *arg){
 }
 
 void jack_shutdown(void *arg){
+	fprintf(stderr,"JACK | Shutdown.\n");
 }
 
 int snd_init(struct playerHandles *ph){
+	char client_name[255];
 	ph->maxsize=40960;
 	ph->fillsize=0;
 	ph->outbuf=calloc((ph->maxsize),sizeof(float));
 	pthread_mutex_init(&outbuf_lock,NULL);
 
 	ph->out_gain=0;
-	ph->vol_mod=powf(10.0f,(float)ph->out_gain*0.05f);
-
+	ph->vol_mod=1;
 	jack_set_error_function(jack_err);
 
-	if((ph->sndfd=jack_client_open("HARP",JackNullOption,NULL))==NULL){
+	snprintf(client_name,255,"HARP-%d",getpid());
+	if((ph->sndfd=jack_client_open(client_name,JackNullOption,NULL))==NULL){
 		fprintf(stderr,"JACK | Jack server not running?\n");
 		return 1;
 	}
@@ -241,31 +242,33 @@ void snd_clear(struct playerHandles *ph){
 
 int writei_snd(struct playerHandles *ph, const char *out, const unsigned int size){
 	int ret,resamp,remaining=size;
-	if(ph->pflag->pause){
+	if(ph->pflag->pause){ // Move this into process?
+		ret=ph->fillsize; // Can't let all that beautiful music go to waste...
 		snd_clear(ph);
 		do{
 			usleep(100000); // 0.1 seconds
 		}
 		while(ph->pflag->pause);
+		ph->fillsize=ret;
 	}
 	do{
 		if(ph->maxsize-ph->fillsize>remaining){
 			pthread_mutex_lock(&outbuf_lock);
 				if((ret=char_to_float(ph->outbuf+ph->fillsize,out,remaining))>=0){
-					while((resamp=resample(ph->outbuf+ph->fillsize,ret,ph->maxsize-ph->fillsize,ph->dec_rate,ph->out_rate))<0){
-						pthread_mutex_unlock(&outbuf_lock); // Terrible solution. 
-						usleep(2000);
-						pthread_mutex_lock(&outbuf_lock);
+					if((resamp=resample(ph->outbuf+ph->fillsize,ret,ph->maxsize-ph->fillsize,ph->dec_rate,ph->out_rate))<0){
+						pthread_mutex_unlock(&outbuf_lock);
+						usleep(12000);
+						continue;
 					}
 					ph->fillsize+=resamp;
 				}
 				else{
-					fprintf(stderr,"JACK | Err: Float conversion returned -1");
+					fprintf(stderr,"JACK | Err: Float conversion failed.");
 				}
 				remaining=ret=0;
 			pthread_mutex_unlock(&outbuf_lock);
 		}
-		usleep(2000); // 0.002 seconds
+		usleep(6000); // 0.006 seconds
 	}while(remaining>0);
 	return 0;
 }
