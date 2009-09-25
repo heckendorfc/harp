@@ -133,7 +133,8 @@ int editSongArtist(char *args, void *data){
 	}
 
 	sprintf(query,"UPDATE Song SET AlbumID=%d WHERE SongID=",albumid);
-	ptr=&query[41];
+	for(x=0;query[x];x++);
+	ptr=&query[x];
 	for(x=0;x<songids->length;x++){
 		sprintf(ptr,"%d",songids->songid[x]);
 		debug3(query);

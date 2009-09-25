@@ -1,3 +1,6 @@
+Changes in HARP-0.3.0:
+- Fixed bug in editSongArtist
+
 Changes in HARP-0.2.3:
 - Added JACK output support.
 - Added volume control to JACK
