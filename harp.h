@@ -47,6 +47,13 @@
 #define DB_PATH "~/.harp/"
 #define DB "harp.db"
 
+#define MI_TITLE_SIZE 200
+#define MI_TRACK_SIZE 9
+#define MI_ARTIST_SIZE 100
+#define MI_ALBUM_SIZE 100
+#define MI_YEAR_SIZE 4
+#define MI_LENGTH_SIZE 8
+
 sqlite3 *conn;
 struct dbitem{
 	char **result;	  // All data
@@ -177,17 +184,17 @@ int doTitleQuery(const char *querystr,struct dbitem *dbi,int *exception, int max
 void createTempPlaylistSong();
 
 //insert.c
-void db_safe(char *str, char *data, size_t size);
-int getArtist(char *arg);
-int getAlbum(char *arg, int id);
-int getSong(char *arg, char *loc, int id);
-int getPlaylist(char *arg);
-int getCategory(char *arg);
-int verifySong(int sid);
-int getPlaylistSong(int sid,int pid);
-int getSongCategory(int sid, int cid);
+void db_safe(char *str, const char *data, const size_t size);
+int getArtist(const char *arg);
+int getAlbum(const char *arg, int id);
+int getSong(const char *arg, const char *loc, const int id);
+int getPlaylist(const char *arg);
+int getCategory(const char *arg);
+int verifySong(const int sid);
+int getPlaylistSong(const int sid, const int pid);
+int getSongCategory(const int sid, const int cid);
 int batchInsert(char *arg);
-unsigned int insertSong(char *arg);
+unsigned int insertSong(const char *arg, struct musicInfo *mi);
 
 //edit.c
 int batchEdit(int *ids,int len);
@@ -196,15 +203,16 @@ void editPortal();
 //util.c
 void setDefaultConfig();
 char *expand(char *in);
-int fileFormat(char *argv);
+int fileFormat(const char *argv);
 int isNumeric(char *argv);
-int getPlugin(struct dbitem *dbi, int index, void **module);
-int getID(char *arg);
-int strToID(char *argv);
-char *getFilename(char *path);
+int getPlugin(struct dbitem *dbi, const int index, void **module);
+int getID(const char *arg);
+int strToID(const char *argv);
+char *getFilename(const char *path);
 int *getMulti(char *arg, int *length);
-void cleanTempSelect(int tempid);
-int insertTempSelect(int *ids, int idlen);
+void cleanTempSelect(const int tempid);
+int insertTempSelect(const int *ids, const int idlen);
+void miFree(struct musicInfo *mi);
 void miClean(struct musicInfo *mi);
 
 //message.c

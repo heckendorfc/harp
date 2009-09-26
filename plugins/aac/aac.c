@@ -96,7 +96,8 @@ static int GetAACTrack(mp4ff_t *infile){
 }
 
 int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
-	unsigned char *buf=NULL,*out; /* buffers  */
+	unsigned char *buf=NULL;
+	char *out;
 	ssize_t len;
 	int track,fmt,ret,channels,retval=DEC_RET_SUCCESS;
 	unsigned int rate,bufsize;
@@ -141,12 +142,10 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	unsigned char channelchar;
 	unsigned long ratel;
 	if((ret=NeAACDecInit2(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
-		//fprintf(stderr,"New format (Hz;channels;encoding): %d %d %d\n",(int)ratel, (int)channelchar, (int)conf->outputFormat);
 		fprintf(stderr,"New format: %dHz %d channels\n",(int)ratel, (int)channelchar);
 		channels=(int)channelchar;
 		fmt=(int)conf->outputFormat;
 		rate=(unsigned int)ratel;
-		//memcpy(buf,&buf[ret-1],len-ret);
 	}
 	else{
 		fprintf(stderr,"NeAACDecInit2 error %d\n",ret);
@@ -180,6 +179,12 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	ph->dechandle=&h;
 
+#if WITH_ALSA==1
+	const int outsize=framesize;
+#else
+	const int outsize=framesize*channels*2;
+#endif
+
 	//fprintf(stderr,"numsamples: %d\n",numsamples);
 	for(sample=0;sample<numsamples;sample++){ 
 		ret=mp4ff_read_sample(infile,track,sample,&buf,&bufsize);
@@ -188,7 +193,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			retval=DEC_RET_ERROR;
 			break;
 		}
-		out=(unsigned char *)NeAACDecDecode(hAac,&hInfo,buf,bufsize);
+		out=(char *)NeAACDecDecode(hAac,&hInfo,buf,bufsize);
 
 		total+=hInfo.samples/channels; // framesize?
 		if(hInfo.error>0){
@@ -197,11 +202,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			break;
 		}
 		if(hInfo.samples<1)continue;
-#if WITH_ALSA==1
-		if(writei_snd(ph,(char *)out,framesize)<0)break;
-#else
-		if(writei_snd(ph,(char *)out,framesize*channels*2)<0)break;
-#endif
+
+		if(writei_snd(ph,out,outsize)<0)break;
 
 		details.curtime=total/rate;
 		details.percent=(sample*100)/numsamples;

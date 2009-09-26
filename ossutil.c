@@ -15,6 +15,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* OSSv3 missing:
+ * SNDCTL_DSP_SKIP
+ * SNDCTL_DSP_SILENCE
+ * SNDCTL_DSP_GETPLAYVOLUME
+ * SNDCTL_DSP_SETPLAYVOLUME
+ */
+
 #include <errno.h>
 
 int snd_init(struct playerHandles *ph){
@@ -48,7 +55,6 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 void changeVolume(struct playerHandles *ph, int mod){
 	int current;
 	int ffd=ph->sndfd;
-	//if((ffd=open("/dev/dsp",O_RDWR,777))<0)return;
 
 	if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\nget vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
@@ -59,14 +65,11 @@ void changeVolume(struct playerHandles *ph, int mod){
 
 	fprintf(stdout,"\r                               Volume: %d%%  ",(0xff&current));
 	fflush(stdout);
-
-	//close(ffd);
 }
 
 void toggleMute(struct playerHandles *ph, int *mute){
 	int current;
 	int ffd=ph->sndfd;
-	//if((ffd=open("/dev/dsp",O_RDWR,777))<0)return;
 
 	if(*mute>0){ // Unmute and perform volume change
 		current=*mute;
@@ -82,8 +85,6 @@ void toggleMute(struct playerHandles *ph, int *mute){
 	fflush(stdout);
 
 	if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
-
-	//close(ffd);
 }
 
 void snd_clear(struct playerHandles *ph){

@@ -35,59 +35,44 @@ void safe_store(char *str, char *data, size_t size){
 			z++;
 		}
 	}
-	//fprintf(stderr,"%s\n",str);
-	//if(str[x-1]==' ')//strip trailing space
-	//	str[x-1]=0;
 	if(strcmp(str,"")==0)strcpy(str,"Unknown");
 }
 
 /* ID3......TTAG.....valueTTG2......value */
 int getTagData(unsigned char *buf, struct musicInfo *mi){
 	int x=0,ret=0,y;
-	//for(;x<4;x++)printf("%c",buf[x]);printf("\n");x=0;
-	//for(;x<4;x++)printf("%x",buf[x]);printf("\n");x=0;
 	unsigned char *tag=buf+4;
 	unsigned char *temp=calloc(5,sizeof(char));
-	//tag+=4;ret+=4;
+	
 	for(x=4;*tag==0 && x>0;x--)tag++;
 	memcpy(temp,tag,x); // Info Size
 	tag+=(x+3);
 	y=ret=x;
 
 	for(x=0;ret>0;ret--)x+=(int)pow((double)temp[y-ret],(double)ret); // Prep for strtol
-//	fprintf(stderr,"%x %d %d %x\n",*(tag-(3+y)),y,x,temp[0]);
 
 	if(memcmp("TIT2",buf,4)==0){
-		mi->title=calloc(x*2,sizeof(char));
-		memcpy(mi->title,tag,x-1);
+		memcpy(mi->title,tag,(x-1)>MI_TITLE_SIZE?MI_TITLE_SIZE:x-1);
 	}
 	else if(memcmp("TRCK",buf,4)==0){
-		mi->track=calloc(x*2,sizeof(char));
-		memcpy(mi->track,tag,x-1);
+		memcpy(mi->track,tag,(x-1)>MI_TRACK_SIZE?MI_TRACK_SIZE:x-1);
 	}
 	else if(memcmp("TALB",buf,4)==0){
-		mi->album=calloc(x*2,sizeof(char));
-		memcpy(mi->album,tag,x-1);
+		memcpy(mi->album,tag,(x-1)>MI_ALBUM_SIZE?MI_ALBUM_SIZE:x-1);
 	}
 	else if(memcmp("TYER",buf,4)==0){
-		mi->year=calloc(x*2,sizeof(char));
-		memcpy(mi->year,tag,x-1);
+		memcpy(mi->year,tag,(x-1)>MI_YEAR_SIZE?MI_YEAR_SIZE:x-1);
 	}
 	else if(memcmp("TLEN",buf,4)==0){
-		mi->length=calloc(x*2,sizeof(char));
-		memcpy(mi->length,tag,x-1);
+		memcpy(mi->length,tag,(x-1)>MI_LENGTH_SIZE?MI_LENGTH_SIZE:x-1);
 	}
 	else if(memcmp("TPE1",buf,4)==0){
-		mi->artist=calloc(x*2,sizeof(char));
-		memcpy(mi->artist,tag,x-1);
+		memcpy(mi->artist,tag,(x-1)>MI_ARTIST_SIZE?MI_ARTIST_SIZE:x-1);
 	}
-	else if(memcmp("\0\0\0\0",buf,4)==0)return -11;
+	else if(memcmp("\0\0\0\0",buf,4)==0)return -1;
 
 	free(temp);
 	return x+10;
-	//free(loc);
-	//while(--x)printf("%c",*tag++);
-	//printf("\n");
 }
 	
 void ID3v2Parse(FILE *ffd, struct musicInfo *mi){
@@ -95,8 +80,7 @@ void ID3v2Parse(FILE *ffd, struct musicInfo *mi){
 	unsigned char buffer[255];
 	fseek(ffd,next,SEEK_SET);
 	fread(buffer,sizeof(char),10,ffd);
-	//for(ret=4;ret>0;ret--)
-	//	total+=(buffer[10-ret]<<(8*(ret-1)));
+
 	next+=10;
 	do{
 		fseek(ffd,next,SEEK_SET);
@@ -113,37 +97,32 @@ void ID3v1Parse(FILE *ffd, struct musicInfo *mi){
 	fseek(ffd,next,SEEK_END);
 	fread(buffer,sizeof(char),30,ffd);
 	safe_store(safe,buffer,30);
-	mi->title=calloc(61,sizeof(char));
 	strcpy(mi->title,safe);
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
 	fread(buffer,sizeof(char),30,ffd);
 	safe_store(safe,buffer,60);
-	mi->artist=calloc(61,sizeof(char));
 	strcpy(mi->artist,safe);
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
 	fread(buffer,sizeof(char),30,ffd);
 	safe_store(safe,buffer,60);
-	mi->album=calloc(61,sizeof(char));
 	strcpy(mi->album,safe);
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
 	fread(buffer,sizeof(char),4,ffd);
 	safe_store(safe,buffer,4);
-	mi->year=calloc(9,sizeof(char));
 	strcpy(mi->year,safe);
 	next+=4;
 
 	printf("v1: %s | %s | %s | %s| %s | %s || %d\n\n",mi->title,mi->track,mi->album,mi->artist,mi->length,mi->year,next);
 }
 
-struct musicInfo* plugin_meta(FILE *ffd){
+void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	int MAX_VERSION=4;
-	struct musicInfo *mi=calloc(1,sizeof(struct musicInfo));
 	int next=0;
 	unsigned char buffer[255];
 	fseek(ffd,next,SEEK_SET);
@@ -152,11 +131,8 @@ struct musicInfo* plugin_meta(FILE *ffd){
 		ID3v2Parse(ffd,mi);
 	}
 	else{
-		//fseek(ffd,0,SEEK_END);
 		fseek(ffd,-128,SEEK_END);
 		fread(buffer,sizeof(char),4,ffd);
-		//fprintf(stderr,"%x %x %x\n",buffer[0],buffer[1],buffer[2]);
 		if(memcmp("TAG",buffer,3)==0)ID3v1Parse(ffd,mi); // ID3v1
 	}
-	return mi;
 }

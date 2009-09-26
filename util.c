@@ -76,7 +76,7 @@ char *expand(char *in){
 
 typedef int (*filetype_by_data)(FILE *ffd);
 
-int fileFormat(char *arg){
+int fileFormat(const char *arg){
 	FILE *ffd;
 	char library[200];
 	struct dbitem dbi;
@@ -139,7 +139,7 @@ int fileFormat(char *arg){
 	}
 }
 
-int getPlugin(struct dbitem *dbi, int index, void **module){
+int getPlugin(struct dbitem *dbi, const int index, void **module){
 	char library[250];
 	if(!fetch_row(dbi)){
 		if(dbi->current_row==dbi->column_count || dbi->row_count==0)
@@ -160,11 +160,11 @@ int getPlugin(struct dbitem *dbi, int index, void **module){
 	return 1;
 }
 
-char *getFilename(char *path){
-	char *filestart=path;
+char *getFilename(const char *path){
+	char *filestart=(char *)path;
 	while(*path){
 		if(*path=='/')
-			filestart=path+1;
+			filestart=(char *)path+1;
 		path++;
 	}
 	return filestart;
@@ -179,8 +179,7 @@ int isNumeric(char *argv){
 	return 1;
 }
 
-
-int strToID(char *argv){ // TODO: add type param
+int strToID(const char *argv){ // TODO: add type param
 	char query[201];
 	int id=0,found=0;
 	struct dbitem dbi;
@@ -217,7 +216,7 @@ int strToID(char *argv){ // TODO: add type param
 	return id;
 }
 
-int verifyID(int id){
+int verifyID(const int id){
 	char query[100];
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -237,7 +236,7 @@ int verifyID(int id){
 	return 0;
 }
 
-int getID(char *arg){
+int getID(const char *arg){
 	int id;
 	char *endptr;
 	if(arg==NULL){
@@ -285,13 +284,13 @@ int *getMulti(char *arg, int *length){
 	return list;
 }
 
-void cleanTempSelect(int tempid){
+void cleanTempSelect(const int tempid){
 	char query[150];
 	sprintf(query,"DELETE FROM TempSelect WHERE TempID=%d",tempid);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 }
 
-int insertTempSelect(int *ids, int idlen){
+int insertTempSelect(const int *ids, const int idlen){
 	int x,tempid;
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -315,6 +314,15 @@ int insertTempSelect(int *ids, int idlen){
 }
 
 void miClean(struct musicInfo *mi){
+	memset(mi->title,0,MI_TITLE_SIZE);
+	memset(mi->album,0,MI_ALBUM_SIZE);
+	memset(mi->artist,0,MI_ARTIST_SIZE);
+	memset(mi->year,0,MI_YEAR_SIZE);
+	memset(mi->track,0,MI_TRACK_SIZE);
+	memset(mi->length,0,MI_LENGTH_SIZE);
+}
+
+void miFree(struct musicInfo *mi){
 	if(mi->title!=NULL)
 		free(mi->title);
 	if(mi->album!=NULL)
@@ -327,6 +335,4 @@ void miClean(struct musicInfo *mi){
 		free(mi->track);
 	if(mi->length!=NULL)
 		free(mi->length);
-	if(mi!=NULL)
-		free(mi);
 }

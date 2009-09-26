@@ -16,7 +16,6 @@
  */
 
 
-struct musicInfo* plugin_meta(FILE *ffd){
-	struct musicInfo *mi=calloc(1,sizeof(struct musicInfo));
-	return mi;
+void plugin_meta(FILE *ffd, struct musicInfo *mi){
+	return;
 }

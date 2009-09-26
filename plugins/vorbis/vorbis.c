@@ -81,22 +81,18 @@ void silencer(){
 
 int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	size_t size;
-	char buf[1600];  /* input buffer  */
-	ssize_t len=1600;
-	//int ret,framesize=4;
+	const ssize_t len=1600;
+	char buf[len];  /* input buffer  */
 	
-	//snd_pcm_uframes_t frames;
 	OggVorbis_File *vf=malloc(sizeof(OggVorbis_File));
-	//int status=0;
 
 	if(ov_open_callbacks(ph->ffd,vf,NULL,0,OV_CALLBACKS_NOCLOSE)<0){
 		fprintf(stderr,"ov open failed\n");
 		free(vf);
 		return DEC_RET_ERROR;
-		//snd_pcm_drop(ph->sndfd);
 	}
 
-	unsigned int total=0,sizemod;
+	unsigned int total=0;
 	int channels, enc, retval=DEC_RET_SUCCESS;
 	unsigned int rate;
 	vorbis_info *vi;
@@ -107,8 +103,9 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	vi=ov_info(vf,-1);
 	rate=(unsigned int)vi->rate;
 	channels=(unsigned int)vi->channels;
-	sizemod=2*channels;
-	//fprintf(stderr,"New format (Hz;channels;encoding): %d %d %d\n",rate, channels, (int)vi->bitrate_nominal);
+
+	const int sizemod=2*channels;
+
 	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",rate, channels, (int)vi->bitrate_nominal);
 	snd_param_init(ph,&enc,&channels,&rate);
 
@@ -125,9 +122,9 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		crOutput(ph->pflag,&details);
 
 #if WITH_ALSA==1
-		if(writei_snd(ph,buf,size/sizemod)<0)break; //(datasize)/(encodeBytes*channels)
+		if(writei_snd(ph,buf,size/sizemod)<0)break;
 #else
-		if(writei_snd(ph,buf,size)<0)break; //(datasize)/(encodeBytes*channels)
+		if(writei_snd(ph,buf,size)<0)break;
 #endif
 		total+=size;
 

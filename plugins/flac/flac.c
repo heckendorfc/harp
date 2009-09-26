@@ -145,9 +145,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	return retval;
 }
 
-struct musicInfo* plugin_meta(FILE *ffd){
-	struct musicInfo *mi=calloc(1,sizeof(struct musicInfo));
-	return mi;
+void plugin_meta(FILE *ffd, struct musicInfo *mi){
+	return;
 }
 
 int filetype_by_data(FILE *ffd){

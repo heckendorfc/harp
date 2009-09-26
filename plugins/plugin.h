@@ -39,6 +39,13 @@
 
 #include "sndutil.h"
 
+#define MI_TITLE_SIZE 200
+#define MI_TRACK_SIZE 9
+#define MI_ARTIST_SIZE 100
+#define MI_ALBUM_SIZE 100
+#define MI_YEAR_SIZE 4
+#define MI_LENGTH_SIZE 8
+
 struct musicInfo{
 	char *title;
 	char *track;

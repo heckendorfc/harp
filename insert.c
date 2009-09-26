@@ -15,8 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+typedef void (*function_meta)(FILE *ffd, struct musicInfo *mi);
 
-void db_insert_safe(char *str, char *data, size_t size){
+void db_insert_safe(char *str, const char *data, const size_t size){
 	if(strcmp(data,"")==0){strcpy(str,"Unknown");return;}
 	int x,z=0;
 	for(x=0;data[x]>31 && data[x]<127 && x<size;x++){//strip multi space
@@ -34,13 +35,12 @@ void db_insert_safe(char *str, char *data, size_t size){
 			z++;
 		}
 	}
-	//fprintf(stderr,"%s\n",str);
 	//if(str[x-1]==' ')//strip trailing space
 	//	str[x-1]=0;
 	if(strcmp(str,"")==0)strcpy(str,"Unknown");
 }
 
-void db_safe(char *str, char *data, size_t size){
+void db_safe(char *str, const char *data, const size_t size){
 	int x,z=0;
 	for(x=0;data[x]>31 && data[x]<127 && x<size;x++){//strip multi space
 		if(data[x]==' ' && data[x+1]==' ')continue;
@@ -57,11 +57,11 @@ void db_safe(char *str, char *data, size_t size){
 			z++;
 		}
 	}
-	//fprintf(stderr,"%s\n",str);
 	//if(str[x-1]==' ')//strip trailing space
 	//	str[x-1]=0;
 }
-int getArtist(char *arg){//doesn't handle duplicate name entries
+
+int getArtist(const char *arg){
 	char query[301];
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -85,7 +85,7 @@ int getArtist(char *arg){//doesn't handle duplicate name entries
 	return id;
 }
 
-int getAlbum(char *arg,int id){//doesn't handle duplicate name entries
+int getAlbum(const char *arg, const int id){
 	char query[401];
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -115,7 +115,7 @@ int getAlbum(char *arg,int id){//doesn't handle duplicate name entries
 	return newid;
 }
 
-int getSong(char *arg,char *loc,int id){//doesn't handle duplicate name entries
+int getSong(const char *arg, const char *loc, const int id){
 	char query[401];
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -139,7 +139,7 @@ int getSong(char *arg,char *loc,int id){//doesn't handle duplicate name entries
 	return newid;
 }
 
-int getPlaylist(char *arg){
+int getPlaylist(const char *arg){
 	char query[401];
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -162,7 +162,7 @@ int getPlaylist(char *arg){
 	return newid;
 }
 
-int getPlaylistSong(int sid, int pid){
+int getPlaylistSong(const int sid, const int pid){
 	char query[201];
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -172,7 +172,6 @@ int getPlaylistSong(int sid, int pid){
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create playlistsong
-		//sprintf(query,"SELECT COUNT(PlaylistSong.PlaylistSongID) FROM PlaylistSong WHERE PlaylistSong.PlaylistID=%d",pid);
 		sprintf(query,"SELECT \"Order\" FROM PlaylistSong WHERE PlaylistID=%d ORDER BY \"Order\" DESC LIMIT 1",pid);
 		debug3(query);
 		doQuery(query,&dbi);
@@ -196,7 +195,7 @@ int getPlaylistSong(int sid, int pid){
 	return newid;
 }
 
-int getCategory(char *arg){
+int getCategory(const char *arg){
 	char query[401];
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -219,7 +218,7 @@ int getCategory(char *arg){
 	return newid;
 }
 
-int getSongCategory(int sid, int cid){
+int getSongCategory(const int sid, const int cid){
 	char query[201];
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -243,7 +242,7 @@ int getSongCategory(int sid, int cid){
 	return newid;
 }
 
-int verifySong(int sid){
+int verifySong(const int sid){
 	char query[201];
 	char ans[4];
 	struct dbitem dbi;
@@ -267,15 +266,22 @@ int verifySong(int sid){
 	return -1;
 }
 
+struct musicInfo *getMusicInfo(struct musicInfo *mi){
+	static struct musicInfo *hold;
+	if(mi)
+		hold=mi;
+	return hold;
+}
+
 #ifdef HAVE_FTW_H
 #include <ftw.h>
 int useFile(const char *fpath, const struct stat *sb, int typeflag) {
 	if(typeflag==FTW_F)
-		insertSong(fpath);
+		insertSong(fpath,NULL);
 	return 0;
 }
 
-int directoryInsert(char *arg){
+int directoryInsert(const char *arg){
 	if(ftw(arg,&useFile,1)){
 		fprintf(stderr,"FTW Err\n");
 		return 0;
@@ -283,36 +289,41 @@ int directoryInsert(char *arg){
 	return 1;
 }
 #else
-int directoryInsert(char *arg){
-	return insertSong(arg);
+int directoryInsert(const char *arg){
+	return insertSong(arg,NULL);
 }
 #endif
 
 int batchInsert(char *arg){
-	if(*arglist[ATYPE].subarg=='s'){//song
-		if(arg){//single argv insert
-			debug("Inserting song at: ");
-			debug(expand(arg));
-			//return insertSong(arg);
-			return directoryInsert(arg);
-		}
-		else{//batch insert
-			char temp[250];
-			while(printf("File Location: ") && fgets(temp,sizeof(temp),stdin) && *temp!='\n'){
-				expand(temp);
-				insertSong(temp);
-			}
-			debug("Done.");
-			return 1;
+	struct musicInfo mi;
+	mi.title=malloc((MI_TITLE_SIZE*2+1)*sizeof(char));
+	mi.track=malloc(((MI_TRACK_SIZE*2)+1)*sizeof(char));
+	mi.artist=malloc(((MI_ARTIST_SIZE*2)+1)*sizeof(char));
+	mi.album=malloc(((MI_ALBUM_SIZE*2)+1)*sizeof(char));
+	mi.year=malloc(((MI_YEAR_SIZE*2)+1)*sizeof(char));
+	mi.length=malloc(((MI_LENGTH_SIZE*2)+1)*sizeof(char));
+	getMusicInfo(&mi);
+	if(arg){//single argv insert
+		debug("Inserting song at: ");
+		debug(expand(arg));
+		directoryInsert(arg);
+	}
+	else{//batch insert
+		char temp[250];
+
+		while(printf("File Location: ") && fgets(temp,sizeof(temp),stdin) && *temp!='\n'){
+			expand(temp);
+			insertSong(temp,&mi);
 		}
 	}
-	return 0;
-
+	miFree(&mi);
+	return 1;
 }
 
-typedef struct musicInfo * (*function_meta)(FILE *ffd);
+unsigned int insertSong(const char *arg, struct musicInfo *mi){
+	if(!mi)mi=getMusicInfo(NULL);
+	miClean(mi);
 
-unsigned int insertSong(char *arg){
 	//chack for dupicate
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -321,9 +332,8 @@ unsigned int insertSong(char *arg){
 	char dbfilename[250];
 	int x;for(x=0;arg[x]!=0;x++);
 	db_insert_safe(dbfilename,arg,x);
-	//fprintf(stderr,"\n%d %s\n",x,argv);
 	
-	sprintf(dbq,"SELECT SongID FROM Song WHERE Location='%s'",dbfilename);
+	sprintf(dbq,"SELECT SongID FROM Song WHERE Location='%s' LIMIT 1",dbfilename);
 	doQuery(dbq,&dbi);
 	if(dbi.row_count){
 		debug("duplicate entry -- skipping");
@@ -350,8 +360,7 @@ unsigned int insertSong(char *arg){
 	}
 
 	function_meta modmeta;
-	struct musicInfo *mi;
-	sprintf(dbq,"SELECT Library FROM FilePlugin WHERE TypeID=%d",fmt);
+	sprintf(dbq,"SELECT Library FROM FilePlugin WHERE TypeID=%d LIMIT 1",fmt);
 	doQuery(dbq,&dbi);
 	debug3(dbq);
 	while((x=getPlugin(&dbi,0,&module))){
@@ -359,11 +368,10 @@ unsigned int insertSong(char *arg){
 		modmeta=dlsym(module,"plugin_meta");
 		if(!modmeta){
 			debug("Plugin does not contain plugin_meta().\n");
-//			debug(dlerror());
 			continue;
 		}
 		else{
-			mi=modmeta(ffd);
+			modmeta(ffd,mi);
 			break;
 		}
 		dlclose(module);
@@ -374,56 +382,50 @@ unsigned int insertSong(char *arg){
 		return 0;
 	}
 
-	char tempname[255];
-	if(mi->artist==NULL){
-		mi->artist=malloc(sizeof(char)*8);
+	char tempname[401];
+	if(!*mi->artist){
 		strcpy(mi->artist,"Unknown");
 	}
 	else{
-		db_insert_safe(tempname,mi->artist,255);
+		db_insert_safe(tempname,mi->artist,MI_ARTIST_SIZE);
 		strcpy(mi->artist,tempname);
 	}
 	if((artistid=getArtist(mi->artist))==-1){
 		fprintf(stderr,"Error inserting artist.");
-		miClean(mi);
 		dbiClean(&dbi);
 		return 0;
 	}
-	if(mi->album==NULL){
-		mi->album=malloc(sizeof(char)*8);
+
+	if(!*mi->album){
 		strcpy(mi->album,"Unknown");
 	}
 	else{
-		db_insert_safe(tempname,mi->album,255);
+		db_insert_safe(tempname,mi->album,MI_ALBUM_SIZE);
 		strcpy(mi->album,tempname);
 	}
 	if((albumid=getAlbum(mi->album,artistid))==-1){
 		fprintf(stderr,"Error inserting album.");
-		miClean(mi);
 		dbiClean(&dbi);
 		return 0;
 	}
 
-	if(mi->title==NULL){
-		mi->title=malloc(sizeof(char)*100);
-		strcpy(tempname,getFilename(arg));
-		db_insert_safe(mi->title,tempname,100);
+	if(!*mi->title){
+		strcpy(tempname,getFilename((char *)arg));
+		db_insert_safe(mi->title,tempname,MI_TITLE_SIZE);
 	}
 	else{
-		db_insert_safe(tempname,mi->title,255);
+		db_insert_safe(tempname,mi->title,MI_TITLE_SIZE);
 		strcpy(mi->title,tempname);
 	}
 	if((songid=getSong(mi->title,dbfilename,albumid))==-1){
 		fprintf(stderr,"Error inserting song.");
-		miClean(mi);
 		dbiClean(&dbi);
 		return 0;
 	}
-	miClean(mi);
 
 	sprintf(dbq,"UPDATE Song SET TypeID=%d WHERE SongID=%d",fmt,songid);
 	debug3(dbq);
-	doQuery(dbq,&dbi);
+	sqlite3_exec(conn,dbq,NULL,NULL,NULL);
 
 	getPlaylistSong(songid,getPlaylist("Library"));
 	getSongCategory(songid,1); // Unknown

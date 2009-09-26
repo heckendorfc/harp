@@ -15,8 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-struct musicInfo* plugin_meta(FILE *ffd){
-	struct musicInfo *mi=calloc(1,sizeof(struct musicInfo));
+void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	mp4ff_t infile;
 	mp4ff_callback_t *mp4cb = malloc(sizeof(mp4ff_callback_t));
 	mp4cb->read=read_callback;
@@ -27,36 +26,31 @@ struct musicInfo* plugin_meta(FILE *ffd){
 	if(!infile){
 		fprintf(stderr,"mp4ffopenread failed");
 		free(mp4cb);
-		return mi;
+		return;
 	}
 
 	char *temp;
 	if(mp4ff_meta_get_title(infile,&temp)){
-		mi->title=malloc(sizeof(char)*61);
 		strncpy(mi->title,temp,60);
 		free(temp);
 	}
 
 	if(mp4ff_meta_get_artist(infile,&temp)){
-		mi->artist=malloc(sizeof(char)*61);
 		strncpy(mi->artist,temp,60);
 		free(temp);
 	}
 
 	if(mp4ff_meta_get_album(infile,&temp)){
-		mi->album=malloc(sizeof(char)*61);
 		strncpy(mi->album,temp,60);
 		free(temp);
 	}
 
 	if(mp4ff_meta_get_track(infile,&temp)){
-		mi->track=malloc(sizeof(char)*61);
-		strncpy(mi->track,temp,60);
+		strncpy(mi->track,temp,8);
 		free(temp);
 	}
 
 	if(mp4ff_meta_get_date(infile,&temp)){
-		mi->year=malloc(sizeof(char)*9);
 		strncpy(mi->year,temp,8);
 		free(temp);
 	}
@@ -64,5 +58,4 @@ struct musicInfo* plugin_meta(FILE *ffd){
 	printf("%s | %s | %s | %s| %s\n\n",mi->title,mi->track,mi->album,mi->artist,mi->year);
 
 	free(mp4cb);
-	return mi;
 }
