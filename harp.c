@@ -23,7 +23,6 @@ int main(int argc, char *argv[]){
 		fprintf(stderr,"db init error\n");
 		return 1;
 	}
-	sleep(10);
 	doArgs(argc,argv);
 	cleanExit();
 	return 0;
