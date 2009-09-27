@@ -21,7 +21,7 @@ struct IDList {
 	int tempselectid;
 };
 
-void cleanString(char **ostr){
+static void cleanString(char **ostr){
 	char *str=*ostr;
 	while(*str!='\n'){str++;}
 	*str=0;
@@ -30,7 +30,7 @@ void cleanString(char **ostr){
 	strcpy(*ostr,temp);
 }
 
-int editWarn(char *warn){
+static int editWarn(char *warn){
 	char c[10];
 	printf("%s\nDo you wish to continue (y/n)?",warn);
 	while(*(fgets(c,sizeof(c),stdin))=='\n'){
@@ -40,7 +40,7 @@ int editWarn(char *warn){
 	return 0;
 }
 
-int getStdArgs(char *args,char *prompt){
+static int getStdArgs(char *args,char *prompt){
 	int x;
 	for(x=1;x<200 && args[x] && args[x]==' ';x++);
 	if(!args[x]){
@@ -58,7 +58,7 @@ int getStdArgs(char *args,char *prompt){
 	}
 }
 
-int editSongName(char *args, void *data){
+static int editSongName(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
 		fprintf(stderr,"no data\n");
@@ -82,7 +82,7 @@ int editSongName(char *args, void *data){
 	return 1;
 }
 
-int editSongLocation(char *args, void *data){
+static int editSongLocation(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
 		fprintf(stderr,"no data\n");
@@ -106,7 +106,7 @@ int editSongLocation(char *args, void *data){
 	return 1;
 }
 
-int editSongArtist(char *args, void *data){
+static int editSongArtist(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
 		fprintf(stderr,"no data\n");
@@ -144,7 +144,7 @@ int editSongArtist(char *args, void *data){
 	return 1;
 }
 
-int editSongAlbum(char *args, void *data){
+static int editSongAlbum(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
 		fprintf(stderr,"no data\n");
@@ -175,7 +175,7 @@ int editSongAlbum(char *args, void *data){
 	return 1;
 }
 
-int deleteSong(char *args, void *data){
+static int deleteSong(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
 		fprintf(stderr,"no data\n");
@@ -198,7 +198,7 @@ int deleteSong(char *args, void *data){
 	return 1;
 }
 
-int songActivation(char *args, void *data){
+static int songActivation(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
 		fprintf(stderr,"no data\n");
@@ -224,7 +224,7 @@ int songActivation(char *args, void *data){
 	return 1;
 }
 
-int editAlbumArtist(char *args, void *data){
+static int editAlbumArtist(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -248,7 +248,7 @@ int editAlbumArtist(char *args, void *data){
 	return 1;
 }
 
-int editAlbumTitle(char *args, void *data){
+static int editAlbumTitle(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -288,7 +288,7 @@ int editAlbumTitle(char *args, void *data){
 	return 1;
 }
 
-int editArtistName(char *args, void *data){
+static int editArtistName(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -318,7 +318,7 @@ int editArtistName(char *args, void *data){
 	return 1;
 }
 
-int editPlaylistName(char *args, void *data){
+static int editPlaylistName(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -342,7 +342,7 @@ int editPlaylistName(char *args, void *data){
 	return 1;
 }
 
-int deletePlaylist(char *args, void *data){
+static int deletePlaylist(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -367,7 +367,7 @@ int deletePlaylist(char *args, void *data){
 	return 1;
 }
 
-int editPlaylistSongAdd(char *args, void *data){
+static int editPlaylistSongAdd(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -404,7 +404,7 @@ int editPlaylistSongAdd(char *args, void *data){
 	return 1;
 }
 
-int editPlaylistSongDelete(char *args, void *data){
+static int editPlaylistSongDelete(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -432,7 +432,7 @@ int editPlaylistSongDelete(char *args, void *data){
 	return 1;
 }
 
-void getPlaylistSongOrders(char *args, int *cur, int*new){
+static void getPlaylistSongOrders(char *args, int *cur, int*new){
 	int x;
 	*cur=*new=0;
 	for(x=1;args[x] && (args[x]<'0' || args[x]>'9');x++);
@@ -479,7 +479,7 @@ void getPlaylistSongOrders(char *args, int *cur, int*new){
 	}
 }
 
-int editPlaylistSongOrder(char *args, void *data){
+static int editPlaylistSongOrder(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -519,7 +519,7 @@ int editPlaylistSongOrder(char *args, void *data){
 	return 1;
 }
 
-int editPlaylistCreate(char *args, void *data){
+static int editPlaylistCreate(char *args, void *data){
 	char query[200];
 	int x,pid,sid;
 
@@ -541,7 +541,7 @@ int editPlaylistCreate(char *args, void *data){
 	return -1;
 }
 
-int editGenreCreate(char *args, void *data){
+static int editGenreCreate(char *args, void *data){
 	char query[200];
 	int x,gid;
 
@@ -556,7 +556,7 @@ int editGenreCreate(char *args, void *data){
 	return -1;
 }
 
-int editGenreName(char *args, void *data){
+static int editGenreName(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -575,7 +575,7 @@ int editGenreName(char *args, void *data){
 	return 1;
 }
 
-int editGenreParent(char *args, void *data){
+static int editGenreParent(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -605,7 +605,7 @@ int editGenreParent(char *args, void *data){
 	return 1;
 }
 
-int editGenreDelete(char *args, void *data){
+static int editGenreDelete(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -629,7 +629,7 @@ int editGenreDelete(char *args, void *data){
 	return -1;
 }
 
-int editSongGenreAdd(char *args, void *data){
+static int editSongGenreAdd(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -656,7 +656,7 @@ int editSongGenreAdd(char *args, void *data){
 	return 1;
 }
 
-int editSongGenreRemove(char *args, void *data){
+static int editSongGenreRemove(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -682,7 +682,7 @@ int editSongGenreRemove(char *args, void *data){
 	return 1;
 }
 
-void cleanOrphans(){
+static void cleanOrphans(){
 	// Clean orphaned albums
 	sqlite3_exec(conn,"DELETE FROM Album WHERE AlbumID NOT IN (SELECT AlbumID FROM Song)",NULL,NULL,NULL);
 	// Clean orphaned albumartists
@@ -693,7 +693,7 @@ void cleanOrphans(){
 	sqlite3_exec(conn,"INSERT INTO SongCategory (SongID,CategoryID) SELECT SongID,'1' FROM Song WHERE SongID NOT IN (SELECT SongID FROM SongCategory)",NULL,NULL,NULL);
 }
 
-int *getIDs(char *prompt, int *len){
+static int *getIDs(char *prompt, int *len){
 	int *ids;
 	char *song=alloca(sizeof(char)*200);
 	printf("%s",prompt);
@@ -705,7 +705,7 @@ int *getIDs(char *prompt, int *len){
 	}
 }
 
-int listSongs(char *args, void *data){
+static int listSongs(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
 		fprintf(stderr,"no data\n");
@@ -737,7 +737,7 @@ int listSongs(char *args, void *data){
 	return 1;
 }
 
-int listAlbums(char *args, void *data){
+static int listAlbums(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -767,7 +767,7 @@ int listAlbums(char *args, void *data){
 	return 1;
 }
 
-int listArtists(char *args, void *data){
+static int listArtists(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"no data\n");
@@ -797,7 +797,7 @@ int listArtists(char *args, void *data){
 	return 1;
 }
 
-int listPlaylists(char *args, void *data){
+static int listPlaylists(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
@@ -839,7 +839,7 @@ int listPlaylists(char *args, void *data){
 	return 1;
 }
 
-int listGenre(char *args, void *data){
+static int listGenre(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	int x=0;
 	if(!ids || !ids->songid){
@@ -861,7 +861,7 @@ int listGenre(char *args, void *data){
 	return 1;
 }
 
-int listSongGenre(char *args, void *data){
+static int listSongGenre(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	int x=0;
 	if(!ids || !ids->songid){
@@ -879,7 +879,7 @@ int listSongGenre(char *args, void *data){
 	return 1;
 }
 
-int songGenrePortal(char *args, void *data){
+static int songGenrePortal(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
 		fprintf(stderr,"None selected.\n");
@@ -894,7 +894,7 @@ int songGenrePortal(char *args, void *data){
 
 	return portal(portalOptions,"Song-Genre");
 }
-int songPortal(char *args, void *data){
+static int songPortal(char *args, void *data){
 	struct IDList *songids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
 		{'L',listSongs,"List affected songs",songids},
@@ -983,7 +983,7 @@ int songPortal(char *args, void *data){
 	return x;
 }
 
-int albumPortal(char *args, void *data){
+static int albumPortal(char *args, void *data){
 	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
 		{'L',listAlbums,"List affected alubms",ids},
@@ -1011,7 +1011,7 @@ int albumPortal(char *args, void *data){
 	return portal(portalOptions,"Album");
 }
 
-int artistPortal(char *args, void *data){
+static int artistPortal(char *args, void *data){
 	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
 		{'L',listArtists,"List affected artists",ids},
@@ -1038,7 +1038,7 @@ int artistPortal(char *args, void *data){
 	return portal(portalOptions,"Artist");
 }
 
-int playlistPortal(char *args, void *data){
+static int playlistPortal(char *args, void *data){
 	struct IDList *ids=alloca(sizeof(struct IDList));
 
 	int x;
@@ -1076,7 +1076,7 @@ int playlistPortal(char *args, void *data){
 	}
 }
 
-int genrePortal(char *args, void *data){
+static int genrePortal(char *args, void *data){
 	struct IDList *ids=alloca(sizeof(struct IDList));
 	struct commandOption portalOptions[]={
 		{'L',listGenre,"List affected genre\nLC\tList the contents of the selected genre",ids},

@@ -170,7 +170,6 @@ void cleanExit();
 
 //argparse.c
 unsigned int doArgs(int argc, char *argv[]);
-unsigned int argSearch(int argc, char *argv[]);
 
 //dbact.c
 unsigned int dbInit();
@@ -184,20 +183,16 @@ int doTitleQuery(const char *querystr,struct dbitem *dbi,int *exception, int max
 void createTempPlaylistSong();
 
 //insert.c
-void db_safe(char *str, const char *data, const size_t size);
 int getArtist(const char *arg);
 int getAlbum(const char *arg, int id);
 int getSong(const char *arg, const char *loc, const int id);
 int getPlaylist(const char *arg);
 int getCategory(const char *arg);
-int verifySong(const int sid);
 int getPlaylistSong(const int sid, const int pid);
 int getSongCategory(const int sid, const int cid);
 int batchInsert(char *arg);
-unsigned int insertSong(const char *arg, struct musicInfo *mi);
 
 //edit.c
-int batchEdit(int *ids,int len);
 void editPortal();
 
 //util.c
@@ -214,6 +209,7 @@ void cleanTempSelect(const int tempid);
 int insertTempSelect(const int *ids, const int idlen);
 void miFree(struct musicInfo *mi);
 void miClean(struct musicInfo *mi);
+void db_safe(char *str, const char *data, const size_t size);
 
 //message.c
 void debug(char *argv);

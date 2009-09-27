@@ -19,6 +19,7 @@
 	#include <alsa/asoundlib.h>
 #elif WITH_JACK==1
 	#include <jack/jack.h>
+	#include <jack/ringbuffer.h>
 #else
 	#include <sys/soundcard.h>
 	#include <sys/fcntl.h>
@@ -78,8 +79,10 @@ struct playerHandles{
 	jack_client_t *sndfd;
 	jack_port_t *out_port1, *out_port2;
 	const char **jack_ports;
-	float vol_mod,*outbuf;
-	int fillsize, maxsize;
+	float vol_mod;
+	jack_default_audio_sample_t *tmpbuf;
+	jack_ringbuffer_t **outbuf;
+	int maxsize;
 	int out_gain;
 #else
 	int sndfd;

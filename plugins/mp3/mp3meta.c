@@ -16,7 +16,7 @@
  */
 
 #include <math.h>
-
+/*
 void safe_store(char *str, char *data, size_t size){
 	if(strcmp(data,"")==0){strcpy(str,"Unknown");return;}
 	int x,z=0;
@@ -37,7 +37,7 @@ void safe_store(char *str, char *data, size_t size){
 	}
 	if(strcmp(str,"")==0)strcpy(str,"Unknown");
 }
-
+*/
 /* ID3......TTAG.....valueTTG2......value */
 int getTagData(unsigned char *buf, struct musicInfo *mi){
 	int x=0,ret=0,y;
@@ -95,27 +95,19 @@ void ID3v1Parse(FILE *ffd, struct musicInfo *mi){
 	int next=-125;
 	char buffer[31],safe[61];
 	fseek(ffd,next,SEEK_END);
-	fread(buffer,sizeof(char),30,ffd);
-	safe_store(safe,buffer,30);
-	strcpy(mi->title,safe);
+	fread(mi->title,sizeof(char),30,ffd);
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
-	fread(buffer,sizeof(char),30,ffd);
-	safe_store(safe,buffer,60);
-	strcpy(mi->artist,safe);
+	fread(mi->artist,sizeof(char),30,ffd);
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
-	fread(buffer,sizeof(char),30,ffd);
-	safe_store(safe,buffer,60);
-	strcpy(mi->album,safe);
+	fread(mi->album,sizeof(char),30,ffd);
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
-	fread(buffer,sizeof(char),4,ffd);
-	safe_store(safe,buffer,4);
-	strcpy(mi->year,safe);
+	fread(mi->year,sizeof(char),4,ffd);
 	next+=4;
 
 	printf("v1: %s | %s | %s | %s| %s | %s || %d\n\n",mi->title,mi->track,mi->album,mi->artist,mi->length,mi->year,next);

@@ -16,49 +16,13 @@
  */
 
 typedef void (*function_meta)(FILE *ffd, struct musicInfo *mi);
+static int verifySong(const int sid);
+static unsigned int insertSong(const char *arg, struct musicInfo *mi);
 
-void db_insert_safe(char *str, const char *data, const size_t size){
-	if(strcmp(data,"")==0){strcpy(str,"Unknown");return;}
-	int x,z=0;
-	for(x=0;data[x]>31 && data[x]<127 && x<size;x++){//strip multi space
-		if(data[x]==' ' && data[x+1]==' ')continue;
-		str[z]=data[x];
-		z++;
-	}
-	str[z]=0;
-	for(x=0;str[x]!='\0';x++){//addslashes
-		//if(str[x]=='\'' || str[x]=='\"'){
-		if(str[x]=='\''){
-			memmove(&str[x+1],&str[x],(z+1)-x);
-			str[x]='\'';
-			x++;
-			z++;
-		}
-	}
-	//if(str[x-1]==' ')//strip trailing space
-	//	str[x-1]=0;
-	if(strcmp(str,"")==0)strcpy(str,"Unknown");
-}
-
-void db_safe(char *str, const char *data, const size_t size){
-	int x,z=0;
-	for(x=0;data[x]>31 && data[x]<127 && x<size;x++){//strip multi space
-		if(data[x]==' ' && data[x+1]==' ')continue;
-		str[z]=data[x];
-		z++;
-	}
-	str[z]=0;
-	for(x=0;str[x]!='\0';x++){//addslashes
-		//if(str[x]=='\'' || str[x]=='\"'){
-		if(str[x]=='\''){
-			memmove(&str[x+1],&str[x],(z+1)-x);
-			str[x]='\'';
-			x++;
-			z++;
-		}
-	}
-	//if(str[x-1]==' ')//strip trailing space
-	//	str[x-1]=0;
+static void db_insert_safe(char *str, const char *data, const size_t size){
+	if(!*data){strcpy(str,"Unknown");return;}
+	db_safe(str,data,size);
+	if(!*str)strcpy(str,"Unknown");
 }
 
 int getArtist(const char *arg){
@@ -242,7 +206,7 @@ int getSongCategory(const int sid, const int cid){
 	return newid;
 }
 
-int verifySong(const int sid){
+static int verifySong(const int sid){
 	char query[201];
 	char ans[4];
 	struct dbitem dbi;
@@ -266,7 +230,7 @@ int verifySong(const int sid){
 	return -1;
 }
 
-struct musicInfo *getMusicInfo(struct musicInfo *mi){
+static struct musicInfo *getMusicInfo(struct musicInfo *mi){
 	static struct musicInfo *hold;
 	if(mi)
 		hold=mi;
@@ -281,7 +245,7 @@ int useFile(const char *fpath, const struct stat *sb, int typeflag) {
 	return 0;
 }
 
-int directoryInsert(const char *arg){
+static int directoryInsert(const char *arg){
 	if(ftw(arg,&useFile,1)){
 		fprintf(stderr,"FTW Err\n");
 		return 0;
@@ -289,7 +253,7 @@ int directoryInsert(const char *arg){
 	return 1;
 }
 #else
-int directoryInsert(const char *arg){
+static int directoryInsert(const char *arg){
 	return insertSong(arg,NULL);
 }
 #endif
@@ -320,7 +284,7 @@ int batchInsert(char *arg){
 	return 1;
 }
 
-unsigned int insertSong(const char *arg, struct musicInfo *mi){
+static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 	if(!mi)mi=getMusicInfo(NULL);
 	miClean(mi);
 

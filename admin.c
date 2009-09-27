@@ -17,7 +17,7 @@
 
 
 
-int addPlugin(char *args, void *data){
+static int addPlugin(char *args, void *data){
 	char lib[200];
 	int size,x;
 
@@ -35,7 +35,7 @@ int addPlugin(char *args, void *data){
 	return 1;
 }
 
-int listPlugins(char *args, void *data){
+static int listPlugins(char *args, void *data){
 	int *exception=alloca(sizeof(int)*10);
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -46,7 +46,7 @@ int listPlugins(char *args, void *data){
 	return 1;
 }
 
-int togglePlugin(char *args, void *data){
+static int togglePlugin(char *args, void *data){
 	char pid[50];
 	char query[300];
 	int x,id;
@@ -70,7 +70,7 @@ int togglePlugin(char *args, void *data){
 	return 1;
 }
 
-int removePlugin(char *args, void *data){
+static int removePlugin(char *args, void *data){
 	char lib[200];
 	char query[300];
 	int size,x,id;
@@ -100,7 +100,7 @@ int removePlugin(char *args, void *data){
 	return 1;
 }
 
-int pluginPortal(char *args, void *data){
+static int pluginPortal(char *args, void *data){
 	struct commandOption portalOptions[]={
 		{'a',addPlugin,"Add plugin",NULL},
 		{'l',listPlugins,"List plugins",NULL},

@@ -336,3 +336,22 @@ void miFree(struct musicInfo *mi){
 	if(mi->length!=NULL)
 		free(mi->length);
 }
+
+void db_safe(char *str, const char *data, const size_t size){
+	int x,z=0;
+	for(x=0;data[x]>31 && data[x]<127 && x<size;x++){//strip multi space
+		if(data[x]==' ' && data[x+1]==' ')continue;
+		str[z]=data[x];
+		z++;
+	}
+	str[z]=0;
+	for(x=0;str[x]!='\0';x++){//addslashes
+		if(str[x]=='\''){
+			memmove(&str[x+1],&str[x],(z+1)-x);
+			str[x]='\'';
+			x++;
+			z++;
+		}
+	}
+}
+

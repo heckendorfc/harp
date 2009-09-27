@@ -15,8 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+static unsigned int argSearch(int argc, char *argv[]);
 
-void printHelp(){
+static void printHelp(){
 	printf("Valid options are:\n\
 	t [s,p,r,a]\tType (song, playlist, artist, album)\n\
 	l [name, ID]\tList (requires -t)\n\
@@ -31,7 +32,7 @@ void printHelp(){
 	exit(1);
 }
 
-void insertPS(char *query,struct dbitem *dbi){
+static void insertPS(char *query,struct dbitem *dbi){
 	static int order=1;
 	int currentlimit=0;
 	doQuery(query,dbi);
@@ -50,7 +51,7 @@ void insertPS(char *query,struct dbitem *dbi){
 	order+=x-1;
 }
 
-void genreToPlaylistSong(struct dbnode *cur){
+static void genreToPlaylistSong(struct dbnode *cur){
 	int x;
 	if(!cur->dbi.row_count)return;
 	char query[100];
@@ -60,7 +61,7 @@ void genreToPlaylistSong(struct dbnode *cur){
 	insertPS(query,&cur->dbi);
 }
 
-void makeTempPlaylist(int *multilist, int multi){
+static void makeTempPlaylist(int *multilist, int multi){
 	int mx,x,order=0,currentlimit=0;
 	char query[250];
 	struct dbitem dbi;
@@ -103,13 +104,13 @@ void makeTempPlaylist(int *multilist, int multi){
 }
 
 unsigned int doArgs(int argc,char *argv[]){
+	int *multilist,id=0,multi=0;
+
 	setDefaultConfig();
 
 	if(argSearch(argc,argv)==0){
 		return 0;
 	}
-	debugf("Verbose level:",1,arglist[AVERBOSE].active);
-	int *multilist,id=0,multi=0;
 	
 	//list
 	if(arglist[ALIST].active){
@@ -167,7 +168,7 @@ unsigned int doArgs(int argc,char *argv[]){
 	return 0;
 }
 
-unsigned int argSearch(int argc,char *argv[]){
+static unsigned int argSearch(int argc,char *argv[]){
 	int opt,optindex;
 	while((opt=getopt_long(argc,argv,"i::l::e::p:st:vza",longopts,&optindex))!=-1){
 		switch(opt){

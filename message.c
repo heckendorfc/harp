@@ -15,7 +15,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 void debug(char *argv){
 	if(arglist[AVERBOSE].active>0)
 		fprintf(stderr,"%s\n",argv);
@@ -26,28 +25,6 @@ void debug3(char *argv){
 		fprintf(stderr,"%s\n",argv);
 }
 
-void debugf(char *msg, int cnt, ...){
-	if(arglist[AVERBOSE].active>0){
-		unsigned int x;
-		int *argv=&cnt;
-		fprintf(stderr,"%s ",msg);
-		for(x=1;x<=cnt;x++)
-			fprintf(stderr,"%d ",*(argv+x));
-		fprintf(stderr,"\n");
-	}
-}
-
-
-void outputf(char *msg, int cnt, ...){
-	if(arglist[AVERBOSE].active>0){
-		unsigned int x;
-		int *argv=&cnt;
-		fprintf(stdout,"%s ",msg);
-		for(x=1;x<=cnt;x++)
-			fprintf(stdout,"%d ",*(argv+x));
-		fprintf(stdout,"\n");
-	}
-}
 void printSongPubInfo(char **row){
 	printf("Title: %s\n",row[0]);
 	printf("Artist: %s\n",row[3]);

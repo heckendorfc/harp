@@ -53,9 +53,10 @@ int interpolate(float *buf, int len, int L){
 	return len*L;
 }
 
-int resample(float *buf, int len, int maxlen, int in_rate, int out_rate){
+int resample(jack_default_audio_sample_t *buf, int len, int maxlen, int in_rate, int out_rate){
 	int x,y,L,M,newlen;
 	if(in_rate==out_rate)return len;
+	fprintf(stderr,"\nResampling\n");
 	if(in_rate<out_rate){
 		if(!(in_rate%out_rate)){ // Resampling not supported yet
 			return len;
@@ -100,42 +101,34 @@ void jack_err(const char *err){
 
 int jack_process(jack_nframes_t nframes, void *arg){
 	struct playerHandles *ph = (struct playerHandles*)arg;
-	const float vol_mod=ph->vol_mod;
-	int x;
+	if(!ph->dechandle) return 0;
 
-	if(!ph->dechandle)return 0;
+	size_t actual = sizeof(jack_default_audio_sample_t)*nframes;
+	size_t read;
+	char *out1=(char *)jack_port_get_buffer(ph->out_port1,nframes);
+	char *out2=(char *)jack_port_get_buffer(ph->out_port2,nframes);
 
-	pthread_mutex_lock(&outbuf_lock);
-		jack_nframes_t combined_nframes=nframes<<(ph->dec_chan/2);
-		jack_nframes_t actual=(combined_nframes>ph->fillsize)?(ph->fillsize):combined_nframes;
-
-		jack_default_audio_sample_t *out1=(jack_default_audio_sample_t *)jack_port_get_buffer(ph->out_port1,nframes);
-		jack_default_audio_sample_t *out2=(jack_default_audio_sample_t *)jack_port_get_buffer(ph->out_port2,nframes);
-
-		if(!ph->pflag->mute){
-			if(ph->dec_chan==1){
-				for(x=0;x<actual;x++)
-					out1[x]=out2[x]=ph->outbuf[x]*vol_mod;
+	if(!ph->pflag->mute){
+		if(ph->dec_chan==1){
+			read=jack_ringbuffer_read(ph->outbuf[0],out1,actual);
+			if(read<actual){
+				bzero(out1+read,actual-read);
 			}
-			else{
-				for(x=0;x<actual;x++){
-					out1[x]=ph->outbuf[(x<<1)]*vol_mod;
-					out2[x]=ph->outbuf[(x<<1)+1]*vol_mod;
-				}
-			}
+			memcpy(out2,out1,actual);
 		}
-		else // Fill with silence
-			x=0;
-
-		// Silence any remaining audio
-		for(;x<nframes;x++)
-			out1[x]=out2[x]=0;
-
-		// Move remaining data to the front.
-		memmove(ph->outbuf,ph->outbuf+actual,sizeof(float)*(ph->fillsize-actual));
-
-		ph->fillsize-=actual;
-	pthread_mutex_unlock(&outbuf_lock);
+		else{
+			read=jack_ringbuffer_read(ph->outbuf[0],out1,actual);
+			if(read<actual)
+				bzero(out1+read,actual-read);
+			read=jack_ringbuffer_read(ph->outbuf[1],out2,actual);
+			if(read<actual)
+				bzero(out2+read,actual-read);
+		}
+	}
+	else{ // Fill with silence
+		bzero(out1,actual);
+		bzero(out2,actual);
+	}
 
 	return 0;
 }
@@ -152,12 +145,14 @@ void jack_shutdown(void *arg){
 }
 
 int snd_init(struct playerHandles *ph){
+	//ph->pflag->update=0;
+
 	char client_name[255];
 	ph->maxsize=40960;
-	ph->fillsize=0;
-	ph->outbuf=calloc((ph->maxsize),sizeof(float));
-	pthread_mutex_init(&outbuf_lock,NULL);
+	ph->outbuf=malloc(2*sizeof(*ph->outbuf));
+	ph->tmpbuf=malloc(sizeof(*ph->tmpbuf));
 
+	pthread_mutex_init(&outbuf_lock,NULL);
 	ph->out_gain=0;
 	ph->vol_mod=1;
 	jack_set_error_function(jack_err);
@@ -180,6 +175,11 @@ int snd_init(struct playerHandles *ph){
 		fprintf(stderr,"JACK | Can't register output port.\n");
 		return 1;
 	}
+
+	ph->maxsize=jack_get_sample_rate(ph->sndfd);
+	fprintf(stderr,"Buffer: %d (x2)\n",ph->maxsize);
+	ph->outbuf[0]=jack_ringbuffer_create(ph->maxsize);
+	ph->outbuf[1]=jack_ringbuffer_create(ph->maxsize);
 
 	if(jack_activate(ph->sndfd)){
 		fprintf(stderr,"JACK | Can't activate.\n");
@@ -237,39 +237,63 @@ void toggleMute(struct playerHandles *ph, int *mute){
 }
 
 void snd_clear(struct playerHandles *ph){
-	ph->fillsize=0;
+	jack_ringbuffer_reset(ph->outbuf[0]);
+	jack_ringbuffer_reset(ph->outbuf[1]);
+}
+
+int buf_convert(jack_default_audio_sample_t *out, const char *in, int len, const float mod){
+	int i;
+
+	if(len%2){
+		return -1;
+	}
+
+	short *s_in = (short*)in;
+	len>>=1;
+	for (i=0; i<len; i++) {
+		out[i] = (s_in[i]/NORMFACT)*mod;
+	}
+	return len;
 }
 
 int writei_snd(struct playerHandles *ph, const char *out, const unsigned int size){
-	int ret,resamp,remaining=size;
+	int c,i,ret,tmpbufsize;
+	const int chan_shift=ph->dec_chan>>1;
+	const int chan_size=size>>chan_shift;
+	const int samples=chan_size>>1; /* for short -> float conversion */
+
 	if(ph->pflag->pause){ // Move this into process?
-		ret=ph->fillsize; // Can't let all that beautiful music go to waste...
-		snd_clear(ph);
+		//ret=ph->fillsize; // Can't let all that beautiful music go to waste...
+		//snd_clear(ph);
 		do{
 			usleep(100000); // 0.1 seconds
 		}
 		while(ph->pflag->pause);
-		ph->fillsize=ret;
+		//ph->fillsize=ret;
 	}
-	do{
-		if(ph->maxsize-ph->fillsize>remaining){
-			pthread_mutex_lock(&outbuf_lock);
-				if((ret=char_to_float(ph->outbuf+ph->fillsize,out,remaining))>=0){
-					if((resamp=resample(ph->outbuf+ph->fillsize,ret,ph->maxsize-ph->fillsize,ph->dec_rate,ph->out_rate))<0){
-						pthread_mutex_unlock(&outbuf_lock);
-						usleep(12000);
-						continue;
-					}
-					ph->fillsize+=resamp;
-				}
-				else{
-					fprintf(stderr,"JACK | Err: Float conversion failed.");
-				}
-				remaining=ret=0;
-			pthread_mutex_unlock(&outbuf_lock);
-		}
-		usleep(6000); // 0.006 seconds
-	}while(remaining>0);
+
+	tmpbufsize=samples*(ph->dec_rate/ph->out_rate);
+	if(!(ph->tmpbuf=realloc(ph->tmpbuf,tmpbufsize*sizeof(*ph->tmpbuf)))){
+		fprintf(stderr,"JACK | temp buffer failed reallocation\n");
+		return 0;
+	}
+
+	i=tmpbufsize*sizeof(*ph->tmpbuf);
+	while(jack_ringbuffer_write_space(ph->outbuf[0])<i){
+		usleep(100000);
+	}
+
+	short *s_in = (short*)out;
+	for(c=0;c<ph->dec_chan;c++){
+		for (i=0; i<samples; i++)
+			ph->tmpbuf[i] = (s_in[(i<<chan_shift)+c]/NORMFACT)*ph->vol_mod;
+		if((ret=resample(ph->tmpbuf, samples, tmpbufsize, ph->dec_rate, ph->out_rate))!=tmpbufsize)
+			fprintf(stderr,"\nResample size mismatch: ret %d | buf %d\n", ret, tmpbufsize);
+		i=tmpbufsize*sizeof(*ph->tmpbuf);
+		if((ret=jack_ringbuffer_write(ph->outbuf[c],(char*)ph->tmpbuf,i))<i)
+			fprintf(stderr,"JACK | ringbuffer failed write. expected: %d ; got: %d\n",i,ret);
+	}
+
 	return 0;
 }
 
@@ -278,6 +302,8 @@ int writen_snd(struct playerHandles *ph, void *out[], const unsigned int size){
 
 void snd_close(struct playerHandles *ph){
 	jack_client_close(ph->sndfd);
+	jack_ringbuffer_free(ph->outbuf[0]);
+	jack_ringbuffer_free(ph->outbuf[1]);
 	free(ph->outbuf);
 	free(ph->jack_ports);
 }
