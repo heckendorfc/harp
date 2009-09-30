@@ -55,7 +55,7 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 		free(temp);
 	}
 
-	printf("%s | %s | %s | %s| %s\n\n",mi->title,mi->track,mi->album,mi->artist,mi->year);
+//	printf("%s | %s | %s | %s| %s\n\n",mi->title,mi->track,mi->album,mi->artist,mi->year);
 
 	free(mp4cb);
 }

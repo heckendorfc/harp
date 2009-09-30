@@ -15,30 +15,17 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
-/*
-void safe_store(char *str, char *data, size_t size){
-	if(strcmp(data,"")==0){strcpy(str,"Unknown");return;}
-	int x,z=0;
-	for(x=0;data[x]>31 && data[x]<127 && x<size;x++){//strip multi space
-		if(data[x]==' ' && data[x+1]==' ')continue;
-		str[z]=data[x];
-		z++;
-	}
-	str[z]=0;
-	if(str[z-1]==' ')str[z-1]=0;
-	for(x=0;str[x]!='\0';x++){//addslashes
-		if(str[x]=='\''){
-			memmove(&str[x+1],&str[x],(z+1)-x);
-			str[x]='\'';
-			x++;
-			z++;
-		}
-	}
-	if(strcmp(str,"")==0)strcpy(str,"Unknown");
-}
-*/
 /* ID3......TTAG.....valueTTG2......value */
+
+static int intpow(const int base, int exp){
+	int ret=base;
+	if(!exp)return 1;
+	while(--exp){
+		ret=ret*base;
+	}
+	return ret;
+}
+
 int getTagData(unsigned char *buf, struct musicInfo *mi){
 	int x=0,ret=0,y;
 	unsigned char *tag=buf+4;
@@ -49,7 +36,8 @@ int getTagData(unsigned char *buf, struct musicInfo *mi){
 	tag+=(x+3);
 	y=ret=x;
 
-	for(x=0;ret>0;ret--)x+=(int)pow((double)temp[y-ret],(double)ret); // Prep for strtol
+	//for(x=0;ret>0;ret--)x+=(int)pow((double)temp[y-ret],(double)ret); // Prep for strtol
+	for(x=0;ret>0;ret--)x+=intpow(temp[y-ret],ret); // Should this be x+=temp[y-ret]*intpow(256,ret)? Not that it matters since max field size will be ~200.
 
 	if(memcmp("TIT2",buf,4)==0){
 		memcpy(mi->title,tag,(x-1)>MI_TITLE_SIZE?MI_TITLE_SIZE:x-1);
@@ -88,7 +76,7 @@ void ID3v2Parse(FILE *ffd, struct musicInfo *mi){
 		ret=getTagData(buffer,mi);
 		next+=ret;
 	}while(ret>0 && next<total);
-	printf("%s | %s | %s | %s| %s | %s || %d\n\n",mi->title,mi->track,mi->album,mi->artist,mi->length,mi->year,next);
+//	printf("%s | %s | %s | %s| %s | %s || %d\n\n",mi->title,mi->track,mi->album,mi->artist,mi->length,mi->year,next);
 }
 
 void ID3v1Parse(FILE *ffd, struct musicInfo *mi){
@@ -110,7 +98,7 @@ void ID3v1Parse(FILE *ffd, struct musicInfo *mi){
 	fread(mi->year,sizeof(char),4,ffd);
 	next+=4;
 
-	printf("v1: %s | %s | %s | %s| %s | %s || %d\n\n",mi->title,mi->track,mi->album,mi->artist,mi->length,mi->year,next);
+//	printf("v1: %s | %s | %s | %s| %s | %s || %d\n\n",mi->title,mi->track,mi->album,mi->artist,mi->length,mi->year,next);
 }
 
 void plugin_meta(FILE *ffd, struct musicInfo *mi){

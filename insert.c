@@ -296,6 +296,7 @@ static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 	char dbfilename[250];
 	int x;for(x=0;arg[x]!=0;x++);
 	db_insert_safe(dbfilename,arg,x);
+	debug(arg);
 	
 	sprintf(dbq,"SELECT SongID FROM Song WHERE Location='%s' LIMIT 1",dbfilename);
 	doQuery(dbq,&dbi);
@@ -386,6 +387,7 @@ static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 		dbiClean(&dbi);
 		return 0;
 	}
+	printf("%s | %s | %s \n\n",mi->title,mi->album,mi->artist);
 
 	sprintf(dbq,"UPDATE Song SET TypeID=%d WHERE SongID=%d",fmt,songid);
 	debug3(dbq);

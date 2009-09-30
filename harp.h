@@ -212,9 +212,9 @@ void miClean(struct musicInfo *mi);
 void db_safe(char *str, const char *data, const size_t size);
 
 //message.c
-void debug(char *argv);
-void debug3(char *argv);
-void debugf(char *msg, int cnt, ...);
+void debug(const char *argv);
+void debug3(const char *argv);
+void debugf(const char *msg, int cnt, ...);
 void printSongPubInfo(char **row);
 
 //player.c

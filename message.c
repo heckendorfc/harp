@@ -15,12 +15,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void debug(char *argv){
+void debug(const char *argv){
 	if(arglist[AVERBOSE].active>0)
 		fprintf(stderr,"%s\n",argv);
 }
 
-void debug3(char *argv){
+void debug3(const char *argv){
 	if(arglist[AVERBOSE].active>2)
 		fprintf(stderr,"%s\n",argv);
 }
