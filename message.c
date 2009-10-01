@@ -15,14 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void debug(const char *argv){
-	if(arglist[AVERBOSE].active>0)
-		fprintf(stderr,"%s\n",argv);
-}
-
-void debug3(const char *argv){
-	if(arglist[AVERBOSE].active>2)
-		fprintf(stderr,"%s\n",argv);
+void debug(const int level,const char *msg){
+	if(arglist[AVERBOSE].active>=level)
+		fprintf(stderr,"%s\n",msg);
 }
 
 void printSongPubInfo(char **row){

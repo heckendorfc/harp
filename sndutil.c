@@ -46,7 +46,6 @@ void changeVolume(struct playerHandles *ph, int mod){
 	int err,current;
 
 	if((err=snd_ctl_open(&ctl,"default",0))<0){
-	//	debug("Can't change volume.");
 		return;
 	}
 	snd_ctl_elem_id_alloca(&id);
@@ -77,7 +76,6 @@ void toggleMute(struct playerHandles *ph, int *mute){
 	int current=*mute,err;
 
 	if((err=snd_ctl_open(&ctl,"default",0))<0){
-	//	debug("Can't change volume.");
 		return;
 	}
 	snd_ctl_elem_id_alloca(&id);
@@ -141,23 +139,19 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 	if(ret == -EAGAIN)return 0;
 	if(ret<0){
 		if(ret == -EPIPE){
-		//	debug3("EPIPE (Broken Pipe)");
 			ret=snd_pcm_prepare(ph->sndfd);
 			if(ret<0){
-		//		debug3("Can't recover from underrun. die");
 				snd_pcm_drain(ph->sndfd);
 				snd_pcm_close(ph->sndfd);
 				return -1;
 			}
 		}
 		else if(ret == -ESTRPIPE){
-		//	debug3("ESTRPIPE");
 			while((ret=snd_pcm_resume(ph->sndfd)) == -EAGAIN)
 				sleep(1);
 			if(ret<0){
 				ret=snd_pcm_prepare(ph->sndfd);
 				if(ret<0){
-		//			debug3("Can't recover from underrun. die");
 					snd_pcm_drain(ph->sndfd);
 					snd_pcm_close(ph->sndfd);
 					return -1;
@@ -178,23 +172,19 @@ int writen_snd(struct playerHandles *ph, void *out[], const unsigned int size){
 	if(ret == -EAGAIN)return 0;
 	if(ret<0){
 		if(ret == -EPIPE){
-	//		debug3("EPIPE (Broken Pipe)");
 			ret=snd_pcm_prepare(ph->sndfd);
 			if(ret<0){
-	//			debug3("Can't recover from underrun. die");
 				snd_pcm_drain(ph->sndfd);
 				snd_pcm_close(ph->sndfd);
 				return -1;
 			}
 		}
 		else if(ret == -ESTRPIPE){
-	//		debug("ESTRPIPE");
 			while((ret=snd_pcm_resume(ph->sndfd)) == -EAGAIN)
 				sleep(1);
 			if(ret<0){
 				ret=snd_pcm_prepare(ph->sndfd);
 				if(ret<0){
-	//				debug3("Can't recover from underrun. die");
 					snd_pcm_drain(ph->sndfd);
 					snd_pcm_close(ph->sndfd);
 					return -1;

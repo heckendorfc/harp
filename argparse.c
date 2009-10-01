@@ -56,7 +56,7 @@ static void genreToPlaylistSong(struct dbnode *cur){
 	if(!cur->dbi.row_count)return;
 	char query[100];
 	sprintf(query,"SELECT Song.SongID FROM SongCategory NATURAL JOIN Song WHERE Active=1 AND CategoryID=%d",(int)strtol(cur->dbi.row[0],NULL,10));
-	debug3(query);
+	debug(3,query);
 	// TODO: See if order will auto increment. It would be nice to skip this function call.
 	insertPS(query,&cur->dbi);
 }

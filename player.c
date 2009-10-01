@@ -115,8 +115,7 @@ int player(int list){//list - playlist number
 			if(x>1)continue;
 			modplay=dlsym(module,"plugin_run");
 			if(!modplay){
-				debug("Plugin does not contain plugin_run().\n");
-				//debug(dlerror());
+				debug(2,"Plugin does not contain plugin_run().\n");
 				ret=-1;
 			}
 			else{
@@ -188,16 +187,67 @@ void playerControl(void *arg){
 		pthread_mutex_unlock(&actkey);
 		if(temp==KEY_QUIT){
 			pca->ph->pflag->pause=0;
-			debug3("playerControl found quit");
+			debug(2,"playerControl found quit");
 			break;
 		}
 	}
-	debug3("playerControl quitting");
+	debug(2,"playerControl quitting");
 	
 	// Reset term settings
 	tcsetattr(0,TCSANOW,&orig);
 
 	pthread_exit((void *) 0);
+}
+
+struct writelistarg{
+	FILE *ffd;
+};
+
+int write_stats(void *data, int col_count, char **row, char **titles){
+	struct writelistarg *arg=(struct writelistarg*)data;
+	int x;
+	for(x=0;x<col_count;x++){
+		fputs(row[x],arg->ffd);
+		fputc('\t',arg->ffd);
+	}
+	fputc('\n',arg->ffd);
+	return 0;
+}
+
+void writelist(char *com, struct playercontrolarg *pca){
+	int x,y,limit;
+	struct writelistarg data;
+	struct dbitem dbi;
+	char query[200],filename[30];
+	dbiInit(&dbi);
+
+	for(y=1;y<50 && com[y] && (com[y]<'0' || com[y]>'9');y++);
+	limit=(int)strtol(&com[y],NULL,10);
+	if(limit<=0)limit=50;
+	//for(x=1;x<y && com[x];y++);
+	switch(com[1]){
+		case 'h':
+			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
+			break;
+		case 't':
+			x=pca->listdbi->row_count-limit;
+			if(x<0)x=0;
+			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d,%d",x,limit);
+			break;
+		case 'r':
+		default:
+			x=(pca->listdbi->current_row-(pca->listdbi->column_count*2))/pca->listdbi->column_count;
+			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d,%d",x,limit);
+			break;
+	}
+	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
+	if((data.ffd=fopen(filename,"w"))==NULL){
+		fprintf(stderr,"Failed to open file\n");
+		return;
+	}
+	fputs("ORDER\tID\tTITLE\tLOCATION\tRATING\tPLAYCOUNT\tSKIPCOUNT\tLASTPLAY\n",data.ffd);
+	sqlite3_exec(conn,query,write_stats,&data,NULL);
+	fclose(data.ffd);
 }
 
 void advseek(char *com, struct playercontrolarg *pca){
@@ -227,7 +277,7 @@ void jump(char *com, struct playercontrolarg *pca){
 
 	if(com[1]=='o'){ // Jump by Order. Find the SongID first (listdbi only uses SongID and TypeID).
 		sprintf(query,"SELECT SongID FROM TempPlaylistSong WHERE `Order`=%d",dest);
-		debug3(query);
+		debug(3,query);
 		if(doQuery(query,&dbi)<1){
 			dbiClean(&dbi);
 			return;
@@ -276,7 +326,7 @@ void listtemp(char *com, struct playercontrolarg *pca){
 			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY `Order` LIMIT %d,%d",x,limit);
 			break;
 	}
-	debug3(query);
+	debug(3,query);
 	doTitleQuery(query,&dbi,exception,listconf.maxwidth);
 }
 
@@ -285,6 +335,7 @@ void getCommand(struct playercontrolarg *pca){
 	tcsetattr(0,TCSANOW,&pca->orig);
 
 	char *ptr,com[50];
+	bzero(com,50);
 	ptr=com;
 	int oldupdate=pca->ph->pflag->update;
 	pca->ph->pflag->update=0;
@@ -304,6 +355,9 @@ void getCommand(struct playercontrolarg *pca){
 		else if(*com==KEY_SEEK_DN || *com==KEY_SEEK_UP){ // Seek with specified value
 			advseek(ptr,pca);
 		}
+		else if(*com=='w'){ // Write out information about the playlist
+			writelist(ptr,pca);
+		}
 	}
 	tcgetattr(0,&old);
 	old.c_lflag&=(~ICANON);
@@ -318,15 +372,12 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 	function_seek seek;
 	switch(key){
 		case KEY_VOLUP:
-			debug3("KEY_VOLUP");
 			changeVolume(pca->ph,5);
 			return 1;
 		case KEY_VOLDN:
-			debug3("KEY_VOLDN");
 			changeVolume(pca->ph,-5);
 			return 1;
 		case KEY_MUTE:
-			debug3("KEY_MUTE");
 			toggleMute(pca->ph,&pca->ph->pflag->mute);
 			return 1;
 		case KEY_PAUSE: 
@@ -407,7 +458,7 @@ void shuffle(int list){
 	else
 		sprintf(query,"SELECT SongID FROM TempPlaylistSong");
 
-	debug3(query);
+	debug(3,query);
 	doQuery(query,&dbi);
 	total_songs=dbi.row_count;
 	
@@ -419,12 +470,6 @@ void shuffle(int list){
 		createTempPlaylistSong();
 	else
 		sqlite3_exec(conn,"DELETE FROM TempPlaylistSong",NULL,NULL,NULL); 
-
-	/*for(x=0;x<total_songs;x++){
-		sprintf(query,"INSERT INTO PlaylistSong(SongID,PlaylistID,`Order`) VALUES(%d,%d,%d)",(int)strtol(rg[x].str,NULL,10),0,x);
-		debug3(query);
-		doQuery(query,&insertdbi);
-	}*/
 
 	int currentlimit=x=0;
 	while(x<total_songs){
@@ -497,24 +542,24 @@ void zrandomize(struct zrandgroup *rg, const int items, int mod){
 	// LastPlay Bonus (already in order)
 	for(x=(items-1)/5;x<items;x++)if(rg[x].lastplay!=0)break; // Min 20%; Max total unplayed
 	sprintf(msg,"lastplay\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].lastplay,rg[x].lastplay,rg[items-1].lastplay);
-	debug(msg);
+	debug(2,msg);
 	for(;x>=0;x--){
 	//for(x=items/5;x>0;x--){
 		rg[x].ran+=(int)random()%lastplaymod;
 	}
 	sprintf(msg,"x: %d | mod: %d\n",x,lastplaymod);
-	debug3(msg);
+	debug(2,msg);
 
 	// Rating Bonus
 	qsort(rg,items,sizeof(struct zrandgroup),zrg_rating_sort);
 	for(x=items-1;x>=0;x--)if(rg[x].rating!=0)break; // Ignore songs with 0 rating
 	sprintf(msg,"rating\nx: %d | most: %d | least: %d | tail: %d",x,rg[0].rating,rg[x].rating,rg[items-1].rating);
-	debug(msg);
+	debug(2,msg);
 	for(;x>=0;x--){
 		rg[x].ran+=(int)random()%(ratingmod*rg[x].rating);
 	}
 	sprintf(msg,"x: %d | mod: %d * rating\n",x,ratingmod);
-	debug(msg);
+	debug(2,msg);
 
 	//PlayCount Bonus
 	qsort(rg,items,sizeof(struct zrandgroup),zrg_play_count_sort);
@@ -533,12 +578,12 @@ void zrandomize(struct zrandgroup *rg, const int items, int mod){
 		}
 	}
 	sprintf(msg,"playcount\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].playcount,rg[x].playcount,rg[items-1].playcount);
-	debug(msg);
+	debug(2,msg);
 	for(;x>=0;x--){
 		rg[x].ran+=(int)random()%playcountmod;
 	}
 	sprintf(msg,"x: %d | mod: %d\n",x,playcountmod);
-	debug(msg);
+	debug(2,msg);
 
 	//SkipCount Penalty
 	qsort(rg,items,sizeof(struct zrandgroup),zrg_skip_count_sort);
@@ -558,12 +603,12 @@ void zrandomize(struct zrandgroup *rg, const int items, int mod){
 		}
 	}
 	sprintf(msg,"skipcount\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].skipcount,rg[x].skipcount,rg[items-1].skipcount);
-	debug(msg);
+	debug(2,msg);
 	for(;x>=0;x--){
 		rg[x].ran-=(int)random()%skipcountmod;
 	}
 	sprintf(msg,"x: %d | mod: -%d\n",x,skipcountmod);
-	debug(msg);
+	debug(2,msg);
 	
 	// Put in random order
 	qsort(rg,items,sizeof(struct zrandgroup),zrg_random_sort);

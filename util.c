@@ -58,21 +58,13 @@ char *expand(char *in){
 	if(pglob.gl_pathc>0){
 		memmove(tmp,pglob.gl_pathv[0],100);
 
-		debug("Ok!");
+		debug(1,"Glob OK!");
 	}
 	else
-		debug("No files match");
+		debug(1,"No files match");
 	globfree(&pglob);
 	return in;
 }
-
-	/*
-	if(buf[0]==0x30 && buf[1]==0x26 && buf[2]==0xB2 && buf[3]==0x75){
-		debug("wma(asf)\n");
-		fclose(fd);
-		return FASF;
-	}
-	*/
 
 typedef int (*filetype_by_data)(FILE *ffd);
 
@@ -102,8 +94,7 @@ int fileFormat(const char *arg){
 			if(ret>1)continue;
 			data=dlsym(module,"filetype_by_data");
 			if(!module){
-				//debug(dlerror());
-				debug("\nPlugin does not contain filetype_by_data().\n");
+				debug(2,"\nPlugin does not contain filetype_by_data().\n");
 				//ret=-1;
 			}
 			else if(data(ffd)){
@@ -147,7 +138,7 @@ int getPlugin(struct dbitem *dbi, const int index, void **module){
 		return 0;
 	}
 	sprintf(library,"%s/%s",LIB_PATH,dbi->row[index]);
-	debug(library);
+	debug(2,library);
 	dlerror();
 	*module=dlopen(library,RTLD_LAZY);
 	if(!*module){
@@ -246,12 +237,12 @@ int getID(const char *arg){
 	id=(int)strtol(arg,&endptr,10);
 	if(*endptr!=0){
 		if((id=strToID(arg))<1 ){
-			debug("No ID found.");
+			debug(1,"No ID found.");
 			return -1;
 		}
 	}
 	if(!verifyID(id)){
-		debug("No ID found.");
+		debug(1,"No ID found.");
 		return -1;
 	}
 	return id;
@@ -337,21 +328,26 @@ void miFree(struct musicInfo *mi){
 		free(mi->length);
 }
 
+void db_clean(char *str, const char *data, const size_t size){
+	int x,z;
+	for(x=0;data[x]==' ' && x<size;x++); // Strip starting spaces
+	for(z=0;data[x]>31 && data[x]<127 && x<size;x++){ // Strip multi space
+		if(data[x]==' ' && data[x+1]==' ')
+			continue;
+		str[z++]=data[x];
+	}
+	if(z>0 && str[z-1]==' ')z--; // Remove trailing space
+	str[z]=0;
+}
+
 void db_safe(char *str, const char *data, const size_t size){
-	int x,z=0;
-	for(x=0;data[x]>31 && data[x]<127 && x<size;x++){//strip multi space
-		if(data[x]==' ' && data[x+1]==' ')continue;
-		str[z]=data[x];
-		z++;
+	int x,z;
+	for(z=x=0;data[x] && z<size;x++){ // Escape single quotes
+		if(data[x]=='\''){
+			str[z++]='\'';
+		}
+		str[z++]=data[x];
 	}
 	str[z]=0;
-	for(x=0;str[x]!='\0';x++){//addslashes
-		if(str[x]=='\''){
-			memmove(&str[x+1],&str[x],(z+1)-x);
-			str[x]='\'';
-			x++;
-			z++;
-		}
-	}
 }
 

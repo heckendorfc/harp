@@ -19,8 +19,13 @@ typedef void (*function_meta)(FILE *ffd, struct musicInfo *mi);
 static int verifySong(const int sid);
 static unsigned int insertSong(const char *arg, struct musicInfo *mi);
 
-static void db_insert_safe(char *str, const char *data, const size_t size){
-	if(!*data){strcpy(str,"Unknown");return;}
+static void db_insert_safe(char *str, char *data, const size_t size){
+	if(!*data){
+		strcpy(str,"Unknown");
+		return;
+	}
+	db_clean(str,data,size);
+	strcpy(data,str);
 	db_safe(str,data,size);
 	if(!*str)strcpy(str,"Unknown");
 }
@@ -31,17 +36,15 @@ int getArtist(const char *arg){
 	dbiInit(&dbi);
 
 	sprintf(query,"SELECT COUNT(ArtistID), ArtistID FROM Artist WHERE Name=\'%s\'",arg);
-	debug3(query);
+	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create artist
-		sprintf(query,"INSERT INTO Artist (Name) VALUES (\'%s\')",arg);
-		debug3(query);
-		if(doQuery(query,&dbi)<1){
-			dbiClean(&dbi);
-			return -1;
-		}
 		dbiClean(&dbi);
+		sprintf(query,"INSERT INTO Artist (Name) VALUES (\'%s\')",arg);
+		debug(3,query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
+			return -1;
 		return sqlite3_last_insert_rowid(conn);
 	}
 	int id=(int)strtol(dbi.row[1],NULL,10);
@@ -55,23 +58,19 @@ int getAlbum(const char *arg, const int id){
 	dbiInit(&dbi);
 
 	sprintf(query,"SELECT COUNT(Album.AlbumID), Album.AlbumID FROM Album,AlbumArtist WHERE Album.Title=\'%s\' AND Album.AlbumID = AlbumArtist.AlbumID AND AlbumArtist.ArtistID=%d",arg,id);
-	debug3(query);
+	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create album
-		sprintf(query,"INSERT INTO Album (Title) VALUES (\'%s\')",arg);
-		debug3(query);
-		if(doQuery(query,&dbi)<1){
-			dbiClean(&dbi);
-			return -1;
-		}
-		sprintf(query,"INSERT INTO AlbumArtist (ArtistID,AlbumID) VALUES (%d,%d)",id,(int)sqlite3_last_insert_rowid(conn));
-		debug3(query);
-		if(doQuery(query,&dbi)<1){
-			dbiClean(&dbi);
-			return -1;
-		}
 		dbiClean(&dbi);
+		sprintf(query,"INSERT INTO Album (Title) VALUES (\'%s\')",arg);
+		debug(3,query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
+			return -1;
+		sprintf(query,"INSERT INTO AlbumArtist (ArtistID,AlbumID) VALUES (%d,%d)",id,(int)sqlite3_last_insert_rowid(conn));
+		debug(3,query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
+			return -1;
 		return sqlite3_last_insert_rowid(conn);
 	}
 	int newid=(int)strtol(dbi.row[1],NULL,10);
@@ -85,17 +84,15 @@ int getSong(const char *arg, const char *loc, const int id){
 	dbiInit(&dbi);
 
 	sprintf(query,"SELECT COUNT(Song.SongID), Song.SongID FROM Song, Album WHERE Song.Location=\'%s\' AND Song.AlbumID = Album.AlbumID AND Album.AlbumID=%d",loc,id);
-	debug3(query);
+	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create song
-		sprintf(query,"INSERT INTO Song (Title,Location,AlbumID,TypeID) VALUES (\'%s\',\'%s\',%d,%d)",arg,loc,id,-1);
-		debug3(query);
-		if(doQuery(query,&dbi)<1){
-			dbiClean(&dbi);
-			return -1;
-		}
 		dbiClean(&dbi);
+		sprintf(query,"INSERT INTO Song (Title,Location,AlbumID,TypeID) VALUES (\'%s\',\'%s\',%d,%d)",arg,loc,id,-1);
+		debug(3,query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
+			return -1;
 		return sqlite3_last_insert_rowid(conn);
 	}
 	int newid=(int)strtol(dbi.row[1],NULL,10);
@@ -109,16 +106,15 @@ int getPlaylist(const char *arg){
 	dbiInit(&dbi);
 
 	sprintf(query,"SELECT COUNT(Playlist.PlaylistID), Playlist.PlaylistID FROM Playlist WHERE Playlist.Title=\'%s\'",arg);
-	debug3(query);
+	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create playlist
 		dbiClean(&dbi);
 		sprintf(query,"INSERT INTO Playlist (Title) VALUES ('%s')",arg);
-		debug3(query);
-		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK){
+		debug(3,query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
-		}
 		return sqlite3_last_insert_rowid(conn);
 	}
 	int newid=(int)strtol(dbi.row[1],NULL,10);
@@ -132,12 +128,12 @@ int getPlaylistSong(const int sid, const int pid){
 	dbiInit(&dbi);
 
 	sprintf(query,"SELECT COUNT(PlaylistSong.PlaylistSongID), PlaylistSong.PlaylistSongID FROM PlaylistSong WHERE PlaylistSong.PlaylistID=%d AND PlaylistSong.SongID=%d",pid,sid);
-	debug3(query);
+	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create playlistsong
 		sprintf(query,"SELECT \"Order\" FROM PlaylistSong WHERE PlaylistID=%d ORDER BY \"Order\" DESC LIMIT 1",pid);
-		debug3(query);
+		debug(3,query);
 		doQuery(query,&dbi);
 		int order;
 		if(fetch_row(&dbi))
@@ -145,13 +141,11 @@ int getPlaylistSong(const int sid, const int pid){
 		else
 			order=1;
 
-		sprintf(query,"INSERT INTO PlaylistSong(SongID,PlaylistID,\"Order\") VALUES(%d,%d,%d)",sid,pid,order);
-		debug3(query);
-		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK){
-			dbiClean(&dbi);
-			return -1;
-		}
 		dbiClean(&dbi);
+		sprintf(query,"INSERT INTO PlaylistSong(SongID,PlaylistID,\"Order\") VALUES(%d,%d,%d)",sid,pid,order);
+		debug(3,query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
+			return -1;
 		return sqlite3_last_insert_rowid(conn);
 	}
 	int newid=(int)strtol(dbi.row[1],NULL,10);
@@ -165,16 +159,15 @@ int getCategory(const char *arg){
 	dbiInit(&dbi);
 
 	sprintf(query,"SELECT COUNT(CategoryID), CategoryID FROM Category WHERE Name=\'%s\'",arg);
-	debug3(query);
+	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create playlist
 		dbiClean(&dbi);
 		sprintf(query,"INSERT INTO Category (Name) VALUES ('%s')",arg);
-		debug3(query);
-		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK){
+		debug(3,query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
-		}
 		return sqlite3_last_insert_rowid(conn);
 	}
 	int newid=(int)strtol(dbi.row[1],NULL,10);
@@ -188,17 +181,15 @@ int getSongCategory(const int sid, const int cid){
 	dbiInit(&dbi);
 
 	sprintf(query,"SELECT COUNT(SongCatID), SongCatID FROM SongCategory WHERE CategoryID=%d AND SongID=%d",cid,sid);
-	debug3(query);
+	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create songcategory
-		sprintf(query,"INSERT INTO SongCategory(SongID,CategoryID) VALUES(%d,%d)",sid,cid);
-		debug3(query);
-		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK){
-			dbiClean(&dbi);
-			return -1;
-		}
 		dbiClean(&dbi);
+		sprintf(query,"INSERT INTO SongCategory(SongID,CategoryID) VALUES(%d,%d)",sid,cid);
+		debug(3,query);
+		if(sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
+			return -1;
 		return sqlite3_last_insert_rowid(conn);
 	}
 	int newid=(int)strtol(dbi.row[1],NULL,10);
@@ -268,13 +259,10 @@ int batchInsert(char *arg){
 	mi.length=malloc(((MI_LENGTH_SIZE*2)+1)*sizeof(char));
 	getMusicInfo(&mi);
 	if(arg){//single argv insert
-		debug("Inserting song at: ");
-		debug(expand(arg));
-		directoryInsert(arg);
+		directoryInsert(expand(arg));
 	}
 	else{//batch insert
 		char temp[250];
-
 		while(printf("File Location: ") && fgets(temp,sizeof(temp),stdin) && *temp!='\n'){
 			expand(temp);
 			insertSong(temp,&mi);
@@ -288,36 +276,35 @@ static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 	if(!mi)mi=getMusicInfo(NULL);
 	miClean(mi);
 
-	//chack for dupicate
 	struct dbitem dbi;
-	dbiInit(&dbi);
 	char dbq[350];
-
 	char dbfilename[250];
-	int x;for(x=0;arg[x]!=0;x++);
-	db_insert_safe(dbfilename,arg,x);
-	debug(arg);
+	char library[200];
+	char tempname[401];
+	FILE *ffd;
+	int x,songid=0,fmt,artistid,albumid;
+	void *module;
+
+	db_safe(dbfilename,arg,250);
+	debug(1,arg);
 	
+	dbiInit(&dbi);
+	//chack for dupicate
 	sprintf(dbq,"SELECT SongID FROM Song WHERE Location='%s' LIMIT 1",dbfilename);
 	doQuery(dbq,&dbi);
 	if(dbi.row_count){
-		debug("duplicate entry -- skipping");
+		debug(1,"duplicate entry -- skipping");
 		dbiClean(&dbi);
 		return 0;
 	}
-	debug("Finding file type");
-	int fmt;
+
+	debug(1,"Finding file type");
 	if((fmt=fileFormat(arg))<1){
 		dbiClean(&dbi);
 		if(fmt==0)fprintf(stderr,"Unknown file type\n");
 		return 0;
 	}
-	int songid=0;
 
-	FILE *ffd;
-	int artistid,albumid;
-	char library[200];
-	void *module;
 	if((ffd=fopen(arg,"rb"))==NULL){
 		dbiClean(&dbi);
 		fprintf(stderr,"Can't open file\n");
@@ -327,12 +314,12 @@ static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 	function_meta modmeta;
 	sprintf(dbq,"SELECT Library FROM FilePlugin WHERE TypeID=%d LIMIT 1",fmt);
 	doQuery(dbq,&dbi);
-	debug3(dbq);
+	debug(3,dbq);
 	while((x=getPlugin(&dbi,0,&module))){
 		if(x>1)continue;
 		modmeta=dlsym(module,"plugin_meta");
 		if(!modmeta){
-			debug("Plugin does not contain plugin_meta().\n");
+			debug(2,"Plugin does not contain plugin_meta().\n");
 			continue;
 		}
 		else{
@@ -347,31 +334,25 @@ static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 		return 0;
 	}
 
-	char tempname[401];
-	if(!*mi->artist){
-		strcpy(mi->artist,"Unknown");
-	}
-	else{
-		db_insert_safe(tempname,mi->artist,MI_ARTIST_SIZE);
-		strcpy(mi->artist,tempname);
-	}
+	dbiClean(&dbi);
+
+	db_insert_safe(tempname,mi->artist,MI_ARTIST_SIZE);
+	strcpy(mi->artist,tempname);
 	if((artistid=getArtist(mi->artist))==-1){
 		fprintf(stderr,"Error inserting artist.");
-		dbiClean(&dbi);
 		return 0;
 	}
 
-	if(!*mi->album){
-		strcpy(mi->album,"Unknown");
-	}
-	else{
-		db_insert_safe(tempname,mi->album,MI_ALBUM_SIZE);
-		strcpy(mi->album,tempname);
-	}
+	db_insert_safe(tempname,mi->album,MI_ALBUM_SIZE);
+	strcpy(mi->album,tempname);
 	if((albumid=getAlbum(mi->album,artistid))==-1){
 		fprintf(stderr,"Error inserting album.");
-		dbiClean(&dbi);
 		return 0;
+	}
+	if(strcmp(mi->album,"Unknown") && *mi->year){
+		sprintf(dbq,"UPDATE Song SET TypeID=%d WHERE SongID=%d",fmt,songid);
+		debug(3,dbq);
+		sqlite3_exec(conn,dbq,NULL,NULL,NULL);
 	}
 
 	if(!*mi->title){
@@ -384,17 +365,17 @@ static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 	}
 	if((songid=getSong(mi->title,dbfilename,albumid))==-1){
 		fprintf(stderr,"Error inserting song.");
-		dbiClean(&dbi);
 		return 0;
 	}
-	printf("%s | %s | %s \n\n",mi->title,mi->album,mi->artist);
+	printf("%s | %s | %s \n",mi->title,mi->album,mi->artist);
 
-	sprintf(dbq,"UPDATE Song SET TypeID=%d WHERE SongID=%d",fmt,songid);
-	debug3(dbq);
+	sprintf(dbq,"UPDATE Song SET Rating=3, TypeID=%d WHERE SongID=%d",fmt,songid);
+	debug(3,dbq);
 	sqlite3_exec(conn,dbq,NULL,NULL,NULL);
 
 	getPlaylistSong(songid,getPlaylist("Library"));
 	getSongCategory(songid,1); // Unknown
-	debug("Song inserted into Library");
+	debug(1,"Song inserted into Library");
+	printf("\n");
 	return 1;
 }

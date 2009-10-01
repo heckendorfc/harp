@@ -35,5 +35,5 @@ void int_leave(int sig){
 
 void cleanExit(){
 	sqlite3_close(conn);
-	debug("done -- database connection closed");
+	debug(2,"done -- database connection closed");
 }

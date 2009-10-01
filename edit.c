@@ -26,6 +26,7 @@ static void cleanString(char **ostr){
 	while(*str!='\n'){str++;}
 	*str=0;
 	char temp[500];
+	db_clean(temp,*ostr,250);
 	db_safe(temp,*ostr,250);
 	strcpy(*ostr,temp);
 }
@@ -123,21 +124,21 @@ static int editSongArtist(char *args, void *data){
 	if((artistid=(int)strtol(args,NULL,10))<1)
 		artistid=getArtist(args);
 	sprintf(query,"SELECT Album.Title FROM Album,Song WHERE Album.AlbumID=Song.AlbumID AND SongID=%d",songids->songid[0]);
-	debug3(query);
+	debug(3,query);
 	if(doQuery(query,&dbi)>0 && fetch_row(&dbi))
 		albumid=getAlbum(dbi.row[0],artistid);
 	else{
-		debug("getAlbum error in editSongArtist");
+		debug(2,"getAlbum error in editSongArtist");
 		dbiClean(&dbi);
 		return 1;
 	}
 
 	sprintf(query,"UPDATE Song SET AlbumID=%d WHERE SongID=",albumid);
+	debug(3,query);
 	for(x=0;query[x];x++);
 	ptr=&query[x];
 	for(x=0;x<songids->length;x++){
 		sprintf(ptr,"%d",songids->songid[x]);
-		debug3(query);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	dbiClean(&dbi);
@@ -159,16 +160,20 @@ static int editSongAlbum(char *args, void *data){
 	args=&args[x];
 
 	sprintf(query,"SELECT ArtistID from Song NATURAL JOIN AlbumArtist WHERE SongID=%d",songids->songid[0]);
-		debug3(query);
+	debug(3,query);
 	if(doQuery(query,&dbi)<1 || !fetch_row(&dbi) || (artistid=(int)strtol(dbi.row[0],NULL,10))<1){
-		debug("getArtist error in getAlbum");
+		debug(2,"getArtist error in getAlbum");
 		return 1;
 	}
 
 	albumid=getAlbum(args,artistid);
+
+	sprintf(query,"UPDATE Song SET AlbumID=%d WHERE SongID=",albumid);
+	debug(3,query);
+	for(x=0;query[x];x++);
+	ptr=&query[x];
 	for(x=0;x<songids->length;x++){
-		sprintf(query,"UPDATE Song SET AlbumID=%d WHERE SongID=%d",albumid,songids->songid[x]);
-		debug3(query);
+		sprintf(ptr,"%d",songids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	dbiClean(&dbi);
@@ -192,7 +197,7 @@ static int deleteSong(char *args, void *data){
 			sprintf(query,"DELETE FROM PlaylistSong WHERE SongID=%d",songids->songid[x]);
 			sqlite3_exec(conn,query,NULL,NULL,NULL);
 		}
-		debug("Songs deleted.");
+		debug(1,"Songs deleted.");
 		return -1;
 	}
 	return 1;
@@ -209,14 +214,13 @@ static int songActivation(char *args, void *data){
 	for(x=1;x<200 && args[x] && args[x]==' ';x++);
 	if(args[x] && args[x]>='0' && args[x]<='9'){
 		sprintf(query,"UPDATE Song SET Active=%d WHERE SongID=",(strtol(&args[x],NULL,10)>0?1:0));
-		debug3(query);
 		ptr=&query[38];
 	}
 	else{
 		sprintf(query,"UPDATE Song SET Active=NOT(Active) WHERE SongID=");
-		debug3(query);
 		ptr=&query[48];
 	}
+	debug(3,query);
 	for(x=0;x<songids->length;x++){
 		sprintf(ptr,"%d",songids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
@@ -239,9 +243,12 @@ static int editAlbumArtist(char *args, void *data){
 	args=&args[x];
 
 	artistid=getArtist(args);
+	sprintf(query,"UPDATE AlbumArtist SET ArtistID=%d WHERE AlbumID=",artistid);
+	for(x=0;query[x];x++);
+	ptr=&query[x];
+	debug(3,query);
 	for(x=0;x<ids->length;x++){
-		sprintf(query,"UPDATE AlbumArtist SET ArtistID=%d WHERE AlbumID=%d",artistid,ids->songid[x]);
-		debug3(query);
+		sprintf(ptr,"%d",artistid,ids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	dbiClean(&dbi);
@@ -263,9 +270,9 @@ static int editAlbumTitle(char *args, void *data){
 	args=&args[x];
 
 	sprintf(query,"SELECT ArtistID from AlbumArtist WHERE AlbumID=%d",ids->songid[0]);
-		debug3(query);
+	debug(3,query);
 	if(doQuery(query,&dbi)<1 || !fetch_row(&dbi) || (artistid=(int)strtol(dbi.row[0],NULL,10))<1){
-		debug("getArtist error in getAlbum");
+		debug(2,"getArtist error in editAlbumTitle");
 		return 1;
 	}
 
@@ -273,12 +280,11 @@ static int editAlbumTitle(char *args, void *data){
 	for(x=0;x<ids->length;x++){
 		sprintf(query,"UPDATE Song SET AlbumID=%d WHERE AlbumID=%d",albumid,ids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
-		sprintf(query,"UPDATE AlbumArtist SET AlbumID=%d WHERE AlbumID=%d",albumid,ids->songid[x]);
+		// The following queries will also be taken care of by cleanOrphans. Leave it for now.
+		sprintf(query,"DELETE FROM AlbumArtist WHERE AlbumID=%d",ids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 		if(albumid!=ids->songid[x]){
 			sprintf(query,"DELETE FROM Album WHERE AlbumID=%d",ids->songid[x]);
-			sqlite3_exec(conn,query,NULL,NULL,NULL);
-			sprintf(query,"DELETE FROM AlbumArtist WHERE AlbumID=%d",ids->songid[x]);
 			sqlite3_exec(conn,query,NULL,NULL,NULL);
 		}
 		ids->songid[x]=albumid;
@@ -305,7 +311,6 @@ static int editArtistName(char *args, void *data){
 	artistid=getArtist(args);
 	for(x=0;x<ids->length;x++){
 		sprintf(query,"UPDATE AlbumArtist SET ArtistID=%d WHERE ArtistID=%d",artistid,ids->songid[x]);
-		debug3(query);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 		if(ids->songid[x]!=artistid){
 			sprintf(query,"DELETE FROM Artist WHERE ArtistID=%d",ids->songid[x]);
@@ -335,10 +340,9 @@ static int editPlaylistName(char *args, void *data){
 			return 1;
 	}
 
-	for(x=0;x<ids->length;x++){
-		sprintf(query,"UPDATE Playlist SET Title='%s' WHERE PlaylistID=%d",args,ids->songid[x]);
-		sqlite3_exec(conn,query,NULL,NULL,NULL);
-	}
+	sprintf(query,"UPDATE Playlist SET Title='%s' WHERE PlaylistID=%d",args,ids->songid[0]);
+	sqlite3_exec(conn,query,NULL,NULL,NULL);
+
 	return 1;
 }
 
@@ -423,7 +427,7 @@ static int editPlaylistSongDelete(char *args, void *data){
 
 	x=(int)strtol(args,NULL,10);
 	sprintf(query,"DELETE FROM PlaylistSong WHERE `Order`=%d AND PlaylistID=%d",x,ids->songid[0]);
-	debug3(query);
+	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	// Remove the empty place at the old order
 	sprintf(query,"UPDATE PlaylistSong SET `Order`=`Order`-1 WHERE `Order`>%d AND PlaylistID=%d",x,ids->songid[0]);
@@ -501,19 +505,19 @@ static int editPlaylistSongOrder(char *args, void *data){
 
 	// Move song out of the way. Order 0 should not be used.
 	sprintf(query,"UPDATE PlaylistSong SET `Order`=0 WHERE PlaylistID=%d AND `Order`=%d",ids->songid[0],current_order);
-	debug3(query);
+	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	// Remove the empty place at the old order
 	sprintf(query,"UPDATE PlaylistSong SET `Order`=`Order`-1 WHERE `Order`>%d AND PlaylistID=%d",current_order,ids->songid[0]);
-	debug3(query);
+	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	// Make room for the song. TODO: find performance of ignoring the overlap vs testing for overlap in the query.
 	sprintf(query,"UPDATE PlaylistSong SET `Order`=`Order`+1 WHERE `Order`>%d AND PlaylistID=%d",new_order-1,ids->songid[0]);
-	debug3(query);
+	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	// Change the song's order
 	sprintf(query,"UPDATE PlaylistSong SET `Order`=%d WHERE PlaylistID=%d AND `Order`=0",new_order,ids->songid[0]);
-	debug3(query);
+	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 
 	return 1;
@@ -599,7 +603,7 @@ static int editGenreParent(char *args, void *data){
 	for(x=0;x<ids->length;x++){
 		if(gid==ids->songid[x])continue;
 		sprintf(query,"UPDATE Category SET ParentID=%d WHERE CategoryID=%d AND CategoryID NOT IN (SELECT ParentID FROM Category WHERE CategoryID=%1$d)",gid,ids->songid[x]);
-		debug3(query);
+		debug(3,query);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	return 1;
@@ -651,7 +655,7 @@ static int editSongGenreAdd(char *args, void *data){
 
 	// Insert songs from list that are not already in the category
 	sprintf(query,"INSERT INTO SongCategory(CategoryID,SongID) SELECT '%d',SongID FROM SongCategory WHERE SongID NOT IN (SELECT SongID FROM SongCategory WHERE CategoryID=%1$d) AND SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",gid,ids->tempselectid);
-	debug3(query);
+	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	return 1;
 }
@@ -677,7 +681,7 @@ static int editSongGenreRemove(char *args, void *data){
 	}
 
 	sprintf(query,"DELETE FROM SongCategory WHERE CategoryID=%d AND SongID IN (SELECT SongID FROM TempSelect WHERE TempID=%d)",gid,ids->tempselectid);
-	debug3(query);
+	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	return 1;
 }
@@ -750,7 +754,7 @@ static int listAlbums(char *args, void *data){
 
 	sprintf(query,"SELECT AlbumID, Title FROM Album WHERE AlbumID=%d",ids->songid[x]);
 	ptr=&query[47];
-	debug3(query);
+	debug(3,query);
 	if(doQuery(query,&dbi)){
 		printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
 		if(fetch_row(&dbi))
@@ -780,7 +784,7 @@ static int listArtists(char *args, void *data){
 
 	sprintf(query,"SELECT ArtistID, Name FROM Artist WHERE ArtistID=%d",ids->songid[x]);
 	ptr=&query[49];
-	debug3(query);
+	debug(3,query);
 	if(doQuery(query,&dbi)){
 		printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
 		if(fetch_row(&dbi))
@@ -821,7 +825,7 @@ static int listPlaylists(char *args, void *data){
 
 	sprintf(query,"SELECT PlaylistID, Title FROM Playlist WHERE PlaylistID=%d",ids->songid[x]);
 	ptr=&query[56];
-	debug3(query);
+	debug(3,query);
 	if(doQuery(query,&dbi)){
 		printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
 		if(fetch_row(&dbi))
@@ -831,7 +835,7 @@ static int listPlaylists(char *args, void *data){
 
 	for(;x<ids->length;x++){
 		sprintf(ptr,"%d",ids->songid[x]);
-		debug3(query);
+		debug(3,query);
 		if(doQuery(query,&dbi) && fetch_row(&dbi))
 			printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
 	}
@@ -874,7 +878,7 @@ static int listSongGenre(char *args, void *data){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 	sprintf(query,"SELECT CategoryID AS ID,Name FROM Category WHERE ID IN (SELECT DISTINCT CategoryID FROM SongCategory WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d))",ids->tempselectid);
-	debug3(query);
+	debug(3,query);
 	doTitleQuery(query,&dbi,exception,listconf.maxwidth);
 	return 1;
 }
@@ -950,6 +954,7 @@ static int songPortal(char *args, void *data){
 			return x;
 	}
 	
+	debug(3,query);
 	// Get SongIDs for album or artist
 	for(++x;x<200 && args[x] && args[x]==' ';x++);
 	ids=getMulti(&args[x],&idlen);
@@ -960,7 +965,6 @@ static int songPortal(char *args, void *data){
 	for(sidlen=x=0;x<idlen;x++){
 		sprintf(ptr,"%d",ids[x]);
 		if(doQuery(query,&dbi)<1)continue;
-		debug3(query);
 		y=sidlen;
 		sidlen+=dbi.row_count;
 		sids=realloc(sids,sizeof(int)*(sidlen));

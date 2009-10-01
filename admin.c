@@ -26,8 +26,8 @@ static int addPlugin(char *args, void *data){
 	fgets(&lib[size],sizeof(lib)-(size+4),stdin);
 	for(x=size;lib[x]!='\n' && lib[x];x++);
 	strcpy(&lib[x],".sql");
-	debug("Adding information from from file:");
-	debug(lib);
+	debug(1,"Adding information from from file:");
+	debug(1,lib);
 
 	if(db_exec_file(lib)){
 		fprintf(stderr,"Error adding plugin from file:\n\t%s\n",lib);

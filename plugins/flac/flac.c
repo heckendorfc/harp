@@ -90,7 +90,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	//int status=0;
 
 	if((decoder=FLAC__stream_decoder_new())==NULL){
-		debug("flac decoder alloc failed");
+		debug(2,"flac decoder alloc failed");
 		return DEC_RET_ERROR;
 	}
 
@@ -99,7 +99,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	//FLAC__stream_decoder_set_metadata_respond(decoder,FLAC__METADATA_TYPE_SEEKTABLE); //when seeking is implemented
 	
 	if(FLAC__stream_decoder_init_FILE(decoder,ph->ffd,flac_write,flac_meta,flac_error,&data)!=FLAC__STREAM_DECODER_INIT_STATUS_OK){
-		debug("flac init failed");
+		debug(2,"flac init failed");
 		FLAC__stream_decoder_finish(decoder);
 		FLAC__stream_decoder_delete(decoder);
 		return DEC_RET_ERROR;
@@ -112,7 +112,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 
 	if(!FLAC__stream_decoder_process_until_end_of_metadata(decoder)){
-		debug("flac decoder metadata failed");
+		debug(2,"flac decoder metadata failed");
 		FLAC__stream_decoder_finish(decoder);
 		FLAC__stream_decoder_delete(decoder);
 		return DEC_RET_ERROR;
@@ -123,7 +123,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	snd_param_init(ph,&data.enc,&data.channels,&data.rate);
 
 	do{ /* Read and write until everything is through. */
-		if(FLAC__stream_decoder_process_single(decoder)==(FLAC__bool)false){debug("uh oh");break;}
+		if(FLAC__stream_decoder_process_single(decoder)==(FLAC__bool)false){debug(2,"uh oh");break;}
 		//if((size=ov_read(vf,buf,len,0,2,1,&vf->current_link))<1){debug("uh oh");break;}
 
 		//data.curtime+=data.size;

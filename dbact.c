@@ -23,7 +23,7 @@ int db_exec_file(char *file){
 	char *err;
 	
 	if(!query){
-		debug("Cannot malloc query");
+		debug(2,"Cannot malloc query");
 		return 1;
 	}
 
@@ -41,11 +41,11 @@ int db_exec_file(char *file){
 					if(querysize<2000)
 						query=realloc(query,querysize);
 					else{
-						debug("Limit reached");
+						debug(2,"Limit reached");
 						ret=1;break;
 					}
 					if(!query){
-						debug("Not enough memory");
+						debug(2,"Not enough memory");
 						ret=1;break;
 					}
 				}
@@ -57,7 +57,7 @@ int db_exec_file(char *file){
 					fprintf(stderr,"SQL Error: %s\n",err);
 					sqlite3_free(err);
 				}
-				debug("sqlite3_exec error.");
+				debug(2,"sqlite3_exec error.");
 				ret=1;break;
 			}
 			x=0;

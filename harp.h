@@ -209,12 +209,11 @@ void cleanTempSelect(const int tempid);
 int insertTempSelect(const int *ids, const int idlen);
 void miFree(struct musicInfo *mi);
 void miClean(struct musicInfo *mi);
+void db_clean(char *str, const char *data, const size_t size);
 void db_safe(char *str, const char *data, const size_t size);
 
 //message.c
-void debug(const char *argv);
-void debug3(const char *argv);
-void debugf(const char *msg, int cnt, ...);
+void debug(const int level, const char *msg);
 void printSongPubInfo(char **row);
 
 //player.c
