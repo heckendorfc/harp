@@ -106,7 +106,7 @@ int writen_snd(struct playerHandles *ph, void *out[], const unsigned int size);
 void snd_close(struct playerHandles *ph);
 
 #if WITH_ALSA==1
-	#include "sndutil.c"
+	#include "alsautil.c"
 #elif WITH_JACK==1
 	#include "jackutil.c"
 #else
