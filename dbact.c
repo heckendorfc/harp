@@ -163,48 +163,63 @@ int doQuery(const char *querystr,struct dbitem *dbi){
 	return dbi->row_count;
 }
 
-int doTitleQuery(const char *querystr,struct dbitem *dbi,int *exception, int maxwidth){
-	dbiClean(dbi);
-	sqlite3_get_table(conn,querystr,&dbi->result,&dbi->row_count,&dbi->column_count,&dbi->err);
-	if(dbi->err!=NULL){
-		fprintf(stderr,"Database query error: %s\n",dbi->err);
-		sqlite3_free(dbi->err);
-		dbi->err=NULL;
-		return -1;
-	}
-	if(!dbi->column_count)
-		return sqlite3_changes(conn);
-
-	dbi->current_row=0;
-	dbi->row=malloc(sizeof(char*)*dbi->column_count);
-	int x,len,templen;
-	int *exlen=calloc(dbi->column_count,sizeof(int));
-	while(fetch_row(dbi)){
-		len=maxwidth+3;
-		for(x=0;x<dbi->column_count-1;x++){
-			if(!exception[x]){
-				printf("[%1$.*2$s]%3$n",dbi->row[x],maxwidth,&len);
-				printf("%1$*2$c",' ',(maxwidth+3)-len);
-			}
-			else{
-				printf("[%s]%2$n",dbi->row[x],&templen);
-				if(templen>exlen[x])exlen[x]=templen;
-				printf("%1$*2$c",' ',(exlen[x]-templen)+1);
-			}
+int titlequery_titles_cb(void *data, int col_count, char **row, char **titles){
+	struct titlequery_data *arg=(struct titlequery_data*) data;
+	int x,templen,len=arg->maxwidth+3;
+	for(x=0;x<col_count-1;x++){
+		if(!arg->exception[x]){
+			printf("[%1$.*2$s]%3$n",titles[x],arg->maxwidth,&len);
+			printf("%1$*2$c",' ',(arg->maxwidth+3)-len);
 		}
-		if(!exception[x]){ // Ignore end spacing on final field
-			printf("[%1$.*2$s]",dbi->row[x],maxwidth);
+		else{
+			printf("[%s]%2$n",titles[x],&templen);
+			if(templen>arg->exlen[x])arg->exlen[x]=templen;
+			printf("%1$*2$c",' ',(arg->exlen[x]-templen)+1);
 		}
-		else
-			printf("[%s] ",dbi->row[x]);
-		printf("\n");
 	}
-	free(exlen);
-	x=dbi->row_count;
+	if(!arg->exception[x]){ // Ignore end spacing on final field
+		printf("[%1$.*2$s]",titles[x],arg->maxwidth);
+	}
+	else
+		printf("[%s] ",titles[x]);
+	printf("\n");
+	return 1;
+}
 
-	dbiClean(dbi);
+int titlequery_cb(void *data, int col_count, char **row, char **titles){
+	struct titlequery_data *arg=(struct titlequery_data*) data;
+	int x,templen,len=arg->maxwidth+3;
+	for(x=0;x<col_count-1;x++){
+		if(!arg->exception[x]){
+			printf("[%1$.*2$s]%3$n",row[x],arg->maxwidth,&len);
+			printf("%1$*2$c",' ',(arg->maxwidth+3)-len);
+		}
+		else{
+			printf("[%s]%2$n",row[x],&templen);
+			if(templen>arg->exlen[x])arg->exlen[x]=templen;
+			printf("%1$*2$c",' ',(arg->exlen[x]-templen)+1);
+		}
+	}
+	if(!arg->exception[x]){ // Ignore end spacing on final field
+		printf("[%1$.*2$s]",row[x],arg->maxwidth);
+	}
+	else
+		printf("[%s] ",row[x]);
+	printf("\n");
+	arg->count++;
+	return 0;
+}
 
-	return x;
+int doTitleQuery(const char *querystr,int *exception, int maxwidth){
+	struct titlequery_data tqd;
+	tqd.count=0;
+	tqd.exception=exception;
+	tqd.maxwidth=maxwidth;
+	tqd.exlen=calloc(10,sizeof(int));
+	sqlite3_exec(conn,querystr,titlequery_titles_cb,&tqd,NULL);
+	sqlite3_exec(conn,querystr,titlequery_cb,&tqd,NULL);
+	free(tqd.exlen);
+	return tqd.count;
 }
 
 void createTempPlaylistSong(){

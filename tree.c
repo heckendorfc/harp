@@ -124,7 +124,7 @@ void tierChildPrint(struct dbnode *cur){
 
 	char query[400];
 	sprintf(query,"SELECT Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist,SongCategory WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND Song.SongID=SongCategory.SongID AND CategoryID=%s ORDER BY Artist.Name, Album.Title",cur->dbi.row[0]);
-	doTitleQuery(query,&cur->dbi,exception,listconf.maxwidth);
+	doTitleQuery(query,exception,listconf.maxwidth);
 }
 
 void tierCatPrint(struct dbnode *cur){

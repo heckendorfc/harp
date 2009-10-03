@@ -46,6 +46,7 @@
 
 #define DB_PATH "~/.harp/"
 #define DB "harp.db"
+#define DB_BATCH_SIZE 100
 
 #define MI_TITLE_SIZE 200
 #define MI_TRACK_SIZE 9
@@ -162,6 +163,12 @@ struct dbnode{
 	int depth;
 };
 
+struct titlequery_data{
+	int count;
+	int maxwidth;
+	int *exception;
+	int *exlen;
+};
 
 //harp.c
 void segv_leave(int sig);
@@ -179,7 +186,8 @@ int fetch_row(struct dbitem *dbi);
 int fetch_row_at(struct dbitem *dbi, int index);
 char ** fetch_column_at(struct dbitem *dbi, int index);
 int doQuery(const char *querystr,struct dbitem *dbi);
-int doTitleQuery(const char *querystr,struct dbitem *dbi,int *exception, int maxwidth);
+int titlequery_cb(void *data, int col_count, char **row, char **titles);
+int doTitleQuery(const char *querystr,int *exception, int maxwidth);
 void createTempPlaylistSong();
 
 //insert.c
@@ -220,8 +228,10 @@ void printSongPubInfo(char **row);
 int player(int list);
 void playerControl(void *arg);
 int getSystemKey(char key,struct playercontrolarg *pca);
+
+//shuffle.c
 void shuffle(int list);
-void zshuffle(int list);
+void zshuffle(unsigned int items);
 void shuffleCleanup(int list);
 
 //list.c
@@ -250,6 +260,7 @@ void printGenreTree(int head, void *action(struct dbnode *));
 #include "edit.c"
 #include "util.c"
 #include "message.c"
+#include "shuffle.c"
 #include "player.c"
 #include "list.c"
 #include "admin.c"

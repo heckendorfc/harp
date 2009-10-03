@@ -875,11 +875,9 @@ static int listSongGenre(char *args, void *data){
 	char query[401];
 	int y,*exception=alloca(sizeof(int)*10);
 	for(x=2;x<10;x++)exception[x]=listconf.exception;exception[0]=exception[1]=1;
-	struct dbitem dbi;
-	dbiInit(&dbi);
 	sprintf(query,"SELECT CategoryID AS ID,Name FROM Category WHERE ID IN (SELECT DISTINCT CategoryID FROM SongCategory WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d))",ids->tempselectid);
 	debug(3,query);
-	doTitleQuery(query,&dbi,exception,listconf.maxwidth);
+	doTitleQuery(query,exception,listconf.maxwidth);
 	return 1;
 }
 

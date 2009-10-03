@@ -33,7 +33,7 @@ static void printHelp(){
 }
 
 static void insertPS(char *query,struct dbitem *dbi){
-	static int order=1;
+	static int order=0;
 	int currentlimit=0;
 	doQuery(query,dbi);
 
@@ -138,11 +138,7 @@ unsigned int doArgs(int argc,char *argv[]){
 		}
 		free(multilist);
 
-		if(arglist[AZSHUFFLE].active){
-			zshuffle(id);
-			id=0;
-		}
-		else if(arglist[ASHUFFLE].active){
+		if(arglist[ASHUFFLE].active || arglist[AZSHUFFLE].active){
 			shuffle(id);
 			id=0;
 		}

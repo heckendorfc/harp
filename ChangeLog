@@ -1,12 +1,15 @@
 Changes in HARP-0.3.0:
-- Fixed bug in editSongArtist
-- Fixed bug in editAlbumTitle
-- Fixed bug in editArtistName
-- Increased insert speed
-- Changed debug messages
-	-v : Helpful user-level messages
-	-v -v : Debugging messages
+- Fixed bug in editSongArtist.
+- Fixed bug in editAlbumTitle.
+- Fixed bug in editArtistName.
+- Increased insert speed.
+- Changed debug messages.
+	-v : Helpful user-level messages.
+	-v -v : Debugging messages.
 	-v -v -v : SQL queries, etc.
+- Made listing more efficient.
+- Made shuffles more efficient.
+- Improved zshuffle algorithm.
 
 Changes in HARP-0.2.3:
 - Added JACK output support.

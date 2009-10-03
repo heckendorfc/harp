@@ -23,7 +23,7 @@ typedef void (*function_exit)(struct playerHandles *ph);
 typedef void (*function_seek)(struct playerHandles *ph,int modtime);
 
 
-int initList(int list, struct dbitem *dbi){
+static int initList(int list, struct dbitem *dbi){
 	char query[320];
 	dbiInit(dbi);
 	if(list){
@@ -203,7 +203,7 @@ struct writelistarg{
 	FILE *ffd;
 };
 
-int write_stats(void *data, int col_count, char **row, char **titles){
+static int write_stats(void *data, int col_count, char **row, char **titles){
 	struct writelistarg *arg=(struct writelistarg*)data;
 	int x;
 	for(x=0;x<col_count;x++){
@@ -214,7 +214,7 @@ int write_stats(void *data, int col_count, char **row, char **titles){
 	return 0;
 }
 
-void writelist(char *com, struct playercontrolarg *pca){
+static void writelist(char *com, struct playercontrolarg *pca){
 	int x,y,limit;
 	struct writelistarg data;
 	struct dbitem dbi;
@@ -250,7 +250,7 @@ void writelist(char *com, struct playercontrolarg *pca){
 	fclose(data.ffd);
 }
 
-void advseek(char *com, struct playercontrolarg *pca){
+static void advseek(char *com, struct playercontrolarg *pca){
 	int x,y;
 	for(y=1;y<50 && com[y] && (com[y]<'0' || com[y]>'9');y++);
 	int time=(int)strtol(&com[y],NULL,10);
@@ -265,7 +265,7 @@ void advseek(char *com, struct playercontrolarg *pca){
 	if(seek)seek(pca->ph,time);
 }
 
-void jump(char *com, struct playercontrolarg *pca){
+static void jump(char *com, struct playercontrolarg *pca){
 	struct dbitem dbi;
 	char query[200];
 	dbiInit(&dbi);
@@ -299,11 +299,8 @@ void jump(char *com, struct playercontrolarg *pca){
 	}
 }
 
-void listtemp(char *com, struct playercontrolarg *pca){
-	struct dbitem dbi;
+static void listtemp(char *com, struct playercontrolarg *pca){
 	char query[200];
-	dbiInit(&dbi);
-
 	int x,y,limit,*exception=alloca(sizeof(int)*10);
 	for(y=2;y<10;y++)exception[y]=listconf.exception;
 	exception[0]=exception[1]=1;
@@ -327,10 +324,10 @@ void listtemp(char *com, struct playercontrolarg *pca){
 			break;
 	}
 	debug(3,query);
-	doTitleQuery(query,&dbi,exception,listconf.maxwidth);
+	doTitleQuery(query,exception,listconf.maxwidth);
 }
 
-void getCommand(struct playercontrolarg *pca){
+static void getCommand(struct playercontrolarg *pca){
 	struct termios old;
 	tcsetattr(0,TCSANOW,&pca->orig);
 
@@ -422,240 +419,4 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 			return 1;
 		default:return 0;
 	}	
-}
-
-struct randgroup{
-	char *str;
-	int ran;
-};
-
-int rg_sort(const void *one, const void *two){
-	struct randgroup *a=(struct randgroup *)one;
-	struct randgroup *b=(struct randgroup *)two;
-	return a->ran < b->ran? -1: a->ran > b->ran? 1: 0;
-}
-
-void randomize(struct randgroup *rg, char **col, const int items){
-	int x;
-	srandom((unsigned int)time(NULL));
-	for(x=0;x<items;x++){
-		rg[x].str=col[x];
-		rg[x].ran=(int)random();
-	}
-	
-	qsort(rg,items,sizeof(struct randgroup),rg_sort);
-}
-
-void shuffle(int list){
-	struct dbitem dbi;
-	char query[250];
-	char **col;
-	int x,total_songs;
-	dbiInit(&dbi);
-
-	if(list)
-		sprintf(query,"SELECT SongID FROM PlaylistSong WHERE PlaylistID=%d",list);
-	else
-		sprintf(query,"SELECT SongID FROM TempPlaylistSong");
-
-	debug(3,query);
-	doQuery(query,&dbi);
-	total_songs=dbi.row_count;
-	
-	col=fetch_column_at(&dbi,0);
-	struct randgroup *rg=alloca(sizeof(struct randgroup)*total_songs);
-	randomize(rg,col,total_songs);
-	
-	if(list)
-		createTempPlaylistSong();
-	else
-		sqlite3_exec(conn,"DELETE FROM TempPlaylistSong",NULL,NULL,NULL); 
-
-	int currentlimit=x=0;
-	while(x<total_songs){
-		if((currentlimit+=100)>total_songs)currentlimit=total_songs;
-		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-		for(;x<currentlimit;x++){
-			sprintf(query,"INSERT INTO TempPlaylistSong(SongID,`Order`) VALUES(%d,%d)",(int)strtol(rg[x].str,NULL,10),x+1);
-			sqlite3_exec(conn,query,NULL,NULL,NULL);
-		}
-		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
-	}
-		
-	free(col);
-	dbiClean(&dbi);
-}
-
-struct zrandgroup{
-	int id;
-	int playcount;
-	int skipcount;
-	int rating;
-	int lastplay;
-	int ran;
-};
-
-int zrg_random_sort(const void *one, const void *two){
-	struct zrandgroup *a=(struct zrandgroup *)one;
-	struct zrandgroup *b=(struct zrandgroup *)two;
-	return a->ran < b->ran? 1: a->ran > b->ran? -1: 0;
-}
-
-int zrg_skip_count_sort(const void *one, const void *two){
-	struct zrandgroup *a=(struct zrandgroup *)one;
-	struct zrandgroup *b=(struct zrandgroup *)two;
-	return a->skipcount < b->skipcount? 1: a->skipcount > b->skipcount? -1: zrg_random_sort(one,two);
-}
-
-int zrg_rating_sort(const void *one, const void *two){
-	struct zrandgroup *a=(struct zrandgroup *)one;
-	struct zrandgroup *b=(struct zrandgroup *)two;
-	return a->rating < b->rating? 1: a->rating > b->rating? -1: zrg_random_sort(one,two);
-}
-
-int zrg_play_count_sort(const void *one, const void *two){
-	struct zrandgroup *a=(struct zrandgroup *)one;
-	struct zrandgroup *b=(struct zrandgroup *)two;
-	return a->playcount < b->playcount? 1: a->playcount > b->playcount? -1: zrg_random_sort(one,two);
-}
-
-int zrg_lastplay_sort(const void *one, const void *two){
-	struct zrandgroup *a=(struct zrandgroup *)one;
-	struct zrandgroup *b=(struct zrandgroup *)two;
-	return a->lastplay < b->lastplay? -1: a->lastplay > b->lastplay? 1: zrg_random_sort(one,two);
-}
-
-void zrandomize(struct zrandgroup *rg, const int items, int mod){
-	int x,test;
-	const int lastplaymod=mod*.25; // Random 25% bonus
-	const int skipcountmod=mod*.15; // Random 15% deduction
-	const int ratingmod=mod*.02; // Random 2% (multipled by rating number) bonus
-	const int playcountmod=mod*.05; // Random 5% bonus
-
-	char msg[200];
-
-	srandom((unsigned int)time(NULL));
-	for(x=0;x<items;x++){ // Initial random values (order shouldn't matter)
-		rg[x].ran+=(int)random()%mod;
-	}
-
-	// LastPlay Bonus (already in order)
-	for(x=(items-1)/5;x<items;x++)if(rg[x].lastplay!=0)break; // Min 20%; Max total unplayed
-	sprintf(msg,"lastplay\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].lastplay,rg[x].lastplay,rg[items-1].lastplay);
-	debug(2,msg);
-	for(;x>=0;x--){
-	//for(x=items/5;x>0;x--){
-		rg[x].ran+=(int)random()%lastplaymod;
-	}
-	sprintf(msg,"x: %d | mod: %d\n",x,lastplaymod);
-	debug(2,msg);
-
-	// Rating Bonus
-	qsort(rg,items,sizeof(struct zrandgroup),zrg_rating_sort);
-	for(x=items-1;x>=0;x--)if(rg[x].rating!=0)break; // Ignore songs with 0 rating
-	sprintf(msg,"rating\nx: %d | most: %d | least: %d | tail: %d",x,rg[0].rating,rg[x].rating,rg[items-1].rating);
-	debug(2,msg);
-	for(;x>=0;x--){
-		rg[x].ran+=(int)random()%(ratingmod*rg[x].rating);
-	}
-	sprintf(msg,"x: %d | mod: %d * rating\n",x,ratingmod);
-	debug(2,msg);
-
-	//PlayCount Bonus
-	qsort(rg,items,sizeof(struct zrandgroup),zrg_play_count_sort);
-	x=(items-1)/5;
-	test=rg[0].playcount;
-	if(rg[x].playcount==test && test!=0){
-		for(;x<items;x++){
-			if(rg[x].playcount!=test){
-				x--;break;
-			} // If top 20% are the same, add the rest.
-		}
-	}
-	else{
-		for(;x>=0;x--){
-			if(rg[x].playcount!=0)break; // Max 20%; Ignore unplayed
-		}
-	}
-	sprintf(msg,"playcount\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].playcount,rg[x].playcount,rg[items-1].playcount);
-	debug(2,msg);
-	for(;x>=0;x--){
-		rg[x].ran+=(int)random()%playcountmod;
-	}
-	sprintf(msg,"x: %d | mod: %d\n",x,playcountmod);
-	debug(2,msg);
-
-	//SkipCount Penalty
-	qsort(rg,items,sizeof(struct zrandgroup),zrg_skip_count_sort);
-	x=(items-1)/5;
-	test=rg[0].skipcount;
-	if(rg[x].skipcount==test && test!=0){
-		for(;x>=0;x++){
-			if(rg[x].skipcount!=test){  // If top 20% are the same, add the rest.
-				x--;
-				break;
-			}
-		}
-	}
-	else{
-		for(;x>=0;x--){
-			if(rg[x].skipcount!=0)break; // Max 20%; Ignore unskipped
-		}
-	}
-	sprintf(msg,"skipcount\nx: %d | 20%: %d | most: %d | least: %d | tail: %d",x,(items-1)/5,rg[0].skipcount,rg[x].skipcount,rg[items-1].skipcount);
-	debug(2,msg);
-	for(;x>=0;x--){
-		rg[x].ran-=(int)random()%skipcountmod;
-	}
-	sprintf(msg,"x: %d | mod: -%d\n",x,skipcountmod);
-	debug(2,msg);
-	
-	// Put in random order
-	qsort(rg,items,sizeof(struct zrandgroup),zrg_random_sort);
-}
-
-void zshuffle(int list){
-	struct dbitem dbi;
-	char query[250];
-	int x,total_songs;
-	dbiInit(&dbi);
-
-	// Set up random list
-	if(list)
-		sprintf(query,"SELECT Song.SongID,LastPlay,SkipCount,Rating,PlayCount FROM PlaylistSong,Song WHERE PlaylistID=%d AND PlaylistSong.SongID=Song.SongID ORDER BY LastPlay ASC",list);
-	else
-		sprintf(query,"SELECT Song.SongID,LastPlay,SkipCount,Rating,PlayCount FROM TempPlaylistSong,Song WHERE TempPlaylistSong.SongID=Song.SongID ORDER BY LastPlay ASC",list);
-
-	doQuery(query,&dbi);
-	total_songs=dbi.row_count;
-	struct zrandgroup *rg=calloc(total_songs,sizeof(struct zrandgroup));
-	for(x=0;fetch_row(&dbi);x++){
-		rg[x].id=(int) strtol(dbi.row[0],NULL,10);
-		rg[x].playcount=(int)strtol(dbi.row[4],NULL,10);
-		rg[x].skipcount=(int)strtol(dbi.row[2],NULL,10);
-		rg[x].rating=(int)strtol(dbi.row[3],NULL,10);
-		rg[x].lastplay=(int)strtol(dbi.row[1],NULL,10);
-	}
-	dbiClean(&dbi);
-	dbiInit(&dbi);
-	zrandomize(rg,total_songs,1<<(sizeof(int)*6));
-
-	if(list)
-		createTempPlaylistSong();
-	else
-		sqlite3_exec(conn,"DELETE FROM TempPlaylistSong",NULL,NULL,NULL); 
-
-	int currentlimit=x=0;
-	while(x<total_songs){
-		if((currentlimit+=100)>total_songs)currentlimit=total_songs;
-		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-		for(;x<currentlimit;x++){
-			sprintf(query,"INSERT INTO TempPlaylistSong(SongID,`Order`) VALUES(%d,%d)",rg[x].id,x+1);
-			sqlite3_exec(conn,query,NULL,NULL,NULL);
-		}
-		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
-	}
-
-	free(rg);
-	dbiClean(&dbi);
 }

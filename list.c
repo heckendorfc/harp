@@ -20,14 +20,12 @@ int list(int *ids, int length){
 	char query[401];
 	int x,y,*exception=alloca(sizeof(int)*10);
 	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
-	struct dbitem dbi;
-	dbiInit(&dbi);
 	switch(arglist[ATYPE].subarg[0]){
 		case 's':
 			exception[1]=exception[2]=exception[3]=exception[4]=1;
 			for(x=0;x<length;x++){
 				sprintf(query,"SELECT Song.SongID, Song.Title, Song.Location, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND SongID=%d ORDER BY Artist.Name, Album.Title",ids[x]);
-				doTitleQuery(query,&dbi,exception,listconf.maxwidth);
+				doTitleQuery(query,exception,listconf.maxwidth);
 			}
 			break;
 
@@ -35,33 +33,33 @@ int list(int *ids, int length){
 			exception[0]=exception[1]=1;
 			for(x=0;x<length;x++){
 				sprintf(query,"SELECT PlaylistID,Title FROM Playlist WHERE PlaylistID=%d",ids[x]);
-				doTitleQuery(query,&dbi,exception,listconf.maxwidth);
+				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
 
 				sprintf(query,"SELECT `Order`, Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM PlaylistSong,Song,Album,Artist,AlbumArtist WHERE PlaylistSong.SongID=Song.SongID AND Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND PlaylistID=%d ORDER BY `Order`",ids[x]);
-				printf("------\nTotal:%d\n",doTitleQuery(query,&dbi,exception,listconf.maxwidth));
+				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
 			break;
 
 		case 'r':
 			for(x=0;x<length;x++){
 				sprintf(query,"SELECT Artist.ArtistID, Artist.Name FROM Artist WHERE ArtistID=%d",ids[x]);
-				doTitleQuery(query,&dbi,exception,listconf.maxwidth);
+				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
 
 				sprintf(query,"SELECT Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND Artist.ArtistID=%d ORDER BY Artist.Name, Album.Title",ids[x]);
-				printf("------\nTotal:%d\n",doTitleQuery(query,&dbi,exception,listconf.maxwidth));
+				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
 			break;
 
 		case 'a':
 			for(x=0;x<length;x++){
 				sprintf(query,"SELECT Album.AlbumID,Album.Title FROM Album WHERE AlbumID=%d",ids[x]);
-				doTitleQuery(query,&dbi,exception,listconf.maxwidth);
+				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
 
 				sprintf(query,"SELECT Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND Album.AlbumID=%d ORDER BY Artist.Name, Album.Title",ids[x]);
-				printf("------\nTotal:%d\n",doTitleQuery(query,&dbi,exception,listconf.maxwidth));
+				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
 			break;
 
@@ -78,33 +76,29 @@ int listall(){
 	char query[401];
 	int x,*headpath,*exception=alloca(sizeof(int)*10);
 	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
-	struct dbitem dbi;
-	dbiInit(&dbi);
 	switch(arglist[ATYPE].subarg[0]){
 		case 's':
 			sprintf(query,"SELECT Song.SongID, Song.Title, Song.Location, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID ORDER BY Artist.Name, Album.Title");
 			exception[1]=exception[2]=exception[3]=exception[4]=1;
-			doTitleQuery(query,&dbi,exception,listconf.maxwidth);
 			break;
 
 		case 'p':
 			sprintf(query,"SELECT PlaylistID,Title FROM Playlist");
-			doTitleQuery(query,&dbi,exception,listconf.maxwidth);
 			break;
 
 		case 'r':
 			sprintf(query,"SELECT Artist.ArtistID, Artist.Name FROM Artist");
-			doTitleQuery(query,&dbi,exception,listconf.maxwidth);
 			break;
 
 		case 'a':
 			sprintf(query,"SELECT Album.AlbumID,Album.Title FROM Album");
-			doTitleQuery(query,&dbi,exception,listconf.maxwidth);
 			break;
 
 		case 'g':
 			printGenreTree(0,(void *)tierCatPrint);
-			break;
+			return 0;
+		default:return 1;
 	}
+	doTitleQuery(query,exception,listconf.maxwidth);
 	return 0;
 }
