@@ -31,11 +31,11 @@ Installing harp:
 Enable the plugins in harp:
 	harp -a
 		select plugin management:
-	admin> m
+	Admin> p
 		add a plugin:
-	manage plugins> a
+	Plugins> a
 	Library (e.g., libharpmp3): libharpmp3
-	manage plugins> a
+	Plugins> a
 	Library (e.g., libharpmp3): libharpaac
 		...
 
@@ -147,7 +147,7 @@ Genre commands:
 
 4.  Admin
 
-Manage Plugins
+Manage Plugins (p)
 	a Add
 		Add a plugin to the system. Plugin must already be installed.
 	l List
@@ -165,6 +165,16 @@ Manage Plugins
 			PluginID: x
 		where x is the PluginID
 
+Manage Stats (s)
+	r Reset stats
+		a Reset all
+		r Reset ratings
+		d Reset play count
+		s Reset skip count
+		l Reset last play time
+	e Export stats
+		Stats will be output to a file in tab separated columns sorted by
+		file location.
 
 
 III.	Customization

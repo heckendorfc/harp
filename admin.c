@@ -98,6 +98,87 @@ static int removePlugin(char *args, void *data){
 	return 1;
 }
 
+int write_stats_cb(void *data, int col_count, char **row, char **titles){
+	FILE *ffd=(FILE*)data;
+	int x;
+	for(x=0;x<col_count;x++){
+		fputs(row[x],ffd);
+		fputc('\t',ffd);
+	}
+	fputc('\n',ffd);
+	return 0;
+}
+
+static int exportStats(char *args, void *data){
+	char *num,filename[30];
+	FILE *ffd;
+	int x,limit;
+	if((x=getStdArgs(args,"Number of songs (* for all): "))<0)return 1;
+	num=args+x;
+	if(*num=='*')
+		sprintf(args,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location");
+	else{
+		if((limit=strtol(num,NULL,10))<1)return 1;
+		sprintf(args,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location LIMIT %d",limit);
+	}
+
+	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
+	if((ffd=fopen(filename,"w"))==NULL){
+		fprintf(stderr,"Failed to open file\n");
+		return;
+	}
+	fputs("ID\tTITLE\tLOCATION\tRATING\tPLAYCOUNT\tSKIPCOUNT\tLASTPLAY\tACTIVE\n",ffd);
+	sqlite3_exec(conn,args,write_stats_cb,ffd,NULL);
+	printf("Stats exported to: %s\n",filename);
+	return 1;
+}
+
+static int resetAll(char *args, void *data){
+	sqlite3_exec(conn,"UPDATE Song SET Rating=3,PlayCount=0,SkipCount=0,LastPlay=0",NULL,NULL,NULL);
+	return 1;
+}
+
+static int resetRating(char *args, void *data){
+	sqlite3_exec(conn,"UPDATE Song SET Rating=3",NULL,NULL,NULL);
+	return 1;
+}
+
+static int resetPlayCount(char *args, void *data){
+	sqlite3_exec(conn,"UPDATE Song SET PlayCount=0",NULL,NULL,NULL);
+	return 1;
+}
+
+static int resetSkipCount(char *args, void *data){
+	sqlite3_exec(conn,"UPDATE Song SET SkipCount=0",NULL,NULL,NULL);
+	return 1;
+}
+
+static int resetLastPlay(char *args, void *data){
+	sqlite3_exec(conn,"UPDATE Song SET LastPlay=0",NULL,NULL,NULL);
+	return 1;
+}
+
+static int resetPortal(char *args, void *data){
+	struct commandOption portalOptions[]={
+		{'a',resetAll,"Reset all stats",NULL},
+		{'r',resetRating,"Reset ratings",NULL},
+		{'d',resetPlayCount,"Reset play count",NULL},
+		{'s',resetSkipCount,"Reset skip count",NULL},
+		{'l',resetLastPlay,"Reset last play time",NULL},
+		{0,NULL,NULL}
+	};
+	return portal(portalOptions,"Reset Stats");
+}
+
+static int statsPortal(char *args, void *data){
+	struct commandOption portalOptions[]={
+		{'e',exportStats,"Export stats",NULL},
+		{'r',resetPortal,"Reset stats",NULL},
+		{0,NULL,NULL}
+	};
+	return portal(portalOptions,"Stats");
+}
+
 static int pluginPortal(char *args, void *data){
 	struct commandOption portalOptions[]={
 		{'a',addPlugin,"Add plugin",NULL},
@@ -106,18 +187,16 @@ static int pluginPortal(char *args, void *data){
 		{'r',removePlugin,"Remove plugin",NULL},
 		{0,NULL,NULL}
 	};
-	return portal(portalOptions,"manage plugins");
+	return portal(portalOptions,"Plugins");
 }
 
 void adminPortal(){
 	struct commandOption portalOptions[]={
-	//	{'e',exportPortal,"Export"},
-	//	{'r',resetPortal,"Reset Stats"},
-	//	{'l',listPortal,"List Stats"},
-		{'m',pluginPortal,"Manage plugins",NULL},
+		{'s',statsPortal,"Manage stats",NULL},
+		{'p',pluginPortal,"Manage plugins",NULL},
 		{0,NULL,NULL}
 	};
 	printf("Enter a command. ? for command list.\n");
-	while(portal(portalOptions,"admin"));
+	while(portal(portalOptions,"Admin"));
 }
 

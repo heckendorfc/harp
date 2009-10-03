@@ -10,6 +10,9 @@ Changes in HARP-0.3.0:
 - Made listing more efficient.
 - Made shuffles more efficient.
 - Improved zshuffle algorithm.
+	- Stat based shuffle interleaves into standard shuffle
+		at a random interval.
+- Added stat management to the admin menu.
 
 Changes in HARP-0.2.3:
 - Added JACK output support.

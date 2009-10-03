@@ -199,24 +199,9 @@ void playerControl(void *arg){
 	pthread_exit((void *) 0);
 }
 
-struct writelistarg{
-	FILE *ffd;
-};
-
-static int write_stats(void *data, int col_count, char **row, char **titles){
-	struct writelistarg *arg=(struct writelistarg*)data;
-	int x;
-	for(x=0;x<col_count;x++){
-		fputs(row[x],arg->ffd);
-		fputc('\t',arg->ffd);
-	}
-	fputc('\n',arg->ffd);
-	return 0;
-}
-
 static void writelist(char *com, struct playercontrolarg *pca){
 	int x,y,limit;
-	struct writelistarg data;
+	FILE *ffd;
 	struct dbitem dbi;
 	char query[200],filename[30];
 	dbiInit(&dbi);
@@ -241,13 +226,13 @@ static void writelist(char *com, struct playercontrolarg *pca){
 			break;
 	}
 	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
-	if((data.ffd=fopen(filename,"w"))==NULL){
+	if((ffd=fopen(filename,"w"))==NULL){
 		fprintf(stderr,"Failed to open file\n");
 		return;
 	}
-	fputs("ORDER\tID\tTITLE\tLOCATION\tRATING\tPLAYCOUNT\tSKIPCOUNT\tLASTPLAY\n",data.ffd);
-	sqlite3_exec(conn,query,write_stats,&data,NULL);
-	fclose(data.ffd);
+	fputs("ORDER\tID\tTITLE\tLOCATION\tRATING\tPLAYCOUNT\tSKIPCOUNT\tLASTPLAY\n",ffd);
+	sqlite3_exec(conn,query,write_stats_cb,ffd,NULL);
+	fclose(ffd);
 }
 
 static void advseek(char *com, struct playercontrolarg *pca){

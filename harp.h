@@ -240,8 +240,12 @@ int listall();
 
 //admin.c
 void adminPortal();
+int write_stats_cb(void *data, int col_count, char **row, char **titles);
 
 //portal.c
+void cleanString(char **ostr);
+int editWarn(char *warn);
+int getStdArgs(char *args,char *prompt);
 int portal(struct commandOption *portalOptions, const char *prefix);
 
 //tree.c

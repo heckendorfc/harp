@@ -21,44 +21,6 @@ struct IDList {
 	int tempselectid;
 };
 
-static void cleanString(char **ostr){
-	char *str=*ostr;
-	while(*str!='\n'){str++;}
-	*str=0;
-	char temp[500];
-	db_clean(temp,*ostr,250);
-	db_safe(temp,*ostr,250);
-	strcpy(*ostr,temp);
-}
-
-static int editWarn(char *warn){
-	char c[10];
-	printf("%s\nDo you wish to continue (y/n)?",warn);
-	while(*(fgets(c,sizeof(c),stdin))=='\n'){
-		printf("Do you wish to continue (y/n)?");
-	}
-	if(*c=='y' || *c=='Y')return 1;
-	return 0;
-}
-
-static int getStdArgs(char *args,char *prompt){
-	int x;
-	for(x=1;x<200 && args[x] && args[x]==' ';x++);
-	if(!args[x]){
-		printf(prompt);
-		fgets(args,200,stdin);
-		if(*args=='\n'){
-			printf("Aborted\n");
-			return -1;
-		}
-		cleanString(&args);
-		return 0;
-	}
-	else{
-		return x;
-	}
-}
-
 static int editSongName(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
