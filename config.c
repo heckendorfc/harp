@@ -17,22 +17,23 @@
 
 
 void argConfig(char *buffer){
-	int x=0,y,argfound=0;
-	while(buffer[x]!='=' && buffer[x])x++;
-	if(buffer[x] && buffer[x+1])argfound=1;
-	buffer[x]=0;
+	char *setting=buffer;
+	int y=0,argfound=0;
+	while(*setting!='=' && *setting)setting++;
+	if(*setting && *(setting+1))argfound=1;
+	*(setting++)=0;
 
 	for(y=0;longopts[y].name;y++){
 		if(strcmp(buffer,longopts[y].name)==0){
 			if(y!=AVERBOSE || !argfound)
 				arglist[y].active=1;
 			else
-				arglist[y].active=(int)strtol(&buffer[x+1],NULL,10);
+				arglist[y].active=(int)strtol(setting,NULL,10);
 
 			if(longopts[y].has_arg>0){
 				if(argfound){
 					arglist[y].subarg=malloc(sizeof(char)*2);
-					arglist[y].subarg[0]=buffer[x+1];
+					arglist[y].subarg[0]=*setting;
 					arglist[y].subarg[1]=0;
 				}
 				else
@@ -45,50 +46,113 @@ void argConfig(char *buffer){
 }
 
 void listConfig(char *buffer){
+	char *setting=buffer;
 	int x=0,argfound=0;
-	while(buffer[x]!='=' && buffer[x])x++;
-	if(buffer[x] && buffer[x+1])argfound=1;
-	buffer[x]=0;
+	while(*setting!='=' && *setting)setting++;
+	if(*setting && *(setting+1))argfound=1;
+	*(setting++)=0;
 
 	if(strcmp("width",buffer)==0){
 		if(argfound)
-			listconf.maxwidth=(int)strtol(&buffer[x+1],NULL,10);
+			listconf.maxwidth=(int)strtol(setting,NULL,10);
 		else // bad config. hard coded defaults
 			listconf.maxwidth=30;
 	}
 	else if(strcmp("exception",buffer)==0){
 		if(argfound)
-			listconf.exception=(int)strtol(&buffer[x+1],NULL,10);
+			listconf.exception=(int)strtol(setting,NULL,10);
 		else // bad config. hard coded defaults
 			listconf.exception=0;
 	}
 }
 
+void insertConfig(char *buffer){
+	char *setting=buffer;
+	static int formatsize=0;
+	int x=1,argfound=0;
+	while(*setting!='=' && *setting)setting++;
+	if(*setting && *(setting+1))argfound=1;
+	*(setting++)=0;
+
+	if(strcmp("usemetadata",buffer)==0 && *setting=='y'){
+		if(insertconf.first_cb)
+			insertconf.second_cb=&metadataInsert;
+		else if(!insertconf.second_cb)
+			insertconf.first_cb=&metadataInsert;
+	}
+	else if(strcmp("usefilepath",buffer)==0 && *setting=='y'){
+		if(insertconf.first_cb)
+			insertconf.second_cb=&filepathInsert;
+		else if(!insertconf.second_cb)
+			insertconf.first_cb=&filepathInsert;
+	}
+	else if(strcmp("format",buffer)==0){
+		char *root=setting;
+		char *ptr=setting;
+		if(!(insertconf.format=realloc(insertconf.format,sizeof(char*)*(++formatsize)))
+			|| !(insertconf.f_root=realloc(insertconf.f_root,sizeof(char*)*formatsize)))
+			return;
+
+		if(*ptr=='*'){
+			*(insertconf.f_root+(formatsize-1))=strdup("*");
+			*(insertconf.format+(formatsize-1))=strdup(ptr+1);
+			*(insertconf.format+formatsize)=NULL;
+			return;
+		}
+
+		while(*ptr && *(++ptr)!='%');
+
+		*ptr=0;
+		*(insertconf.f_root+(formatsize-1))=strdup(setting);
+		*ptr='%';
+		*(insertconf.format+(formatsize-1))=strdup(ptr);
+		*(insertconf.format+formatsize)=NULL;
+	}
+}
+
+int configInit(){
+	if(insertconf.format=malloc(sizeof(char*)))
+		*insertconf.format=NULL;
+	if(insertconf.f_root=malloc(sizeof(char*)))
+		*insertconf.f_root=NULL;
+}
+
 void setDefaultConfig(){
 	FILE *ffd;
-	char buffer[255],temp[250];
+	char *buffer=malloc(255*sizeof(char));
+	char temp[250];
+	char *ptr=buffer;
 	int x=0;
 	void (*dest)(char *buffer) = NULL;
+
+	if(!buffer)return;
+
+	configInit();
+
 	strcpy(temp,"~/.harp/defaults.conf");
 	expand(temp);
-	if((ffd=fopen(temp,"rb"))==NULL){
+	if((ffd=fopen(temp,"r"))==NULL){
 		sprintf(temp,"%s/harp/defaults.conf",SHARE_PATH);
-		if((ffd=fopen(temp,"rb"))==NULL)
+		if((ffd=fopen(temp,"r"))==NULL)
 			return;
 	}
-	while(fgets(buffer,sizeof(buffer),ffd)){
-		while(buffer[x]!='\n')x++;
-		x=buffer[x]=0;
 
+	while(fgets(buffer,255,ffd)){
 		if(*buffer=='['){ // New header
 			switch(buffer[1]){
 				case 'a':dest=&argConfig;break;
 				case 'l':dest=&listConfig;break;
+				case 'i':dest=&insertConfig;break;
 				default:dest=NULL;
 			}
 			continue;
 		}
 		if(dest && *buffer>64 && *buffer<123){
+			while(*(++ptr)!='\n');
+			while(*ptr<33 || *ptr>122)ptr--;
+			*(ptr+1)=0;
+			ptr=buffer;
+
 			dest(buffer);
 		}
 	}

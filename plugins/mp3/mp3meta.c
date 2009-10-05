@@ -21,7 +21,7 @@ static int intpow(const int base, int exp){
 	int ret=base;
 	if(!exp)return 1;
 	while(--exp){
-		ret=ret*base;
+		ret*=base;
 	}
 	return ret;
 }

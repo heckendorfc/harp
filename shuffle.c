@@ -98,24 +98,19 @@ static int shuffle_cb(void *arg, int col_count, char **row, char **titles){
 	return 0;
 }
 
-static int one_return_cb(void *arg, int col_count, char **row, char **titles){
-	*(unsigned int*)arg=(unsigned int)strtol(*row,NULL,10);
-	return 0;
-}
-
 void shuffle(int list){
 	char query[250],cb_query[250];
 	unsigned int items=0;
 
 	if(list){
 		sprintf(query,"SELECT COUNT(SongID) FROM PlaylistSong WHERE PlaylistID=%d",list);
-		sqlite3_exec(conn,query,one_return_cb,&items,NULL);
+		sqlite3_exec(conn,query,uint_return_cb,&items,NULL);
 		sprintf(query,"SELECT SongID,PlaylistSongID FROM PlaylistSong WHERE PlaylistID=%d",list);
 		createTempPlaylistSong();
 	}
 	else{
 		sprintf(query,"SELECT COUNT(SongID) FROM TempPlaylistSong");
-		sqlite3_exec(conn,query,one_return_cb,&items,NULL);
+		sqlite3_exec(conn,query,uint_return_cb,&items,NULL);
 		sprintf(query,"SELECT SongID,PlaylistSongID FROM TempPlaylistSong");
 	}
 	
@@ -133,15 +128,6 @@ void shuffle(int list){
 		zshuffle(items);
 	}
 }
-/*
-static void zrandomize(struct zrandgroup *rg, const int items, int mod){
-	int x,test;
-	const int lastplaymod=mod*.25; // Random 25% bonus
-	const int skipcountmod=mod*.15; // Random 15% deduction
-	const int ratingmod=mod*.02; // Random 2% (multipled by rating number) bonus
-	const int playcountmod=mod*.05; // Random 5% bonus
-}
-*/
 
 struct zs_arg{
 	const unsigned int items;
@@ -251,7 +237,7 @@ void zshuffle(unsigned int items){
 	// Last Play
 	data.nextorder=(random()%3)+1;
 	sprintf(query,"SELECT COUNT(PlaylistSongID) FROM TempPlaylistSong NATURAL JOIN Song WHERE LastPlay=0");
-	sqlite3_exec(conn,query,one_return_cb,&x,NULL);
+	sqlite3_exec(conn,query,uint_return_cb,&x,NULL);
 	if(x>ten_percent){
 		debug(1,"ZSHUFFLE | Too many unplayed songs; skipping LastPlay modifier.");
 		return;

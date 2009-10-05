@@ -75,6 +75,10 @@ int list(int *ids, int length){
 int listall(){
 	char query[401];
 	int x,*headpath,*exception=alloca(sizeof(int)*10);
+	if(!exception){
+		debug(2,"Exception allocation failed");
+		return 0;
+	}
 	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
 	switch(arglist[ATYPE].subarg[0]){
 		case 's':

@@ -23,8 +23,13 @@ int experr(const char *epath, int eerrno){
 
 char *expand(char *in){
 	char tmp[250];
+	char *in_ptr=in-1;
+	char *tmp_ptr=tmp;
 	int x,y,z=0;
-	for(x=0;x<249 && in[x];x++);if(in[x-1]=='\n')in[x-1]=0;in[x]=0;
+	for(x=0;x<249 && in[x];x++);
+	if(in[x-1]=='\n')
+		in[x-1]=0;
+	in[x]=0;
 	y=x;
 	if(in[0]=='~'){
 		strcpy(tmp,getenv("HOME"));
@@ -41,23 +46,18 @@ char *expand(char *in){
 			strcat(tmp,in);
 		strcpy(in,tmp);
 	}
-	for(x=0;in[x]!=0;x++){
-		if(in[x]=='[' || in[x]=='\'' || in[x]=='\"'){
-			tmp[z]='\\';
-			z++;
-		}
-		tmp[z]=in[x];
-		z++;
+	while(*(++in_ptr)){
+		if(*in_ptr=='[' || *in_ptr=='\'' || *in_ptr=='\"')
+			*(tmp_ptr++)='\\';
+		*(tmp_ptr++)=*in_ptr;
 	}
-	tmp[z]=0;
-	//strcpy(in,tmp);
+	*tmp_ptr=0;
 
 
 	glob_t pglob;
 	glob(tmp,GLOB_TILDE,&experr,&pglob);
 	if(pglob.gl_pathc>0){
 		memmove(tmp,pglob.gl_pathv[0],100);
-
 		debug(1,"Glob OK!");
 	}
 	else
@@ -154,9 +154,8 @@ int getPlugin(struct dbitem *dbi, const int index, void **module){
 char *getFilename(const char *path){
 	char *filestart=(char *)path;
 	while(*path){
-		if(*path=='/')
-			filestart=(char *)path+1;
-		path++;
+		if(*(path++)=='/')
+			filestart=(char *)path;
 	}
 	return filestart;
 }
@@ -330,24 +329,26 @@ void miFree(struct musicInfo *mi){
 
 void db_clean(char *str, const char *data, const size_t size){
 	int x,z;
-	for(x=0;data[x]==' ' && x<size;x++); // Strip starting spaces
-	for(z=0;data[x]>31 && data[x]<127 && x<size;x++){ // Strip multi space
-		if(data[x]==' ' && data[x+1]==' ')
+	for(x=0;*(data+x)==' ' && x<size;x++); // Strip starting spaces
+	while(*data>31 && *data<127 && x<size){ // Strip multi space
+		if(*data==' ' && *(data+1)==' '){
+			data++;
 			continue;
-		str[z++]=data[x];
+		}
+		*(str++)=*(data++);
 	}
-	if(z>0 && str[z-1]==' ')z--; // Remove trailing space
-	str[z]=0;
+	if(x>0 && *(str-1)==' ')str--; // Remove trailing space
+	*str=0;
 }
 
 void db_safe(char *str, const char *data, const size_t size){
-	int x,z;
-	for(z=x=0;data[x] && z<size;x++){ // Escape single quotes
-		if(data[x]=='\''){
-			str[z++]='\'';
+	int x=0;
+	while(*data && x++<size){ // Escape single quotes
+		if(*data=='\''){
+			*(str++)='\'';
 		}
-		str[z++]=data[x];
+		*(str++)=*(data++);
 	}
-	str[z]=0;
+	*str=0;
 }
 

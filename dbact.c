@@ -163,6 +163,16 @@ int doQuery(const char *querystr,struct dbitem *dbi){
 	return dbi->row_count;
 }
 
+int uint_return_cb(void *arg, int col_count, char **row, char **titles){
+	*(unsigned int*)arg=(unsigned int)strtol(*row,NULL,10);
+	return 0;
+}
+
+int str_return_cb(void *arg, int col_count, char **row, char **titles){
+	arg=strdup(*row);
+	return 0;
+}
+
 int titlequery_titles_cb(void *data, int col_count, char **row, char **titles){
 	struct titlequery_data *arg=(struct titlequery_data*) data;
 	int x,templen,len=arg->maxwidth+3;

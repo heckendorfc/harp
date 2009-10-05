@@ -17,7 +17,7 @@
 
 typedef void (*function_meta)(FILE *ffd, struct musicInfo *mi);
 static int verifySong(const int sid);
-static unsigned int insertSong(const char *arg, struct musicInfo *mi);
+static int insertSong(const char *arg, struct musicInfo *mi);
 
 static void db_insert_safe(char *str, char *data, const size_t size){
 	if(!*data){
@@ -232,7 +232,8 @@ static struct musicInfo *getMusicInfo(struct musicInfo *mi){
 #include <ftw.h>
 int useFile(const char *fpath, const struct stat *sb, int typeflag) {
 	if(typeflag==FTW_F)
-		insertSong(fpath,NULL);
+		if(insertSong(fpath,NULL)<0)
+			return -1;
 	return 0;
 }
 
@@ -265,75 +266,176 @@ int batchInsert(char *arg){
 		char temp[250];
 		while(printf("File Location: ") && fgets(temp,sizeof(temp),stdin) && *temp!='\n'){
 			expand(temp);
-			insertSong(temp,&mi);
+			if(insertSong(temp,&mi));
 		}
 	}
 	miFree(&mi);
 	return 1;
 }
 
-static unsigned int insertSong(const char *arg, struct musicInfo *mi){
-	if(!mi)mi=getMusicInfo(NULL);
-	miClean(mi);
-
-	struct dbitem dbi;
-	char dbq[350];
-	char dbfilename[250];
-	char library[200];
-	char tempname[401];
+int metadataInsert(struct insert_data *data){
+	int x;
 	FILE *ffd;
-	int x,songid=0,fmt,artistid,albumid;
 	void *module;
 
-	db_safe(dbfilename,arg,250);
-	debug(1,arg);
-	
-	dbiInit(&dbi);
-	//chack for dupicate
-	sprintf(dbq,"SELECT SongID FROM Song WHERE Location='%s' LIMIT 1",dbfilename);
-	doQuery(dbq,&dbi);
-	if(dbi.row_count){
-		debug(1,"duplicate entry -- skipping");
-		dbiClean(&dbi);
-		return 0;
-	}
-
-	debug(1,"Finding file type");
-	if((fmt=fileFormat(arg))<1){
-		dbiClean(&dbi);
-		if(fmt==0)fprintf(stderr,"Unknown file type\n");
-		return 0;
-	}
-
-	if((ffd=fopen(arg,"rb"))==NULL){
-		dbiClean(&dbi);
+	if((ffd=fopen(data->path,"rb"))==NULL){
 		fprintf(stderr,"Can't open file\n");
+		debug(1,data->path);
 		return 0;
 	}
 
 	function_meta modmeta;
-	sprintf(dbq,"SELECT Library FROM FilePlugin WHERE TypeID=%d LIMIT 1",fmt);
-	doQuery(dbq,&dbi);
-	debug(3,dbq);
-	while((x=getPlugin(&dbi,0,&module))){
+	sprintf(data->query,"SELECT Library FROM FilePlugin WHERE TypeID=%d LIMIT 1",data->fmt);
+	if(doQuery(data->query,data->dbi)<1)
+		return 0;
+	debug(3,data->query);
+
+	while((x=getPlugin(data->dbi,0,&module))){
 		if(x>1)continue;
+
 		modmeta=dlsym(module,"plugin_meta");
 		if(!modmeta){
 			debug(2,"Plugin does not contain plugin_meta().\n");
 			continue;
 		}
 		else{
-			modmeta(ffd,mi);
+			modmeta(ffd,data->mi);
 			break;
 		}
 		dlclose(module);
 	}
 	fclose(ffd);
 	if(!x){
-		dbiClean(&dbi);
+		dbiClean(data->dbi);
+		return -1; // Fatal error
+	}
+	return 1;
+}
+
+static void reverse_filepathInsert(char *orig_format, struct insert_data *data){
+	char *format=orig_format;
+	char *orig_ptr=(char*)data->path;
+	char *ptr=orig_ptr;
+	char *tmp;
+	char *dest=NULL;
+	int limit,x=0;
+	while(*(++ptr)); // terminated
+	while(*(++format)); // terminated
+	while(format>orig_format && *(--format)!='%'); // Get first %
+	while(format>=orig_format){
+		switch(*(format+1)){ // % coefficient
+			case 'r':
+				limit=MI_ARTIST_SIZE;
+				dest=data->mi->artist;break;
+			case 'a':
+				limit=MI_ALBUM_SIZE;
+				dest=data->mi->album;break;
+			case 't':
+				limit=MI_TITLE_SIZE;
+				dest=data->mi->title;break;
+			case 'y':
+				limit=MI_YEAR_SIZE;
+				dest=data->mi->year;break;
+		}
+		if(dest && *(--format)!='%'){ // Char before %
+			tmp=ptr;
+			while((ptr--)>orig_ptr && *ptr!=*format); // Skip back to start of this str
+				x=(int)(tmp-ptr);
+			limit=x<limit?x:limit;
+			memcpy(dest,ptr+1,limit);
+			x=0;
+			dest=NULL;
+		}
+		while(--format>orig_format && *format!='%' && (ptr--)>orig_ptr);
+	}
+	return;
+}
+
+int filepathInsert(struct insert_data *data){
+	char **format=insertconf.format;
+	char **f_root=insertconf.f_root;
+	char *ptr=(char*)data->path;
+	char *dest=NULL;
+	char *fptr;
+	int limit,x=0;
+
+	while(*f_root){
+		if(**f_root=='*'){
+			reverse_filepathInsert(*format,data);
+			return 1;
+		}
+		while(*ptr && **f_root && *(ptr++)==*((*f_root)++));
+		if(!**f_root)break;
+		f_root++;format++;
+		ptr=(char*)data->path;
+	}
+	if(!*f_root || !*format)return 0;
+	fptr=*format;
+
+	while(*fptr && *(fptr++)!='%');
+	while(*fptr){
+		switch(*fptr){
+			case 'r':
+				limit=MI_ARTIST_SIZE;
+				dest=data->mi->artist;break;
+			case 'a':
+				limit=MI_ALBUM_SIZE;
+				dest=data->mi->album;break;
+			case 't':
+				limit=MI_TITLE_SIZE;
+				dest=data->mi->title;break;
+			case 'y':
+				limit=MI_YEAR_SIZE;
+				dest=data->mi->year;break;
+		}
+		if(dest && *(++fptr)!='%'){
+			while(*ptr!=*fptr && x++<limit)
+				*(dest++)=*(ptr++);
+			*dest=x=0;
+			dest=NULL;
+		}
+		while(*fptr && *(fptr++)!='%' && *(ptr++));
+	}
+	return 1;
+}
+
+static int insertSong(const char *arg, struct musicInfo *mi){
+	if(!mi)mi=getMusicInfo(NULL);
+	miClean(mi);
+
+	struct dbitem dbi;
+	char query[350];
+	char dbfilename[250];
+	char tempname[401];
+	FILE *ffd;
+	unsigned int x,songid=0,fmt,artistid,albumid;
+
+	db_safe(dbfilename,arg,250);
+	debug(1,arg);
+	
+	dbiInit(&dbi);
+	//chack for dupicate
+	sprintf(query,"SELECT SongID FROM Song WHERE Location='%s' LIMIT 1",dbfilename);
+	sqlite3_exec(conn,query,uint_return_cb,&songid,NULL);
+	if(songid){
+		debug(1,"Duplicate entry -- skipping");
 		return 0;
 	}
 
+	debug(1,"Finding file type");
+	if((fmt=fileFormat(arg))<1){
+		if(fmt==0)fprintf(stderr,"Unknown file type\n");
+		return 0;
+	}
+
+	struct insert_data data={fmt,query,mi,&dbi,arg};
+	if(insertconf.first_cb){
+		x=insertconf.first_cb(&data);
+		if(x<0)
+			return -1;
+		if(!x && insertconf.second_cb)
+			insertconf.second_cb(&data);
+	}
 	dbiClean(&dbi);
 
 	db_insert_safe(tempname,mi->artist,MI_ARTIST_SIZE);
@@ -350,9 +452,9 @@ static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 		return 0;
 	}
 	if(strcmp(mi->album,"Unknown") && *mi->year){
-		sprintf(dbq,"UPDATE Song SET TypeID=%d WHERE SongID=%d",fmt,songid);
-		debug(3,dbq);
-		sqlite3_exec(conn,dbq,NULL,NULL,NULL);
+		sprintf(query,"UPDATE Song SET `Date`=%s WHERE AlbumID=%d",mi->year,albumid);
+		debug(3,query);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 
 	if(!*mi->title){
@@ -367,11 +469,13 @@ static unsigned int insertSong(const char *arg, struct musicInfo *mi){
 		fprintf(stderr,"Error inserting song.");
 		return 0;
 	}
+
+	// This prints escaped strings. Is it worth fixing?
 	printf("%s | %s | %s \n",mi->title,mi->album,mi->artist);
 
-	sprintf(dbq,"UPDATE Song SET Rating=3, TypeID=%d WHERE SongID=%d",fmt,songid);
-	debug(3,dbq);
-	sqlite3_exec(conn,dbq,NULL,NULL,NULL);
+	sprintf(query,"UPDATE Song SET Rating=3, TypeID=%d WHERE SongID=%d",fmt,songid);
+	debug(3,query);
+	sqlite3_exec(conn,query,NULL,NULL,NULL);
 
 	getPlaylistSong(songid,getPlaylist("Library"));
 	getSongCategory(songid,1); // Unknown

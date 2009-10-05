@@ -136,10 +136,26 @@ enum filetype{
 	FFLAC
 };
 
+struct insert_data{
+	const int fmt;
+	char *query;
+	struct musicInfo *mi;
+	struct dbitem *dbi;
+	const char *path;
+};
+
 struct lconf{
 	int maxwidth;
 	int exception;
 }listconf;
+
+struct iconf{
+	char **f_root;
+	char **format;
+	int format_length;
+	int (*first_cb)(struct insert_data *data);
+	int (*second_cb)(struct insert_data *data);
+}insertconf;
 
 struct playercontrolarg{
 	char *key;
@@ -186,6 +202,8 @@ int fetch_row(struct dbitem *dbi);
 int fetch_row_at(struct dbitem *dbi, int index);
 char ** fetch_column_at(struct dbitem *dbi, int index);
 int doQuery(const char *querystr,struct dbitem *dbi);
+int uint_return_cb(void *arg, int col_count, char **row, char **titles);
+int str_return_cb(void *arg, int col_count, char **row, char **titles);
 int titlequery_cb(void *data, int col_count, char **row, char **titles);
 int doTitleQuery(const char *querystr,int *exception, int maxwidth);
 void createTempPlaylistSong();
@@ -199,6 +217,8 @@ int getCategory(const char *arg);
 int getPlaylistSong(const int sid, const int pid);
 int getSongCategory(const int sid, const int cid);
 int batchInsert(char *arg);
+int filepathInsert(struct insert_data *data);
+int metadataInsert(struct insert_data *data);
 
 //edit.c
 void editPortal();

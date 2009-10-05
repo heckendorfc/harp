@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT(harp, 0.2.3)
+AC_INIT(harp, 0.5.0)
 AC_CONFIG_SRCDIR([harp.c],
 	[plugins/plugin.h],
 	[plugins/mp3/mp3.c],[plugins/aac/aac.c],[plugins/vorbis/vorbis.c],[plugins/flac/flac.c])

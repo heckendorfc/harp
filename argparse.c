@@ -19,13 +19,13 @@ static unsigned int argSearch(int argc, char *argv[]);
 
 static void printHelp(){
 	printf("Valid options are:\n\
-	t [s,p,r,a]\tType (song, playlist, artist, album)\n\
+	t [s,p,r,a,g]\tType (song, playlist, artist, album, genre)\n\
 	l [name, ID]\tList (requires -t)\n\
 	p [name, ID]\tPlay (requires -t)\n\
 		s\tShuffle (requires -p)\n\
 		z\tSmart shuffle (requires -p)\n\
-	i [name]\tInsert (requires -t)\n\
-	e [name, ID]\tEdit (requires -t)\n\
+	i [name]\tInsert song\n\
+	e\tEdit\n\
 	a\tAdmin\n\
 	v\tVerbose\n");
 	cleanExit();
@@ -107,7 +107,7 @@ unsigned int doArgs(int argc,char *argv[]){
 	int *multilist,id=0,multi=0;
 
 	setDefaultConfig();
-
+	 
 	if(argSearch(argc,argv)==0){
 		return 0;
 	}
