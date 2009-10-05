@@ -52,8 +52,13 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 	struct snd_data *data=(struct snd_data*)client_data;
 	//if(writen_snd(data->ph, (void**)bufs, frame->header.blocksize)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	//int x;for(x=0;x<frame->header.blocksize;x++)if(writei_snd(data->ph, (char *)&buffer[0][x], 1)<0 || writei_snd(data->ph, (char *)&buffer[1][x],1)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
-	char *buffs=alloca(frame->header.blocksize*4);
-	int x;for(x=0;x<frame->header.blocksize;x++){
+	char *buffs;
+	if(!(buffs=malloc(frame->header.blocksize*4))){
+		debug(2,"Malloc failed (decoder buffer)");
+		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
+	}
+	int x;
+	for(x=0;x<frame->header.blocksize;x++){
 		buffs[x*4]=buffer[0][x];
 		buffs[x*4+1]=buffer[0][x]>>8;
 		buffs[x*4+2]=buffer[1][x];

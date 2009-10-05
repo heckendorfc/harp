@@ -29,7 +29,10 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 	*enc=SND_PCM_FORMAT_S16_LE;
 	snd_pcm_drop(ph->sndfd);
 	snd_pcm_hw_params_malloc(&ph->params);
-	if(ph->params==NULL)fprintf(stderr,"can't malloc params\n");
+	if(ph->params==NULL){
+		fprintf(stderr,"can't malloc params\n");
+		return 1;
+	}
 	if(snd_pcm_hw_params_any(ph->sndfd,ph->params)<0)fprintf(stderr,"can't init params\n");
 	if(snd_pcm_hw_params_set_access(ph->sndfd,ph->params,SND_PCM_ACCESS_RW_INTERLEAVED)<0)fprintf(stderr,"no access\n");
 	if(snd_pcm_hw_params_set_format(ph->sndfd,ph->params,*enc)<0)fprintf(stderr,"can't set fmt\n");
@@ -48,11 +51,15 @@ void changeVolume(struct playerHandles *ph, int mod){
 	if((err=snd_ctl_open(&ctl,"default",0))<0){
 		return;
 	}
-	snd_ctl_elem_id_alloca(&id);
+	snd_ctl_elem_id_malloc(&id);
+	snd_ctl_elem_value_malloc(&value);
+	if(!id || !value){
+		fprintf(stderr,"Malloc failed");
+		return;
+	}
 	snd_ctl_elem_id_set_interface(id,SND_CTL_ELEM_IFACE_MIXER);
 	snd_ctl_elem_id_set_name(id,"PCM Playback Volume");
 
-	snd_ctl_elem_value_alloca(&value);
 	snd_ctl_elem_value_set_id(value,id);
 
 	snd_ctl_elem_read(ctl,value);
@@ -66,6 +73,8 @@ void changeVolume(struct playerHandles *ph, int mod){
 
 	snd_ctl_elem_write(ctl,value);
 
+	snd_ctl_elem_id_free(id);
+	snd_ctl_elem_value_free(value);
 	snd_ctl_close(ctl);
 }
 
@@ -78,11 +87,15 @@ void toggleMute(struct playerHandles *ph, int *mute){
 	if((err=snd_ctl_open(&ctl,"default",0))<0){
 		return;
 	}
-	snd_ctl_elem_id_alloca(&id);
+	snd_ctl_elem_id_malloc(&id);
+	snd_ctl_elem_value_malloc(&value);
+	if(!id || !value){
+		fprintf(stderr,"Malloc failed");
+		return;
+	}
 	snd_ctl_elem_id_set_interface(id,SND_CTL_ELEM_IFACE_MIXER);
 	snd_ctl_elem_id_set_name(id,"PCM Playback Volume");
 
-	snd_ctl_elem_value_alloca(&value);
 	snd_ctl_elem_value_set_id(value,id);
 
 	snd_ctl_elem_read(ctl,value);
@@ -103,6 +116,8 @@ void toggleMute(struct playerHandles *ph, int *mute){
 
 
 	snd_ctl_elem_write(ctl,value);
+	snd_ctl_elem_id_free(id);
+	snd_ctl_elem_value_free(value);
 	snd_ctl_close(ctl);
 }
 

@@ -18,7 +18,11 @@
 
 int list(int *ids, int length){
 	char query[401];
-	int x,y,*exception=alloca(sizeof(int)*10);
+	int x,y,*exception;
+	if(!(exception=malloc(sizeof(int)*10))){
+		debug(2,"Malloc failed (exception).");
+		return 1;
+	}
 	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
 	switch(arglist[ATYPE].subarg[0]){
 		case 's':
@@ -69,15 +73,16 @@ int list(int *ids, int length){
 			}
 			break;
 	}
+	free(exception);
 	return 0;
 }
 
 int listall(){
 	char query[401];
-	int x,*headpath,*exception=alloca(sizeof(int)*10);
-	if(!exception){
-		debug(2,"Exception allocation failed");
-		return 0;
+	int x,*headpath,*exception;
+	if(!(exception=malloc(sizeof(int)*10))){
+		debug(2,"Malloc failed (exception).");
+		return 1;
 	}
 	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
 	switch(arglist[ATYPE].subarg[0]){

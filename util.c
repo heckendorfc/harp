@@ -258,7 +258,10 @@ int *getMulti(char *arg, int *length){
 			(*length)++;
 		x++;
 	}
-	list=malloc(sizeof(int)*(*length));
+	if(!(list=malloc(sizeof(int)*(*length)))){
+		debug(2,"Malloc failed (list).");
+		return NULL;
+	}
 
 	x=0;
 	while((token=strsep(&arg,del))!=NULL){

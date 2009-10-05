@@ -32,7 +32,7 @@ void argConfig(char *buffer){
 
 			if(longopts[y].has_arg>0){
 				if(argfound){
-					arglist[y].subarg=malloc(sizeof(char)*2);
+					if(!(arglist[y].subarg=malloc(sizeof(char)*2)))return;
 					arglist[y].subarg[0]=*setting;
 					arglist[y].subarg[1]=0;
 				}

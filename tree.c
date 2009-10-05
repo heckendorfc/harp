@@ -16,7 +16,11 @@
  */
 
 struct dbnode *dbnodeAdd(struct dbnode *node){
-	struct dbnode *new=malloc(sizeof(struct dbnode));
+	struct dbnode *new;
+	if(!(new=malloc(sizeof(struct dbnode)))){
+		debug(2,"Malloc failed (dbnode).");
+		return NULL;
+	}
 	dbiInit(&new->dbi);
 	new->prev=node;
 	if(node){
@@ -60,9 +64,13 @@ int *getGenreHeadPath(int head){
 	qptr=&query[47];
 
 	path[0]=head;
-	while(doQuery(query,&dbi) && fetch_row(&dbi)){
+	if(doQuery(query,&dbi)<1)return path;
+	while(fetch_row(&dbi)){
 		x++;
-		path=realloc(path,sizeof(int)*(x+1));
+		if(!(path=realloc(path,sizeof(int)*(x+1)))){
+			debug(2,"Realloc failed (path).");
+			return;
+		}
 		path[x]=(int)strtol(dbi.row[0],NULL,10);
 		sprintf(qptr,"%d",path[x]);
 	}
@@ -88,7 +96,7 @@ void printGenreHeadPath(int *path){
 
 void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnode*)){
 	if(!cur)return;
-	char *query=alloca(sizeof(char)*100);
+	char query[100];
 	sprintf(query,"SELECT CategoryID,Name FROM Category WHERE CategoryID=%d",curid);
 	if(doQuery(query,&cur->dbi) && fetch_row(&cur->dbi))
 		action(cur); // Do self
@@ -99,7 +107,7 @@ void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnod
 	int nextid;
 	struct dbnode *child;
 	while(fetch_row(&cur->dbi)){
-		child=dbnodeAdd(cur);
+		if(!(child=dbnodeAdd(cur)))return;
 		nextid=(int)strtol(cur->dbi.row[0],NULL,10);
 		if(nextid)
 			printGenreChildren(child,nextid,action);
@@ -111,13 +119,18 @@ void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnod
 
 void tierChildPrint(struct dbnode *cur){
 	int x;
-	int *exception=alloca(sizeof(int)*10);
+	int exception[10];
 	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
 	if(!cur->dbi.row_count)return;
 	if(cur->depth>0){
-		char *prefix=alloca(sizeof(char)*((cur->depth*2)+1));
-		for(x=0;x<cur->depth;x++)sprintf(&prefix[x],"\t");
+		char *prefix;
+		if(!(prefix=malloc(sizeof(char)*((cur->depth*2)+1)))){
+			debug(2,"Malloc failed (prefix).");
+			return;
+		}
+		for(x=0;x<cur->depth;x++)sprintf(prefix+x,"\t");
 		printf("\n%s[%s] %s\n%s- - - - - - -\n",prefix,cur->dbi.row[0],cur->dbi.row[1],prefix);
+		free(prefix);
 	}
 	else
 		printf("\n[%s] %s\n- - - - - - -\n",cur->dbi.row[0],cur->dbi.row[1]);
@@ -131,8 +144,12 @@ void tierCatPrint(struct dbnode *cur){
 	int x;
 	if(!cur->dbi.row_count)return;
 	if(cur->depth>0){
-		char *prefix=alloca(sizeof(char)*((cur->depth*2)+1));
-		for(x=0;x<cur->depth;x++)sprintf(&prefix[x],"\t");
+		char *prefix;
+		if(!(prefix=malloc(sizeof(char)*((cur->depth*2)+1)))){
+			debug(2,"Malloc failed (prefix).");
+			return;
+		}
+		for(x=0;x<cur->depth;x++)sprintf(prefix+x,"\t");
 		printf("%s[%s] %s\n",prefix,cur->dbi.row[0],cur->dbi.row[1],prefix);
 	}
 	else
@@ -157,7 +174,7 @@ void printGenreTree(int head, void *action(struct dbnode *)){
 	free(headpath);
 
 	struct dbnode *cur;
-	cur=dbnodeAdd(NULL);
+	if(!(cur=dbnodeAdd(NULL)))return;
 	cur->depth=depth;
 	printGenreChildren(cur,head,action);
 	printf("\n");

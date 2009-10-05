@@ -84,7 +84,11 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	const ssize_t len=1600;
 	char buf[len];  /* input buffer  */
 	
-	OggVorbis_File *vf=malloc(sizeof(OggVorbis_File));
+	OggVorbis_File *vf;
+	if(!(vf=malloc(sizeof(OggVorbis_File)))){
+		debug(2,"Malloc failed (vf).");
+		return DEC_RET_ERROR;
+	}
 
 	if(ov_open_callbacks(ph->ffd,vf,NULL,0,OV_CALLBACKS_NOCLOSE)<0){
 		fprintf(stderr,"ov open failed\n");

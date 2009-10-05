@@ -36,11 +36,16 @@ static int addPlugin(char *args, void *data){
 }
 
 static int listPlugins(char *args, void *data){
-	int *exception=alloca(sizeof(int)*10);
+	int *exception;
+	if(!(exception=malloc(sizeof(int)*10))){
+		debug(2,"Malloc failed.");
+		return 0;
+	}
 	exception[0]=exception[1]=exception[2]=exception[3]=1;
 
 	doTitleQuery("SELECT FileType.Name AS Format, PluginType.PluginTypeID AS PluginID, PluginType.Active AS Active, Plugin.Library AS Library FROM FileType NATURAL JOIN PluginType NATURAL JOIN Plugin ORDER BY Format ASC, Active DESC",exception,1);
 
+	free(exception);
 	return 1;
 }
 

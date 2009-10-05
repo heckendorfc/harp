@@ -252,12 +252,12 @@ static int directoryInsert(const char *arg){
 
 int batchInsert(char *arg){
 	struct musicInfo mi;
-	mi.title=malloc((MI_TITLE_SIZE*2+1)*sizeof(char));
-	mi.track=malloc(((MI_TRACK_SIZE*2)+1)*sizeof(char));
-	mi.artist=malloc(((MI_ARTIST_SIZE*2)+1)*sizeof(char));
-	mi.album=malloc(((MI_ALBUM_SIZE*2)+1)*sizeof(char));
-	mi.year=malloc(((MI_YEAR_SIZE*2)+1)*sizeof(char));
-	mi.length=malloc(((MI_LENGTH_SIZE*2)+1)*sizeof(char));
+	if(!(mi.title=malloc((MI_TITLE_SIZE*2+1)*sizeof(char))))return 0;
+	if(!(mi.track=malloc(((MI_TRACK_SIZE*2)+1)*sizeof(char))))return 0;
+	if(!(mi.artist=malloc(((MI_ARTIST_SIZE*2)+1)*sizeof(char))))return 0;
+	if(!(mi.album=malloc(((MI_ALBUM_SIZE*2)+1)*sizeof(char))))return 0;
+	if(!(mi.year=malloc(((MI_YEAR_SIZE*2)+1)*sizeof(char))))return 0;
+	if(!(mi.length=malloc(((MI_LENGTH_SIZE*2)+1)*sizeof(char))))return 0;
 	getMusicInfo(&mi);
 	if(arg){//single argv insert
 		directoryInsert(expand(arg));

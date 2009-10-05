@@ -117,7 +117,12 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	h.total=0;
 	h.accuracy=1000;
 	int outsize=mpg123_outblock(h.m);
-	unsigned char *out=alloca(sizeof(unsigned char)*outsize);
+	unsigned char *out;
+	if(!(out=malloc(sizeof(unsigned char)*outsize))){
+		debug(2,"Malloc failed (out decoder buffer).");
+		plugin_exit(ph);
+		return DEC_RET_ERROR;
+	}
 
 	do{ /* Read and write until everything is through. */
 

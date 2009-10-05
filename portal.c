@@ -62,7 +62,11 @@ int getStdArgs(char *args,char *prompt){
 }
 
 int portal(struct commandOption *portalOptions, const char *prefix){
-	char *choice=malloc(sizeof(char)*200);
+	char *choice;
+	if(!(choice=malloc(sizeof(char)*200))){
+		debug(2,"Malloc failed (portal choice).");
+		return 0;
+	}
 	int x,ret=0;
 
 	while(printf("%s> ",prefix) && fgets(choice,200,stdin)){

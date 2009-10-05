@@ -17,7 +17,11 @@
 
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	mp4ff_t infile;
-	mp4ff_callback_t *mp4cb = malloc(sizeof(mp4ff_callback_t));
+	mp4ff_callback_t *mp4cb;
+	if(!(mp4cb=malloc(sizeof(mp4ff_callback_t)))){
+		debug(2,"Malloc failed (mp4cb).");
+		return;
+	}
 	mp4cb->read=read_callback;
 	mp4cb->seek=seek_callback;
 	mp4cb->user_data=ffd;

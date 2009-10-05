@@ -119,7 +119,7 @@ unsigned int doArgs(int argc,char *argv[]){
 			return 0;
 		}
 
-		multilist=getMulti(arglist[ALIST].subarg,&multi);
+		if(!(multilist=getMulti(arglist[ALIST].subarg,&multi)))return 1;
 		if(multi<1 || *multilist<1)return 1;
 		list(multilist,multi);
 		free(multilist);
@@ -127,7 +127,7 @@ unsigned int doArgs(int argc,char *argv[]){
 	}
 	//play
 	if(arglist[APLAY].active){
-		multilist=getMulti(arglist[APLAY].subarg,&multi);
+		if(!(multilist=getMulti(arglist[APLAY].subarg,&multi)))return 1;
 		if(multi<1 || *multilist<1)return 1;
 		if(multi>0 || *arglist[ATYPE].subarg!='p'){ // Skip for single playlists
 			makeTempPlaylist(multilist,multi);

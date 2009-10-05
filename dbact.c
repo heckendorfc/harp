@@ -138,7 +138,8 @@ int fetch_row_at(struct dbitem *dbi,int index){
 
 char ** fetch_column_at(struct dbitem *dbi, int index){
 	int x;
-	char **col=malloc(sizeof(char*)*dbi->row_count);
+	char **col;
+	if(!(col=malloc(sizeof(char*)*dbi->row_count)))return NULL;
 	index+=dbi->column_count;
 	for(x=0;x<dbi->row_count;x++)
 		col[x]=dbi->result[index+(x*dbi->column_count)];
@@ -158,7 +159,10 @@ int doQuery(const char *querystr,struct dbitem *dbi){
 		return sqlite3_changes(conn);
 
 	dbi->current_row=0;
-	dbi->row=malloc(sizeof(char*)*dbi->column_count);
+	if(!(dbi->row=malloc(sizeof(char*)*dbi->column_count))){
+		debug(2,"Malloc failed (dbi->row).");
+		return -1;
+	}
 	fetch_row(dbi);
 	return dbi->row_count;
 }

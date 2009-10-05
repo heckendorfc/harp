@@ -149,9 +149,12 @@ int snd_init(struct playerHandles *ph){
 
 	char client_name[255];
 	ph->maxsize=40960;
-	ph->outbuf=malloc(2*sizeof(*ph->outbuf));
-	ph->tmpbuf=malloc(sizeof(*ph->tmpbuf));
-
+	if(!(ph->outbuf=malloc(2*sizeof(*ph->outbuf)))
+		|| !(ph->tmpbuf=malloc(sizeof(*ph->tmpbuf)))){
+		debug(2,"Malloc failed (jack buf).");
+		return 1;
+	}
+	
 	pthread_mutex_init(&outbuf_lock,NULL);
 	ph->out_gain=0;
 	ph->vol_mod=1;

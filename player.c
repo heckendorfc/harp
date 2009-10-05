@@ -129,7 +129,11 @@ int play_song(void *data, int col_count, char **row, char **titles){
 }
 
 int player(int list){//list - playlist number
-	char *query=malloc(sizeof(char)*320);
+	char *query;
+	if(!(query=malloc(sizeof(char)*320))){
+		debug(2,"Malloc failed (player query).");
+		return 1;
+	}
 	char library[255];
 	if(!query || initList(list,query))return 0;
 	
@@ -284,7 +288,11 @@ static void jump(char *com, struct playercontrolarg *pca){
 
 static void listtemp(char *com, struct playercontrolarg *pca){
 	char query[200];
-	int x,y,limit,*exception=alloca(sizeof(int)*10);
+	int x,y,limit,*exception;
+	if(!(exception=malloc(sizeof(int)*10))){
+		debug(2,"Malloc failed (exception).");
+		return;
+	}
 	unsigned int order;
 	for(y=2;y<10;y++)exception[y]=listconf.exception;
 	exception[0]=exception[1]=1;

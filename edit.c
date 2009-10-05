@@ -347,7 +347,6 @@ static int editPlaylistSongAdd(char *args, void *data){
 	if((x=getStdArgs(args,"Song: "))<0)return 1;
 	args=&args[x];
 
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	*arglist[ATYPE].subarg='s';
 	if((songid=getID(args))<1){
 		fprintf(stderr,"No song found.\n");
@@ -497,7 +496,6 @@ static int editPlaylistCreate(char *args, void *data){
 		fprintf(stderr,"Error inserting playlist\n");
 		return 1;
 	}
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	*arglist[ATYPE].subarg='s';
 	while(printf("SongID: ") && fgets(args,200,stdin) && *args!='\n'){
 		if((sid=getID(args))<1)continue;
@@ -553,7 +551,6 @@ static int editGenreParent(char *args, void *data){
 	if((x=getStdArgs(args,"Owner: "))<0)return 1;
 	args=&args[x];
 
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	*arglist[ATYPE].subarg='g';
 	if((gid=getID(args))<1){
 		if(!strncasecmp(args,"none",4) || *args=='0')
@@ -608,7 +605,6 @@ static int editSongGenreAdd(char *args, void *data){
 	if((x=getStdArgs(args,"Genre to add: "))<0)return 1;
 	args=&args[x];
 
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	*arglist[ATYPE].subarg='g';
 	if((gid=getID(args))<1){
 		fprintf(stderr,"Invalid genre\n");
@@ -635,7 +631,6 @@ static int editSongGenreRemove(char *args, void *data){
 	if((x=getStdArgs(args,"Genre to remove: "))<0)return 1;
 	args=&args[x];
 
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	*arglist[ATYPE].subarg='g';
 	if((gid=getID(args))<1){
 		fprintf(stderr,"Invalid genre\n");
@@ -657,18 +652,6 @@ static void cleanOrphans(){
 	sqlite3_exec(conn,"DELETE FROM Artist WHERE ArtistID NOT IN (SELECT ArtistID FROM AlbumArtist)",NULL,NULL,NULL);
 	// Put orphaned [category] songs in unknown
 	sqlite3_exec(conn,"INSERT INTO SongCategory (SongID,CategoryID) SELECT SongID,'1' FROM Song WHERE SongID NOT IN (SELECT SongID FROM SongCategory)",NULL,NULL,NULL);
-}
-
-static int *getIDs(char *prompt, int *len){
-	int *ids;
-	char *song=alloca(sizeof(char)*200);
-	printf("%s",prompt);
-	while(fgets(song,200,stdin)){
-		ids=getMulti(song,len);
-		if(*ids>0)
-			return ids;
-		printf("%s",prompt);
-	}
 }
 
 static int listSongs(char *args, void *data){
@@ -766,7 +749,6 @@ static int listArtists(char *args, void *data){
 static int listPlaylists(char *args, void *data){
 	struct IDList *ids=(struct IDList *)data;
 	if(!ids || !ids->songid){
-		if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 		*arglist[ATYPE].subarg='p';
 		listall();
 		fprintf(stderr,"None selected.\n");
@@ -779,7 +761,6 @@ static int listPlaylists(char *args, void *data){
 
 	// List contents of playlist as well.
 	if(args[1]=='C'){
-		if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 		*arglist[ATYPE].subarg='p';
 		list(ids->songid,ids->length);
 		return 1;
@@ -835,7 +816,11 @@ static int listSongGenre(char *args, void *data){
 		return 1;
 	}
 	char query[401];
-	int y,*exception=alloca(sizeof(int)*10);
+	int y,*exception;
+	if(!(exception=malloc(sizeof(int)*10))){
+		debug(2,"Malloc failed (exception).");
+		return 0;
+	}
 	for(x=2;x<10;x++)exception[x]=listconf.exception;exception[0]=exception[1]=1;
 	sprintf(query,"SELECT CategoryID AS ID,Name FROM Category WHERE ID IN (SELECT DISTINCT CategoryID FROM SongCategory WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d))",ids->tempselectid);
 	debug(3,query);
@@ -859,7 +844,8 @@ static int songGenrePortal(char *args, void *data){
 	return portal(portalOptions,"Song-Genre");
 }
 static int songPortal(char *args, void *data){
-	struct IDList *songids=alloca(sizeof(struct IDList));
+	struct IDList sid_struct;
+	struct IDList *songids=&sid_struct;
 	struct commandOption portalOptions[]={
 		{'L',listSongs,"List affected songs",songids},
 		{'t',editSongName,"Change title",songids},
@@ -882,7 +868,6 @@ static int songPortal(char *args, void *data){
 		fprintf(stderr,"Required argument not given.\n");
 		return 1;
 	}
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	switch(args[x]){
 		case 'a':
 			arglist[ATYPE].subarg[0]='a';
@@ -903,7 +888,7 @@ static int songPortal(char *args, void *data){
 		default:
 			for(;x<200 && args[x] && args[x]==' ';x++);
 			arglist[ATYPE].subarg[0]='s';
-			sids=getMulti(&args[x],&sidlen);
+			if(!(sids=getMulti(&args[x],&sidlen)))return 1;
 			if(sids[0]<1)return 1;
 			songids->tempselectid=insertTempSelect(sids,sidlen);
 			songids->songid=sids;
@@ -917,7 +902,7 @@ static int songPortal(char *args, void *data){
 	debug(3,query);
 	// Get SongIDs for album or artist
 	for(++x;x<200 && args[x] && args[x]==' ';x++);
-	ids=getMulti(&args[x],&idlen);
+	if(!(sids=getMulti(&args[x],&idlen)))return 1;
 	if(ids[0]<1){
 		fprintf(stderr,"No results found.\n");
 		return 1;
@@ -927,7 +912,10 @@ static int songPortal(char *args, void *data){
 		if(doQuery(query,&dbi)<1)continue;
 		y=sidlen;
 		sidlen+=dbi.row_count;
-		sids=realloc(sids,sizeof(int)*(sidlen));
+		if(!(sids=realloc(sids,sizeof(int)*(sidlen)))){
+			debug(2,"Realloc failed (sids).");
+			return 1;
+		}
 		for(;fetch_row(&dbi);y++)
 			sids[y]=(int)strtol(dbi.row[0],NULL,10);
 	}
@@ -948,7 +936,8 @@ static int songPortal(char *args, void *data){
 }
 
 static int albumPortal(char *args, void *data){
-	struct IDList *ids=alloca(sizeof(struct IDList));
+	struct IDList ids_struct;
+	struct IDList *ids=&ids_struct;
 	struct commandOption portalOptions[]={
 		{'L',listAlbums,"List affected alubms",ids},
 		{'t',editAlbumTitle,"Change title",ids},
@@ -963,11 +952,10 @@ static int albumPortal(char *args, void *data){
 		return 1;
 	}
 
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	arglist[ATYPE].subarg[0]='a';
 
 	ids->songid=getMulti(&args[x],&ids->length);
-	if(ids->songid[0]<1){
+	if(!ids->songid || ids->songid[0]<1){
 		fprintf(stderr,"No results found.\n");
 		return 1;
 	}
@@ -976,7 +964,8 @@ static int albumPortal(char *args, void *data){
 }
 
 static int artistPortal(char *args, void *data){
-	struct IDList *ids=alloca(sizeof(struct IDList));
+	struct IDList ids_struct;
+	struct IDList *ids=&ids_struct;
 	struct commandOption portalOptions[]={
 		{'L',listArtists,"List affected artists",ids},
 		{'n',editArtistName,"Change name",ids},
@@ -990,11 +979,10 @@ static int artistPortal(char *args, void *data){
 		return 1;
 	}
 
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	arglist[ATYPE].subarg[0]='r';
 
 	ids->songid=getMulti(&args[x],&ids->length);
-	if(ids->songid[0]<1){
+	if(!ids->songid || ids->songid[0]<1){
 		fprintf(stderr,"No results found.\n");
 		return 1;
 	}
@@ -1003,7 +991,8 @@ static int artistPortal(char *args, void *data){
 }
 
 static int playlistPortal(char *args, void *data){
-	struct IDList *ids=alloca(sizeof(struct IDList));
+	struct IDList ids_struct;
+	struct IDList *ids=&ids_struct;
 
 	int x;
 	for(x=1;x<200 && args[x] && args[x]<'0';x++);
@@ -1019,11 +1008,10 @@ static int playlistPortal(char *args, void *data){
 			{0,NULL,NULL,NULL}
 		};
 
-		if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 		arglist[ATYPE].subarg[0]='p';
 
 		ids->songid=getMulti(&args[x],&ids->length);
-		if(ids->songid[0]<1){
+		if(!ids->songid || ids->songid[0]<1){
 			fprintf(stderr,"No results found.\n");
 			return 1;
 		}
@@ -1041,7 +1029,8 @@ static int playlistPortal(char *args, void *data){
 }
 
 static int genrePortal(char *args, void *data){
-	struct IDList *ids=alloca(sizeof(struct IDList));
+	struct IDList ids_struct;
+	struct IDList *ids=&ids_struct;
 	struct commandOption portalOptions[]={
 		{'L',listGenre,"List affected genre\nLC\tList the contents of the selected genre",ids},
 		{'n',editGenreName,"Change name of selected genre",ids},
@@ -1063,11 +1052,10 @@ static int genrePortal(char *args, void *data){
 		return portal(portalOptions,"Genre");
 	}
 
-	if(!arglist[ATYPE].subarg)arglist[ATYPE].subarg=alloca(sizeof(char));
 	arglist[ATYPE].subarg[0]='g';
 
 	ids->songid=getMulti(&args[x],&ids->length);
-	if(ids->songid[0]<1){
+	if(!ids->songid || ids->songid[0]<1){
 		fprintf(stderr,"No results found.\n");
 		return 1;
 	}
@@ -1085,6 +1073,10 @@ void editPortal(){
 		{0,NULL,NULL,NULL}
 	};
 	printf("Enter a command. ? for command list.\n");
+	if(!arglist[ATYPE].subarg && !(arglist[ATYPE].subarg=malloc(sizeof(char)))){
+		debug(2,"Malloc failed (ATYPE subarg).");
+		return;
+	}
 	while(portal(portalOptions,"Edit"));
 	cleanOrphans();
 }

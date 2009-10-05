@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void debug(const int level,const char *msg){
+void debug(const int level, const char *msg){
 	if(arglist[AVERBOSE].active>=level)
 		fprintf(stderr,"%s\n",msg);
 }
