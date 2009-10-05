@@ -22,42 +22,120 @@ typedef int (*function_play)(struct playerHandles *ph, char *key, int *totaltime
 typedef void (*function_exit)(struct playerHandles *ph);
 typedef void (*function_seek)(struct playerHandles *ph,int modtime);
 
+struct play_song_args{
+	struct playerHandles *ph;
+	struct playercontrolarg *pca;
+};
 
-static int initList(int list, struct dbitem *dbi){
-	char query[320];
-	dbiInit(dbi);
+static int initList(int list, char *query){
+	// If we shuffled, TempPlaylistSong will be a temp table. list will be 0.
 	if(list){
 		sprintf(query,"CREATE TEMP VIEW IF NOT EXISTS TempPlaylistSong AS SELECT PlaylistSongID, SongID, `Order` FROM PlaylistSong WHERE PlaylistID=%d ORDER BY `Order`",list);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
-		sprintf(query,"SELECT Song.SongID, Song.TypeID FROM Song, PlaylistSong WHERE Song.SongID=PlaylistSong.SongID AND PlaylistSong.PlaylistID=%d ORDER BY `Order`",list);
-		doQuery(query,dbi);
-		if(dbi->row_count==0){
-			fprintf(stderr,"This does not exist.\n");
-			dbiClean(dbi);
-			return 1;
-		}
+		sprintf(query,"SELECT Song.SongID, `Order` FROM Song, PlaylistSong WHERE Song.SongID=PlaylistSong.SongID AND PlaylistSong.PlaylistID=%d ORDER BY `Order`",list);
 	}
 	else{
-		sprintf(query,"SELECT Song.SongID,Song.TypeID FROM Song, TempPlaylistSong WHERE Song.SongID=TempPlaylistSong.SongID ORDER BY `Order`",list);
-		doQuery(query,dbi);
-		if(dbi->row_count==0){
-			fprintf(stderr,"This does not exist.\n");
-			dbiClean(dbi);
-			return 1;
-		}
+		sprintf(query,"SELECT Song.SongID,`Order` FROM Song, TempPlaylistSong WHERE Song.SongID=TempPlaylistSong.SongID ORDER BY `Order`");
 	}
 	return 0;
 }
 
+
+int play_song(void *data, int col_count, char **row, char **titles){
+	struct play_song_args *psargs=(struct play_song_args *)data;
+	if(*psargs->pca->key==KEY_QUIT)return 1;
+
+	int x,ret,sid,totaltime;
+	char query[200];
+	struct dbitem dbi;
+	void *module;
+	function_play modplay;
+	function_exit modexit;
+
+	// Reset key
+	pthread_mutex_lock(&actkey);
+		*psargs->pca->key=KEY_NULL;
+	pthread_mutex_unlock(&actkey);
+	psargs->pca->next_order=psargs->pca->cur_order=strtol(row[1],NULL,10);
+
+	dbiInit(&dbi);
+	sid=(int)strtol(row[0],NULL,10);
+
+	// Row information done. From now on we use the dbi
+	sprintf(query,"SELECT * FROM SongPubInfo WHERE SongID=%d LIMIT 1",sid);
+	doQuery(query,&dbi);
+	if(!fetch_row(&dbi))
+		return 0;
+
+	printf("\n=====================\n");
+	printSongPubInfo(dbi.row);
+	printf("---------------------\n");
+
+	if((psargs->ph->ffd=fopen(dbi.row[1],"rb"))==NULL){
+		fprintf(stderr,"Failed to open file\n");
+		return 0;
+	}
+
+	totaltime=(int)strtol(dbi.row[5],NULL,10);
+	psargs->ph->pflag->rating=(int)strtol(dbi.row[7],NULL,10);
+
+	dbi.current_row=dbi.column_count; // Reset for getPlugin
+	while((x=getPlugin(&dbi,6,&module))){
+		if(x>1)continue;
+		modplay=dlsym(module,"plugin_run");
+		if(!modplay){
+			debug(2,"Plugin does not contain plugin_run().\n");
+			ret=-1;
+		}
+		else{
+			psargs->pca->decoder=module;
+			ret=modplay(psargs->ph,psargs->pca->key,&totaltime);
+			psargs->pca->decoder=NULL;
+			dlclose(module);
+			break;
+		}
+		dlclose(module);
+	}
+	if(!x)
+		ret=-1;
+
+	dbiClean(&dbi);
+	printf("\n");
+	modplay=NULL;
+	modexit=NULL;
+	fclose(psargs->ph->ffd);
+	psargs->ph->ffd=NULL;
+	psargs->ph->dechandle=NULL;
+
+	if(ret!=DEC_RET_ERROR){ // Update stats
+		switch(ret){
+				// Normal play.
+			case DEC_RET_SUCCESS:sprintf(query,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, Length=%d WHERE SongID=%d",(int)time(NULL),totaltime,sid);break;
+				// Next key
+			case DEC_RET_NEXT:sprintf(query,"UPDATE Song SET SkipCount=SkipCount+1, LastPlay=%d WHERE SongID=%d",(int)time(NULL),sid);break;
+				// Next key without update[playcount]
+			case DEC_RET_NEXT_NOUP:
+			default:sprintf(query,"UPDATE Song SET LastPlay=%d WHERE SongID=%d",(int)time(NULL),sid);break;
+		}
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+	sprintf(query,"UPDATE Song SET Rating=%d WHERE SongID=%d",psargs->ph->pflag->rating,sid);
+	sqlite3_exec(conn,query,NULL,NULL,NULL);
+	
+	if(ret==DEC_RET_ERROR || psargs->pca->next_order!=psargs->pca->cur_order)
+		return 1;
+	else
+		return 0;
+}
+
 int player(int list){//list - playlist number
-	struct dbitem dbi,updatedbi;
-	char query[320];
+	char *query=malloc(sizeof(char)*320);
 	char library[255];
-	if(initList(list,&dbi))return 0;
-	dbiInit(&updatedbi);
+	if(!query || initList(list,query))return 0;
 	
 	// Create playerControl thread
 	char key=KEY_NULL;
+	struct play_song_args psargs;
 	struct playercontrolarg pca;
 	struct playerHandles ph;
 	struct playerflag pflag={0,0,1,0,32,32};
@@ -68,97 +146,28 @@ int player(int list){//list - playlist number
 	pca.ph=&ph;
 	tcgetattr(0,&pca.orig);
 	pca.key=&key;
-	pca.listdbi=&dbi;
+	psargs.ph=&ph;
+	psargs.pca=&pca;
 
 	pthread_t threads;
 	pthread_mutex_init(&actkey,NULL);
 	pthread_create(&threads,NULL,(void *)&playerControl,(void*)&pca);
 	
 	// Play the list!
-	int x,fmt,ret,sid,totaltime;
-
 	if(snd_init(&ph)){
 		fprintf(stderr,"snd_init failed");
 		return 1;
 	}
 
-	void *module;
-	function_play modplay;
-	function_exit modexit;
-
-	while(fetch_row(&dbi) && key!=KEY_QUIT){
-		// Reset key
-		pthread_mutex_lock(&actkey);
-			key=KEY_NULL;
-		pthread_mutex_unlock(&actkey);
-		sid=(int)strtol(dbi.row[0],NULL,10);
-
-		sprintf(query,"SELECT * FROM SongPubInfo WHERE SongID=%d",sid);
-		//sprintf(query,"SELECT Song.Title,Song.Location,Album.Title,Artist.Name,FilePlugin.Name,Song.Length,FilePlugin.Library,Song.Rating FROM Song,FilePlugin,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND Song.TypeID=FilePlugin.TypeID AND Song.SongID=%d",sid);
-		doQuery(query,&updatedbi);
-		if(!fetch_row(&updatedbi))continue;
-
-		printf("\n=====================\n");
-		printSongPubInfo(updatedbi.row);
-		printf("---------------------\n");
-
-		if((ph.ffd=fopen(updatedbi.row[1],"rb"))==NULL){
-			fprintf(stderr,"Failed to open file\n");
-			continue;
-		}
-
-		totaltime=(int)strtol(updatedbi.row[5],NULL,10);
-		ph.pflag->rating=(int)strtol(updatedbi.row[7],NULL,10);
-
-		updatedbi.current_row=updatedbi.column_count; // Reset for getPlugin
-		while((x=getPlugin(&updatedbi,6,&module))){
-			if(x>1)continue;
-			modplay=dlsym(module,"plugin_run");
-			if(!modplay){
-				debug(2,"Plugin does not contain plugin_run().\n");
-				ret=-1;
-			}
-			else{
-				pca.decoder=module;
-				ret=modplay(&ph,&key,&totaltime);
-				pca.decoder=NULL;
-				dlclose(module);
-				break;
-			}
-			dlclose(module);
-		}
-		if(!x)
-			ret=-1;
-
-		printf("\n");
-		modplay=NULL;
-		modexit=NULL;
-		fclose(ph.ffd);
-		ph.ffd=NULL;
-		ph.dechandle=NULL;
-
-		if(ret!=DEC_RET_ERROR){ // Update stats
-			switch(ret){
-					// Normal play.
-				case DEC_RET_SUCCESS:sprintf(query,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, Length=%d WHERE SongID=%d",(int)time(NULL),totaltime,sid);break;
-					// Next key
-				case DEC_RET_NEXT:sprintf(query,"UPDATE Song SET SkipCount=SkipCount+1, LastPlay=%d WHERE SongID=%d",(int)time(NULL),sid);break;
-					// Next key without update[playcount]
-				case DEC_RET_NEXT_NOUP:
-				default:sprintf(query,"UPDATE Song SET LastPlay=%d WHERE SongID=%d",(int)time(NULL),sid);break;
-			}
-			sqlite3_exec(conn,query,NULL,NULL,NULL);
-		}	
-		sprintf(query,"UPDATE Song SET Rating=%d WHERE SongID=%d",ph.pflag->rating,sid);
-		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	// Run the song playing query. Loop for jumping.
+	while(sqlite3_exec(conn,query,play_song,&psargs,NULL)==SQLITE_ABORT 
+			&& pca.next_order!=pca.cur_order){
+		sprintf(query,"SELECT Song.SongID,`Order` FROM Song NATURAL JOIN TempPlaylistSong WHERE `Order`>=%d ORDER BY `Order`",pca.next_order);
 	}
-	snd_close(&ph);
 
+	snd_close(&ph);
 	pthread_cancel(threads);
-	dbiClean(&dbi);
-	dbiClean(&updatedbi);
 	// Reset term settings
-		// In case user used Q
 	tcsetattr(0,TCSANOW,&pca.orig);
 	pthread_mutex_destroy(&actkey);
 	printf("Exiting.\n");
@@ -201,6 +210,7 @@ void playerControl(void *arg){
 
 static void writelist(char *com, struct playercontrolarg *pca){
 	int x,y,limit;
+	unsigned int order;
 	FILE *ffd;
 	struct dbitem dbi;
 	char query[200],filename[30];
@@ -215,14 +225,14 @@ static void writelist(char *com, struct playercontrolarg *pca){
 			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
 			break;
 		case 't':
-			x=pca->listdbi->row_count-limit;
+			sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
 			if(x<0)x=0;
-			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d,%d",x,limit);
+			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
 			break;
 		case 'r':
 		default:
-			x=(pca->listdbi->current_row-(pca->listdbi->column_count*2))/pca->listdbi->column_count;
-			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d,%d",x,limit);
+			sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
+			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
 			break;
 	}
 	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
@@ -251,42 +261,31 @@ static void advseek(char *com, struct playercontrolarg *pca){
 }
 
 static void jump(char *com, struct playercontrolarg *pca){
-	struct dbitem dbi;
 	char query[200];
-	dbiInit(&dbi);
 
 	int x,y;
 	for(y=1;y<50 && com[y] && (com[y]<'0' || com[y]>'9');y++);
 	int dest=(int)strtol(&com[y],NULL,10);
 	if(dest<=0)return;
 
-	if(com[1]=='o'){ // Jump by Order. Find the SongID first (listdbi only uses SongID and TypeID).
-		sprintf(query,"SELECT SongID FROM TempPlaylistSong WHERE `Order`=%d",dest);
+	if(com[1]=='s'){ // Jump by SongID. Find the Order first,
+		sprintf(query,"SELECT `Order` FROM TempPlaylistSong WHERE SongID=%d",dest);
 		debug(3,query);
-		if(doQuery(query,&dbi)<1){
-			dbiClean(&dbi);
-			return;
-		}
-		dest=(int)strtol(dbi.result[1],NULL,10);
-		dbiClean(&dbi);
+		sqlite3_exec(conn,query,uint_return_cb,&dest,NULL);
 		if(dest<=0)return;
 	}
 
-	int interval=pca->listdbi->column_count;
-	for(x=interval;x<(pca->listdbi->row_count+1)*interval;x+=interval){
-		if((int)strtol(pca->listdbi->result[x],NULL,10)==dest){
-			pca->listdbi->current_row=x;
-			pthread_mutex_lock(&actkey);
-				*pca->key=(*com=='j')?KEY_NEXT:KEY_NEXT_NOUP;
-			pthread_mutex_unlock(&actkey);
-			break;
-		}
-	}
+	pca->next_order=dest;
+
+	pthread_mutex_lock(&actkey);
+		*pca->key=(*com=='j')?KEY_NEXT:KEY_NEXT_NOUP;
+	pthread_mutex_unlock(&actkey);
 }
 
 static void listtemp(char *com, struct playercontrolarg *pca){
 	char query[200];
 	int x,y,limit,*exception=alloca(sizeof(int)*10);
+	unsigned int order;
 	for(y=2;y<10;y++)exception[y]=listconf.exception;
 	exception[0]=exception[1]=1;
 
@@ -298,14 +297,12 @@ static void listtemp(char *com, struct playercontrolarg *pca){
 			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY `Order` LIMIT %d",limit);
 			break;
 		case 't': // Tail
-			x=pca->listdbi->row_count-limit;
-			if(x<0)x=0;
-			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY `Order` LIMIT %d,%d",x,limit);
+			sqlite3_exec(conn,"SELECT MAX(`Order`) FROM TempPlaylistSong",uint_return_cb,&order,NULL);
+			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE `Order`>%d ORDER BY `Order` LIMIT %d",order-limit,limit);
 			break;
 		case 'r': // Relative
 		default:
-			x=(pca->listdbi->current_row-(pca->listdbi->column_count*2))/pca->listdbi->column_count;
-			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY `Order` LIMIT %d,%d",x,limit);
+			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE `Order`>=%d ORDER BY `Order` LIMIT %d",pca->cur_order,limit);
 			break;
 	}
 	debug(3,query);

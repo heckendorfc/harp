@@ -77,7 +77,7 @@ unsigned int dbInit(){
 	//strcpy(temp,DB);
 	sprintf(temp,"%s%s",DB_PATH,DB);
 	expand(temp);
-	if(sqlite3_open_v2(temp,&conn,SQLITE_OPEN_READWRITE,NULL)!=SQLITE_OK){
+	if(sqlite3_open_v2(temp,&conn,SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE,NULL)!=SQLITE_OK){
 		printf("Database not found. Attempting to create\n");
 		// Try creating
 		strcpy(temp,DB_PATH);

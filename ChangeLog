@@ -15,6 +15,7 @@ Changes in HARP-0.5.0:
 	- Stat based shuffle interleaves into standard shuffle
 		at a random interval.
 - Added stat management to the admin menu.
+- Improved player efficiency by moving to a callback system.
 
 Changes in HARP-0.2.3:
 - Added JACK output support.

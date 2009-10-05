@@ -159,9 +159,10 @@ struct iconf{
 
 struct playercontrolarg{
 	char *key;
+	unsigned int cur_order;
+	unsigned int next_order;
 	struct termios orig;
 	struct playerHandles *ph;
-	struct dbitem *listdbi;
 	void *decoder;
 };
 
