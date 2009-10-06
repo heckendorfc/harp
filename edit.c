@@ -21,6 +21,8 @@ struct IDList {
 	int tempselectid;
 };
 
+static void cleanOrphans();
+
 static int editSongName(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
@@ -198,8 +200,6 @@ static int editAlbumArtist(char *args, void *data){
 	}
 	char query[200],*ptr;
 	int x,artistid;
-	struct dbitem dbi;
-	dbiInit(&dbi);
 
 	if((x=getStdArgs(args,"Artist: "))<0)return 1;
 	args=&args[x];
@@ -213,7 +213,7 @@ static int editAlbumArtist(char *args, void *data){
 		sprintf(ptr,"%d",artistid,ids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
-	dbiClean(&dbi);
+	cleanOrphans();
 	return 1;
 }
 
@@ -485,7 +485,7 @@ static int editPlaylistSongOrder(char *args, void *data){
 }
 
 static int editPlaylistCreate(char *args, void *data){
-	char query[200];
+	char *ptr,query[200];
 	int x,pid,sid;
 
 	if((x=getStdArgs(args,"Playlist name: "))<0)return 1;
@@ -498,6 +498,9 @@ static int editPlaylistCreate(char *args, void *data){
 	}
 	*arglist[ATYPE].subarg='s';
 	while(printf("SongID: ") && fgets(args,200,stdin) && *args!='\n'){
+		ptr=args;
+		while(*(++ptr)!='\n');
+		*ptr=0;
 		if((sid=getID(args))<1)continue;
 		//if((sid=verifySong(sid))>0) // I don't know if I like this or not. Disabled for now.
 		getPlaylistSong(sid,pid);
@@ -883,6 +886,7 @@ static int songPortal(char *args, void *data){
 			arglist[ATYPE].subarg[0]='g';
 			sprintf(query,"SELECT SongID FROM Song NATURAL JOIN SongCategory WHERE CategoryID=");
 			ptr=&query[67];
+			break;
 		case 's':
 			x++;
 		default:
@@ -902,7 +906,7 @@ static int songPortal(char *args, void *data){
 	debug(3,query);
 	// Get SongIDs for album or artist
 	for(++x;x<200 && args[x] && args[x]==' ';x++);
-	if(!(sids=getMulti(&args[x],&idlen)))return 1;
+	if(!(ids=getMulti(&args[x],&idlen)))return 1;
 	if(ids[0]<1){
 		fprintf(stderr,"No results found.\n");
 		return 1;
@@ -1015,6 +1019,12 @@ static int playlistPortal(char *args, void *data){
 			fprintf(stderr,"No results found.\n");
 			return 1;
 		}
+		for(x=0;x<ids->length;x++){
+			if(ids->songid[x]==1){
+				fprintf(stderr,"You may not edit the Library\n");
+				return 1;
+			}
+		}
 		return portal(portalOptions,"Playlist");
 	}
 	else{
@@ -1065,7 +1075,7 @@ static int genrePortal(char *args, void *data){
 
 void editPortal(){
 	struct commandOption portalOptions[]={
-		{'s',songPortal,"Edit songs.\nsa\tEdit songs in an album (or albums)\nsr\tEdit songs in an artist (or artists)",NULL},
+		{'s',songPortal,"Edit songs.\nsa\tEdit songs in an album (or albums)\nsr\tEdit songs in an artist (or artists)\nsg\tEdit songs in a genre (or genres)",NULL},
 		{'a',albumPortal,"Edit albums",NULL},
 		{'r',artistPortal,"Edit artists",NULL},
 		{'p',playlistPortal,"Edit playlists",NULL},

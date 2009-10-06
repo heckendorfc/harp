@@ -236,7 +236,7 @@ int getID(const char *arg){
 	id=(int)strtol(arg,&endptr,10);
 	if(*endptr!=0){
 		if((id=strToID(arg))<1 ){
-			debug(1,"No ID found.");
+			debug(1,"No ID found from given name.");
 			return -1;
 		}
 	}
@@ -333,7 +333,7 @@ void miFree(struct musicInfo *mi){
 void db_clean(char *str, const char *data, const size_t size){
 	int x,z;
 	for(x=0;*(data+x)==' ' && x<size;x++); // Strip starting spaces
-	while(*data>31 && *data<127 && x<size){ // Strip multi space
+	while(*data>31 && *data<127 && x++<size){ // Strip multi space
 		if(*data==' ' && *(data+1)==' '){
 			data++;
 			continue;

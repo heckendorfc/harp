@@ -20,6 +20,7 @@
 
 struct snd_data{
 	struct playerHandles *ph;
+	FLAC__StreamDecoder *decoder;
 	int size;
 	int channels;
 	int enc;
@@ -29,8 +30,11 @@ struct snd_data{
 };
 
 void plugin_seek(struct playerHandles *ph, int modtime){
-	if(ph->dechandle==NULL)return;
 	return;
+	if(ph->dechandle==NULL)return;
+	struct snd_data *data=(struct snd_data*)ph->dechandle;
+	unsigned int pos=data->curtime+=(modtime*data->rate);
+	FLAC__stream_decoder_seek_absolute(data->decoder,pos);
 /*
 	struct vorbisHandles *h=(struct vorbisHandles *)ph->dechandle;
 
@@ -91,6 +95,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	data.curtime=0;
 
 	FLAC__StreamDecoder *decoder=NULL;
+	ph->dechandle=&data;
 	//FLAC__StreamDecoderInitStatus status;
 	//int status=0;
 

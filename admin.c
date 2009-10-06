@@ -120,6 +120,8 @@ static int exportStats(char *args, void *data){
 	int x,limit;
 	if((x=getStdArgs(args,"Number of songs (* for all): "))<0)return 1;
 	num=args+x;
+	debug(2,args);
+	debug(2,num);
 	if(*num=='*')
 		sprintf(args,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location");
 	else{
@@ -133,8 +135,10 @@ static int exportStats(char *args, void *data){
 		return;
 	}
 	fputs("ID\tTITLE\tLOCATION\tRATING\tPLAYCOUNT\tSKIPCOUNT\tLASTPLAY\tACTIVE\n",ffd);
+	debug(3,args);
 	sqlite3_exec(conn,args,write_stats_cb,ffd,NULL);
 	printf("Stats exported to: %s\n",filename);
+	fclose(ffd);
 	return 1;
 }
 

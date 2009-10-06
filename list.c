@@ -109,5 +109,6 @@ int listall(){
 		default:return 1;
 	}
 	doTitleQuery(query,exception,listconf.maxwidth);
+	free(exception);
 	return 0;
 }

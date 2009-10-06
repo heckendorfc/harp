@@ -55,7 +55,11 @@ struct dbnode *dbnodeClean(struct dbnode *node){
 // head -> parent -> ... -> 0
 int *getGenreHeadPath(int head){
 	int x=0;
-	int *path=malloc(sizeof(int)*2);
+	int *path;
+	if(!(path=malloc(sizeof(int)*2))){
+		debug(2,"Malloc failed (path).");
+		return NULL;
+	}
 	char query[100],*qptr;
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -64,17 +68,15 @@ int *getGenreHeadPath(int head){
 	qptr=&query[47];
 
 	path[0]=head;
-	if(doQuery(query,&dbi)<1)return path;
-	while(fetch_row(&dbi)){
-		x++;
-		if(!(path=realloc(path,sizeof(int)*(x+1)))){
+	while(doQuery(query,&dbi)>0 && fetch_row(&dbi)){
+		if(!(path=realloc(path,sizeof(int)*((++x)*2)))){
 			debug(2,"Realloc failed (path).");
 			return;
 		}
 		path[x]=(int)strtol(dbi.row[0],NULL,10);
+		path[x+1]=0;
 		sprintf(qptr,"%d",path[x]);
 	}
-
 	return path;
 }
 
@@ -96,6 +98,7 @@ void printGenreHeadPath(int *path){
 
 void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnode*)){
 	if(!cur)return;
+
 	char query[100];
 	sprintf(query,"SELECT CategoryID,Name FROM Category WHERE CategoryID=%d",curid);
 	if(doQuery(query,&cur->dbi) && fetch_row(&cur->dbi))
@@ -150,7 +153,8 @@ void tierCatPrint(struct dbnode *cur){
 			return;
 		}
 		for(x=0;x<cur->depth;x++)sprintf(prefix+x,"\t");
-		printf("%s[%s] %s\n",prefix,cur->dbi.row[0],cur->dbi.row[1],prefix);
+		printf("%s[%s] %s\n",prefix,cur->dbi.row[0],cur->dbi.row[1]);
+		free(prefix);
 	}
 	else
 		printf("[%s] %s\n",cur->dbi.row[0],cur->dbi.row[1]);

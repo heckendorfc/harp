@@ -74,13 +74,14 @@ Global commands:
 
 Edit commands:
 		NOTE: These commands take an argument of the IDs(or names) separated by commas.
-	s	Edit song(s)
-	sa	Edit songs in specified album	
-	sr	Edit songs in specified artist
-	a	Edit album(s)
-	r	Edit artist(s)
-	p	Edit playlist(s)
-	g	Edit genre(s)
+	s	Edit song(s).
+	sa	Edit songs in specified album.
+	sr	Edit songs in specified artist.
+	sg	Edit songs in specified genre.
+	a	Edit album(s).
+	r	Edit artist(s).
+	p	Edit playlist(s).
+	g	Edit genre(s).
 
 Song commands:
 		NOTE: Commands that require additional input can take it as an argument
@@ -185,7 +186,7 @@ III.	Customization
 General format for this file:
 	-Comments start with #
 	-Section names are enclosed in []
-	-Options are in the format: option=argument
+	-Options are in the format: option=setting
 
 
 

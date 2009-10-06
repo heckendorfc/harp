@@ -356,21 +356,22 @@ int filepathInsert(struct insert_data *data){
 	char **f_root=insertconf.f_root;
 	char *ptr=(char*)data->path;
 	char *dest=NULL;
-	char *fptr;
+	char *fptr=*f_root;
 	int limit,x=0;
 
-	while(*f_root){
-		if(**f_root=='*'){
-			reverse_filepathInsert(*format,data);
+	while(fptr){
+		if(*fptr=='*'){
+			reverse_filepathInsert(*(format+x),data);
 			return 1;
 		}
-		while(*ptr && **f_root && *(ptr++)==*((*f_root)++));
-		if(!**f_root)break;
-		f_root++;format++;
+		fptr=*(f_root+x);
+		while(*ptr && *fptr && *(ptr++)==*(fptr++));
+		if(!*fptr)break; // Success
+		x++;
 		ptr=(char*)data->path;
 	}
-	if(!*f_root || !*format)return 0;
-	fptr=*format;
+	if(!fptr || !*(format+x))return 0;
+	fptr=*(format+x);
 
 	while(*fptr && *(fptr++)!='%');
 	while(*fptr){

@@ -151,7 +151,7 @@ int snd_init(struct playerHandles *ph){
 	ph->maxsize=40960;
 	if(!(ph->outbuf=malloc(2*sizeof(*ph->outbuf)))
 		|| !(ph->tmpbuf=malloc(sizeof(*ph->tmpbuf)))){
-		debug(2,"Malloc failed (jack buf).");
+		fprintf(stderr,"Malloc failed (jack buf).");
 		return 1;
 	}
 	
@@ -266,13 +266,21 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 	const int samples=chan_size>>1; /* for short -> float conversion */
 
 	if(ph->pflag->pause){ // Move this into process?
-		//ret=ph->fillsize; // Can't let all that beautiful music go to waste...
-		//snd_clear(ph);
+		size_t write[2],read[2];
+		read[0]=ph->outbuf[0]->read_ptr;
+		read[1]=ph->outbuf[1]->read_ptr;
+		write[0]=ph->outbuf[0]->write_ptr;
+		write[1]=ph->outbuf[1]->write_ptr;
+		// Can't let all that beautiful music go to waste...
+		snd_clear(ph);
 		do{
 			usleep(100000); // 0.1 seconds
 		}
 		while(ph->pflag->pause);
-		//ph->fillsize=ret;
+		ph->outbuf[0]->read_ptr=read[0];
+		ph->outbuf[1]->read_ptr=read[1];
+		ph->outbuf[0]->write_ptr=write[0];
+		ph->outbuf[1]->write_ptr=write[1];
 	}
 
 	tmpbufsize=samples*(ph->dec_rate/ph->out_rate);
