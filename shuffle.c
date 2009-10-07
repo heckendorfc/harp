@@ -131,13 +131,15 @@ void shuffle(int list){
 
 struct zs_arg{
 	const unsigned int items;
+	const unsigned int group_items;
+	const unsigned int increment;
 	union{
 		const unsigned int skip;
 		const unsigned int slide;
 	};
 	unsigned int count;
 	union{
-		unsigned int nextorder;
+		int increment;
 		int slidemod;
 	};
 	char *query;
@@ -145,26 +147,15 @@ struct zs_arg{
 
 static int zs_skip_cb(void *arg, int col_count, char **row, char **titles){
 	struct zs_arg *data = (struct zs_arg*)arg;
-	int id;
+	int id=data->count;
 
-	//sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=%s WHERE `Order`=%d",*(row+2),data->nextorder);
-	//sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	//sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=%d WHERE PlaylistSongID=%s",data->nextorder,*(row+1));
-	//sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	if(data->nextorder<strtol(*(row+2),NULL,10)){
-		sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=`Order`+1  WHERE `Order`>%d AND `Order`<(SELECT `Order` FROM TempPlaylistSong WHERE PlaylistSongID=%s LIMIT 1)",data->nextorder-1,*(row+1));
-		sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-		sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=%d  WHERE PlaylistSongID=%s",data->nextorder,*(row+1));
-		sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	}
+	// SWAP ORDERS!
+	sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=%s  WHERE `Order`=%d",*(row+2),id);
+	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
+	sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=%d  WHERE PlaylistSongID=%s",id,*(row+1));
+	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 
-	data->nextorder+=data->skip;
-	data->count++;
-	if(data->count>DB_BATCH_SIZE){
-		data->count=0;
-		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
-		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-	}
+	data->count+=data->increment;
 	return 0;
 }
 
@@ -180,13 +171,6 @@ static int zs_slide_cb(void *arg, int col_count, char **row, char **titles){
 	if(neworder<1)neworder=1;
 	else if(neworder>data->items)neworder=data->items;
 	
-	// Check performance on shift instead of swap?
-	//sprintf(data->query,"UPDATE TempPlaylistSong SET `Order` = %d WHERE `Order` = %d",order,neworder);
-	//sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	//sprintf(data->query,"UPDATE TempPlaylistSong SET `Order` = %d WHERE PlaylistSongID = %s",neworder,*(row+1));
-	//sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	//if(neworder<strtol(*(row+2),NULL,10)){
-
 	if(data->slidemod<0) // Moving up
 		sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=`Order`+1  WHERE `Order`>%d AND `Order`<(SELECT `Order` FROM TempPlaylistSong WHERE PlaylistSongID=%s LIMIT 1)",neworder-1,*(row+1));
 	else // Moving down
@@ -208,43 +192,54 @@ void zshuffle(unsigned int items){
 	char query[250],cb_query[250];
 	int x;
 	const int ten_percent=items*0.1;
-	const int alter_limit=200;
+	const int alter_limit=100;
+	const int mod_count=ten_percent>alter_limit?alter_limit:ten_percent;
+	const int group=mod_count>>2;
 
 	srandom((unsigned int)time(NULL));
-	struct zs_arg data={items,(random()%3)+2,0,1,cb_query};
+	struct zs_arg data={items,group,(random()%2)+2,(random()%3)+2,0,1,cb_query};
+
+	sprintf(query,"Mod count: %d\nGroup: %d\nIncrement: %d",mod_count,group,data.increment);
+	debug(2,query);
 
 	// Skip Count
 	data.slidemod=data.slide*3;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order` FROM TempPlaylistSong NATURAL JOIN Song WHERE SkipCount>0 ORDER BY SkipCount DESC LIMIT %d",ten_percent>alter_limit?alter_limit:ten_percent);
+	data.count=0;
+	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order` FROM TempPlaylistSong NATURAL JOIN Song WHERE SkipCount>0 ORDER BY SkipCount DESC LIMIT %d",mod_count);
 	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
 	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 
 	// Play Count
 	data.slidemod=data.slide*-2;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order` FROM TempPlaylistSong NATURAL JOIN Song WHERE PlayCount>0 ORDER BY SkipCount DESC LIMIT %d",ten_percent>alter_limit?alter_limit:ten_percent);
+	data.count=0;
+	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order` FROM TempPlaylistSong NATURAL JOIN Song WHERE PlayCount>0 ORDER BY SkipCount DESC LIMIT %d",mod_count);
 	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
 	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 
 	// Rating
 	data.slidemod=data.slide*-1;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order`,Rating FROM TempPlaylistSong NATURAL JOIN Song WHERE Rating>3 ORDER BY SkipCount DESC LIMIT %d",ten_percent>alter_limit?alter_limit:ten_percent);
+	data.count=0;
+	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order`,Rating FROM TempPlaylistSong NATURAL JOIN Song WHERE Rating>3 ORDER BY SkipCount DESC LIMIT %d",mod_count);
 	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
 	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 
 	// Last Play
-	data.nextorder=(random()%3)+1;
+	data.count=data.increment;
 	sprintf(query,"SELECT COUNT(PlaylistSongID) FROM TempPlaylistSong NATURAL JOIN Song WHERE LastPlay=0");
 	sqlite3_exec(conn,query,uint_return_cb,&x,NULL);
 	if(x>ten_percent){
 		debug(1,"ZSHUFFLE | Too many unplayed songs; skipping LastPlay modifier.");
 		return;
 	}
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order` FROM TempPlaylistSong NATURAL JOIN Song ORDER BY LastPlay ASC LIMIT %d",ten_percent>alter_limit?alter_limit:ten_percent);
-	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-	sqlite3_exec(conn,query,zs_skip_cb,&data,NULL);
-	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+	for(x=0;x<mod_count;x+=group){
+		// What have I done...
+		sprintf(query,"SELECT SongID,PlaylistSongID,`Order` FROM TempPlaylistSong WHERE SongID IN (SELECT SongID FROM Song NATURAL JOIN TempPlaylistSong ORDER BY LastPlay ASC LIMIT %d,%d) ORDER BY `Order` ASC",x,group);
+		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
+		sqlite3_exec(conn,query,zs_skip_cb,&data,NULL);
+		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+	}
 }
 

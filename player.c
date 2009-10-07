@@ -262,6 +262,7 @@ static void advseek(char *com, struct playercontrolarg *pca){
 	function_seek seek;
 	seek=dlsym(pca->decoder,"plugin_seek");
 	if(seek)seek(pca->ph,time);
+	pca->ph->pflag->pause=0;
 }
 
 static void jump(char *com, struct playercontrolarg *pca){
@@ -284,6 +285,7 @@ static void jump(char *com, struct playercontrolarg *pca){
 	pthread_mutex_lock(&actkey);
 		*pca->key=(*com=='j')?KEY_NEXT:KEY_NEXT_NOUP;
 	pthread_mutex_unlock(&actkey);
+	pca->ph->pflag->pause=0;
 }
 
 static void listtemp(char *com, struct playercontrolarg *pca){
