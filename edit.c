@@ -640,7 +640,7 @@ static int editSongGenreRemove(char *args, void *data){
 		return 1;
 	}
 
-	sprintf(query,"DELETE FROM SongCategory WHERE CategoryID=%d AND SongID IN (SELECT SongID FROM TempSelect WHERE TempID=%d)",gid,ids->tempselectid);
+	sprintf(query,"DELETE FROM SongCategory WHERE CategoryID=%d AND SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",gid,ids->tempselectid);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	return 1;
@@ -797,7 +797,7 @@ static int listGenre(char *args, void *data){
 		fprintf(stderr,"None selected.\n");
 		return 1;
 	}
-	// List contents of playlist as well.
+	// List contents of genre as well.
 	if(args[1]=='C'){
 		for(x=0;x<ids->length;x++){
 			printGenreTree(ids->songid[x],(void *)tierChildPrint);
@@ -818,13 +818,11 @@ static int listSongGenre(char *args, void *data){
 		fprintf(stderr,"None selected.\n");
 		return 1;
 	}
-	char query[401];
-	int y,*exception;
-	if(!(exception=malloc(sizeof(int)*10))){
-		debug(2,"Malloc failed (exception).");
-		return 0;
-	}
+	char query[221];
+	int y,exception[10];
 	for(x=2;x<10;x++)exception[x]=listconf.exception;exception[0]=exception[1]=1;
+
+	// Print a list of genres that the songs belong to.
 	sprintf(query,"SELECT CategoryID AS ID,Name FROM Category WHERE ID IN (SELECT DISTINCT CategoryID FROM SongCategory WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d))",ids->tempselectid);
 	debug(3,query);
 	doTitleQuery(query,exception,listconf.maxwidth);
@@ -848,19 +846,19 @@ static int songGenrePortal(char *args, void *data){
 }
 static int songPortal(char *args, void *data){
 	struct IDList sid_struct;
-	struct IDList *songids=&sid_struct;
+	struct IDList *id_struct=&sid_struct;
 	struct commandOption portalOptions[]={
-		{'L',listSongs,"List affected songs",songids},
-		{'t',editSongName,"Change title",songids},
-		{'l',editSongLocation,"Change location",songids},
-		{'a',editSongAlbum,"Change album",songids},
-		{'r',editSongArtist,"Change artist",songids}, 
-		{'d',deleteSong,"Delete from database",songids},
-		{'v',songActivation,"Toggle activation",songids},
-		{'g',songGenrePortal,"Manage genre",songids},
+		{'L',listSongs,"List affected songs",id_struct},
+		{'t',editSongName,"Change title",id_struct},
+		{'l',editSongLocation,"Change location",id_struct},
+		{'a',editSongAlbum,"Change album",id_struct},
+		{'r',editSongArtist,"Change artist",id_struct}, 
+		{'d',deleteSong,"Delete from database",id_struct},
+		{'v',songActivation,"Toggle activation",id_struct},
+		{'g',songGenrePortal,"Manage genre",id_struct},
 		{0,NULL,NULL,NULL}
 	};
-	int x,y,*ids,*sids=malloc(sizeof(int)),sidlen,idlen;
+	int x,y,*group_ids,*song_ids=malloc(sizeof(int)),song_idlen,group_idlen;
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
@@ -890,52 +888,56 @@ static int songPortal(char *args, void *data){
 		case 's':
 			x++;
 		default:
+			// List of SongIDs.
 			for(;x<200 && args[x] && args[x]==' ';x++);
 			arglist[ATYPE].subarg[0]='s';
-			if(!(sids=getMulti(&args[x],&sidlen)))return 1;
-			if(sids[0]<1)return 1;
-			songids->tempselectid=insertTempSelect(sids,sidlen);
-			songids->songid=sids;
-			songids->length=sidlen;
+			if(!(song_ids=getMulti(&args[x],&song_idlen)))return 1;
+			if(song_ids[0]<1)return 1;
+			id_struct->tempselectid=insertTempSelect(song_ids,song_idlen);
+			id_struct->songid=song_ids;
+			id_struct->length=song_idlen;
 			x=portal(portalOptions,"Song");
-			cleanTempSelect(songids->tempselectid);
-			free(sids);
+			cleanTempSelect(id_struct->tempselectid);
+			free(song_ids);
 			return x;
 	}
 	
 	debug(3,query);
-	// Get SongIDs for album or artist
+	// Get SongIDs from album, artist, or genre
 	for(++x;x<200 && args[x] && args[x]==' ';x++);
-	if(!(ids=getMulti(&args[x],&idlen)))return 1;
-	if(ids[0]<1){
+	if(!(group_ids=getMulti(&args[x],&group_idlen)))return 1;
+	if(group_ids[0]<1){
 		fprintf(stderr,"No results found.\n");
 		return 1;
 	}
-	for(sidlen=x=0;x<idlen;x++){
-		sprintf(ptr,"%d",ids[x]);
+	for(song_idlen=x=0;x<group_idlen;x++){
+		sprintf(ptr,"%d",group_ids[x]);
 		if(doQuery(query,&dbi)<1)continue;
-		y=sidlen;
-		sidlen+=dbi.row_count;
-		if(!(sids=realloc(sids,sizeof(int)*(sidlen)))){
-			debug(2,"Realloc failed (sids).");
+		y=song_idlen;
+		song_idlen+=dbi.row_count;
+		if(!(song_ids=realloc(song_ids,sizeof(int)*(song_idlen)))){
+			debug(2,"Realloc failed (song_ids).");
 			return 1;
 		}
 		for(;fetch_row(&dbi);y++)
-			sids[y]=(int)strtol(dbi.row[0],NULL,10);
+			song_ids[y]=(int)strtol(dbi.row[0],NULL,10);
 	}
-	free(ids);
-	if(!sidlen){
+	dbiClean(&dbi);
+	free(group_ids); // Done with groups. We have the SongIDs.
+
+	if(!song_idlen){
 		fprintf(stderr,"No results found.\n");
-		free(sids);
+		free(song_ids);
 		return 1;
 	}
-	songids->tempselectid=insertTempSelect(sids,sidlen);
-	songids->songid=sids;
-	songids->length=sidlen;
-	dbiClean(&dbi);
+	id_struct->tempselectid=insertTempSelect(song_ids,song_idlen);
+	id_struct->songid=song_ids;
+	id_struct->length=song_idlen;
+
 	x=portal(portalOptions,"Song");
-	cleanTempSelect(songids->tempselectid);
-	free(sids);
+
+	cleanTempSelect(id_struct->tempselectid);
+	free(song_ids);
 	return x;
 }
 
@@ -1082,11 +1084,14 @@ void editPortal(){
 		{'g',genrePortal,"Edit genres",NULL},
 		{0,NULL,NULL,NULL}
 	};
+	int ret=1;
 	printf("Enter a command. ? for command list.\n");
 	if(!arglist[ATYPE].subarg && !(arglist[ATYPE].subarg=malloc(sizeof(char)))){
 		debug(2,"Malloc failed (ATYPE subarg).");
 		return;
 	}
-	while(portal(portalOptions,"Edit"));
-	cleanOrphans();
+	while(ret){
+		ret=portal(portalOptions,"Edit");
+		cleanOrphans();
+	}
 }

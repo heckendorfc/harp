@@ -278,31 +278,34 @@ int *getMulti(char *arg, int *length){
 }
 
 void cleanTempSelect(const int tempid){
-	char query[150];
+	char query[100];
 	sprintf(query,"DELETE FROM TempSelect WHERE TempID=%d",tempid);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 }
 
 int insertTempSelect(const int *ids, const int idlen){
-	int x,tempid;
+	unsigned int x,currentlimit,tempid;
 	struct dbitem dbi;
 	dbiInit(&dbi);
 	char query[150];
 
 	sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempSelect(TempSelectID integer not null primary key, TempID integer not null, SelectID integer not null)",NULL,NULL,NULL);
 
-	doQuery("SELECT TempID FROM TempSelect ORDER BY TempID DESC LIMIT 1",&dbi);
-	if(fetch_row(&dbi))
-		tempid=(int)strtol(dbi.row[0],NULL,10)+1;
-	else
-		tempid=1;
+	// Replace with MAX(TempID)?
+	sqlite3_exec(conn,"SELECT TempID FROM TempSelect ORDER BY TempID DESC LIMIT 1",uint_return_cb,&tempid,NULL);
+	tempid++;
 
-	for(x=0;x<idlen;x++){
-		sprintf(query,"INSERT INTO TempSelect(TempID,SelectID) VALUES(%d,%d)",tempid,ids[x]);
-		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	x=currentlimit=0;
+	while(x<idlen){
+		if((currentlimit+=DB_BATCH_SIZE)>idlen)currentlimit=idlen;
+		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
+		for(;x<currentlimit;x++){
+			sprintf(query,"INSERT INTO TempSelect(TempID,SelectID) VALUES(%d,%d)",tempid,ids[x]);
+			sqlite3_exec(conn,query,NULL,NULL,NULL);
+		}
+		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 	}
 
-	dbiClean(&dbi);
 	return tempid;
 }
 
