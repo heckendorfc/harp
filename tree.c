@@ -138,8 +138,8 @@ void tierChildPrint(struct dbnode *cur){
 	else
 		printf("\n[%s] %s\n- - - - - - -\n",cur->dbi.row[0],cur->dbi.row[1]);
 
-	char query[400];
-	sprintf(query,"SELECT Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist,SongCategory WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND Song.SongID=SongCategory.SongID AND CategoryID=%s ORDER BY Artist.Name, Album.Title",cur->dbi.row[0]);
+	char query[200];
+	sprintf(query,"SELECT SongID,SongTitle,AlbumTitle,ArtistName FROM SongCategory NATURAL JOIN SongPubInfo WHERE CategoryID=%s ORDER BY ArtistName,AlbumTitle",cur->dbi.row[0]);
 	doTitleQuery(query,exception,listconf.maxwidth);
 }
 
