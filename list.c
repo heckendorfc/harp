@@ -28,8 +28,9 @@ int list(int *ids, int length){
 		case 's':
 			exception[1]=exception[2]=exception[3]=exception[4]=1;
 			for(x=0;x<length;x++){
-				sprintf(query,"SELECT Song.SongID, Song.Title, Song.Location, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND SongID=%d ORDER BY Artist.Name, Album.Title",ids[x]);
+				sprintf(query,"SELECT SongID,SongTitle,Location,AlbumTitle,ArtistName FROM SongPubInfo WHERE SongID=%d ORDER BY ArtistName,AlbumTitle",ids[x]);
 				doTitleQuery(query,exception,listconf.maxwidth);
+				printf("\n");
 			}
 			break;
 
@@ -40,7 +41,7 @@ int list(int *ids, int length){
 				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
 
-				sprintf(query,"SELECT `Order`, Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM PlaylistSong,Song,Album,Artist,AlbumArtist WHERE PlaylistSong.SongID=Song.SongID AND Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND PlaylistID=%d ORDER BY `Order`",ids[x]);
+				sprintf(query,"SELECT `Order`, SongID,SongTitle,AlbumTitle,ArtistName FROM PlaylistSong NATURAL JOIN SongPubInfo WHERE PlaylistID=%d ORDER BY `Order`",ids[x]);
 				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
 			break;
@@ -50,8 +51,8 @@ int list(int *ids, int length){
 				sprintf(query,"SELECT Artist.ArtistID, Artist.Name FROM Artist WHERE ArtistID=%d",ids[x]);
 				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
-
-				sprintf(query,"SELECT Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND Artist.ArtistID=%d ORDER BY Artist.Name, Album.Title",ids[x]);
+				
+				sprintf(query,"SELECT Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Artist NATURAL JOIN AlbumArtist NATURAL JOIN Album INNER JOIN Song USING(AlbumID) WHERE Artist.ArtistID=%d ORDER BY Artist.Name, Album.Title",ids[x]);
 				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
 			break;
@@ -62,7 +63,7 @@ int list(int *ids, int length){
 				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
 
-				sprintf(query,"SELECT Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID AND Album.AlbumID=%d ORDER BY Artist.Name, Album.Title",ids[x]);
+				sprintf(query,"SELECT Song.SongID, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Artist NATURAL JOIN AlbumArtist NATURAL JOIN Album INNER JOIN Song USING(AlbumID) WHERE Album.AlbumID=%d ORDER BY Artist.Name, Album.Title",ids[x]);
 				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
 			break;

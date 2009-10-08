@@ -4,7 +4,7 @@ Changes in HARP-0.5.1:
 - Advanced seek and jump commands unpause player.
 - Increased speed of edit's album/artist/genre -> song.
 - Fixed a bug in genre management.
-- Increased genre list speed.
+- Increased genre, album, and artist list and play speeds.
 
 Changes in HARP-0.5.0:
 - Fixed bugs in edit, admin, tree.

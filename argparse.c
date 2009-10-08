@@ -32,66 +32,68 @@ static void printHelp(){
 	exit(1);
 }
 
-static void insertPS(char *query,struct dbitem *dbi){
-	static int order=0;
-	int currentlimit=0;
-	doQuery(query,dbi);
+struct insertps_arg{
+	int order;
+	int count;
+	char *query;
+};
 
-	dbi->row_count++;
-	int x=1;
-	while(x<dbi->row_count){
-		if((currentlimit+=100)>dbi->row_count)currentlimit=dbi->row_count;
-		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-		for(;x<currentlimit;x++){
-			sprintf(query,"INSERT INTO TempPlaylistSong(SongID,`Order`) VALUES(%s,%d)",dbi->result[x],order+x);
-			sqlite3_exec(conn,query,NULL,NULL,NULL);
-		}
+static int batch_insert_cb(void *arg, int col_count, char **row, char **titles){
+	struct insertps_arg *data=(struct insertps_arg*)arg;
+
+	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,`Order`) VALUES(%s,%d)",*row,data->order);
+	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
+
+	data->order++;
+	data->count++;
+	if(data->count>DB_BATCH_SIZE){
+		data->count=0;
 		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	}
-	order+=x-1;
 }
 
 static void genreToPlaylistSong(struct dbnode *cur){
-	int x;
 	if(!cur->dbi.row_count)return;
-	char query[100];
-	sprintf(query,"SELECT Song.SongID FROM SongCategory NATURAL JOIN Song WHERE Active=1 AND CategoryID=%d",(int)strtol(cur->dbi.row[0],NULL,10));
-	debug(3,query);
+	char query[150],cb_query[150];
+	static struct insertps_arg data={0,1,NULL};
+	data.query=cb_query;
+	sprintf(query,"SELECT Song.SongID FROM SongCategory NATURAL JOIN Song WHERE Active=1 AND CategoryID=%s",cur->dbi.row[0]);
 	// TODO: See if order will auto increment. It would be nice to skip this function call.
-	insertPS(query,&cur->dbi);
+	sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
 }
 
 static void makeTempPlaylist(int *multilist, int multi){
 	int mx,x,order=0,currentlimit=0;
-	char query[250];
-	struct dbitem dbi;
-	dbiInit(&dbi);
+	char query[250],cb_query[150];
+	struct insertps_arg data={0,1,cb_query};
 
 	createTempPlaylistSong();
 
+	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	switch(*arglist[ATYPE].subarg){
 		case 'p':
 			for(mx=0;mx<multi;mx++){
 				sprintf(query,"SELECT Song.SongID FROM PlaylistSong NATURAL JOIN Song WHERE Active=1 AND PlaylistID=%d",multilist[mx]);
-				insertPS(query,&dbi);
+				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
 			}
 			break;
 		case 's':
 			for(mx=0;mx<multi;mx++){
 				sprintf(query,"SELECT SongID FROM Song WHERE SongID=%d",multilist[mx]);
-				insertPS(query,&dbi);
+				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
 			}
 			break;
 		case 'a':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM Song,Album WHERE Song.AlbumID=Album.AlbumID AND Active=1 AND Album.AlbumID=%d",multilist[mx]);
-				insertPS(query,&dbi);
+				sprintf(query,"SELECT Song.SongID FROM Album INNER JOIN Song USING(AlbumID) WHERE Active=1 AND Album.AlbumID=%d",multilist[mx]);
+				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
 			}
 			break;
 		case 'r':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM Song,AlbumArtist WHERE Song.AlbumID=AlbumArtist.AlbumID AND Active=1 AND AlbumArtist.ArtistID=%d",multilist[mx]);
-				insertPS(query,&dbi);
+				sprintf(query,"SELECT Song.SongID FROM AlbumArtist NATURAL JOIN Song WHERE Active=1 AND AlbumArtist.ArtistID=%d",multilist[mx]);
+				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
 			}
 			break;
 		case 'g':
@@ -100,7 +102,7 @@ static void makeTempPlaylist(int *multilist, int multi){
 			}
 			break;
 	}
-	dbiClean(&dbi);
+	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 }
 
 unsigned int doArgs(int argc,char *argv[]){
