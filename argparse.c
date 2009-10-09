@@ -45,12 +45,6 @@ static int batch_insert_cb(void *arg, int col_count, char **row, char **titles){
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 
 	data->order++;
-	data->count++;
-	if(data->count>DB_BATCH_SIZE){
-		data->count=0;
-		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
-		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-	}
 }
 
 static void genreToPlaylistSong(struct dbnode *cur){
@@ -70,7 +64,6 @@ static void makeTempPlaylist(int *multilist, int multi){
 
 	createTempPlaylistSong();
 
-	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	switch(*arglist[ATYPE].subarg){
 		case 'p':
 			for(mx=0;mx<multi;mx++){
@@ -102,7 +95,6 @@ static void makeTempPlaylist(int *multilist, int multi){
 			}
 			break;
 	}
-	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 }
 
 unsigned int doArgs(int argc,char *argv[]){
