@@ -116,7 +116,7 @@ int fileFormat(const char *arg){
 		for(x=0;arg[x];x++);size=x;
 		for(;arg[x-1]!='.' && x>0;x--);
 		while(fetch_row(&dbi)){
-			if(strcmp(&arg[x],dbi.row[1])==0){
+			if(strcmp(arg+x,dbi.row[1])==0){
 				ret=(int)strtol(dbi.row[0],NULL,10);
 				break;
 			}
@@ -158,15 +158,6 @@ char *getFilename(const char *path){
 			filestart=(char *)path;
 	}
 	return filestart;
-}
-
-int isNumeric(char *argv){
-	while(*argv){
-		if(!isdigit(*argv))
-			return 0;
-		argv++;
-	}
-	return 1;
 }
 
 int strToID(const char *argv){ // TODO: add type param
@@ -250,29 +241,28 @@ int getID(const char *arg){
 int *getMulti(char *arg, int *length){
 	const char del[]=",";
 	char *token;
-	int *list,x=0;
+	int *list,*ptr;
 
 	*length=1;
-	while(arg[x]!=0){
-		if(arg[x]==',')
+	token=arg;
+	while(*token){
+		if(*(token++)==',')
 			(*length)++;
-		x++;
 	}
-	if(!(list=malloc(sizeof(int)*(*length)))){
+	if(!(ptr=list=malloc(sizeof(int)*(*length)))){
 		debug(2,"Malloc failed (list).");
 		return NULL;
 	}
 
-	x=0;
-	while((token=strsep(&arg,del))!=NULL){
-		if(!((list[x]=(int)strtol(token,NULL,10))>0 && verifyID(list[x]))){
-			if(!(list[x]=strToID(token))){
+	while((token=strsep(&arg,del))){
+		if(!((*ptr=(int)strtol(token,NULL,10))>0 && verifyID(*ptr))){
+			if(!(*ptr=strToID(token))){
 				continue;
 			}
 		}
-		x++;
+		ptr++;
 	}
-	if(!x)list[0]=-1;
+	if(ptr==list)*list=-1;
 
 	return list;
 }

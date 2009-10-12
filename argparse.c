@@ -50,7 +50,7 @@ static int batch_insert_cb(void *arg, int col_count, char **row, char **titles){
 static void genreToPlaylistSong(struct dbnode *cur){
 	if(!cur->dbi.row_count)return;
 	char query[150],cb_query[150];
-	static struct insertps_arg data={0,1,NULL};
+	static struct insertps_arg data={1,0,NULL};
 	data.query=cb_query;
 	sprintf(query,"SELECT Song.SongID FROM SongCategory NATURAL JOIN Song WHERE Active=1 AND CategoryID=%s",cur->dbi.row[0]);
 	// TODO: See if order will auto increment. It would be nice to skip this function call.
@@ -58,9 +58,9 @@ static void genreToPlaylistSong(struct dbnode *cur){
 }
 
 static void makeTempPlaylist(int *multilist, int multi){
-	int mx,x,order=0,currentlimit=0;
+	int mx,x,order=1,currentlimit=0;
 	char query[250],cb_query[150];
-	struct insertps_arg data={0,1,cb_query};
+	struct insertps_arg data={1,0,cb_query};
 
 	createTempPlaylistSong();
 

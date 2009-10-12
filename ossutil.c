@@ -22,6 +22,12 @@
  * SNDCTL_DSP_SETPLAYVOLUME
  */
 
+#if SOUND_VERSION >= 0x040000
+#define OSSV4_DEFS
+#else
+#undef OSSV4_DEFS
+#endif
+
 #include <errno.h>
 
 int snd_init(struct playerHandles *ph){
@@ -53,6 +59,7 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 }
 
 void changeVolume(struct playerHandles *ph, int mod){
+#ifdef OSSV4_DEFS
 	int current;
 	int ffd=ph->sndfd;
 
@@ -65,9 +72,11 @@ void changeVolume(struct playerHandles *ph, int mod){
 
 	fprintf(stdout,"\r                               Volume: %d%%  ",(0xff&current));
 	fflush(stdout);
+#endif
 }
 
 void toggleMute(struct playerHandles *ph, int *mute){
+#ifdef OSSV4_DEFS
 	int current;
 	int ffd=ph->sndfd;
 
@@ -85,21 +94,28 @@ void toggleMute(struct playerHandles *ph, int *mute){
 	fflush(stdout);
 
 	if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
+#endif
 }
 
 void snd_clear(struct playerHandles *ph){
+#ifdef OSSV4_DEFS
 	ioctl(ph->sndfd,SNDCTL_DSP_SKIP,NULL);
+#endif
 }
 
 int writei_snd(struct playerHandles *ph, const char *out, const unsigned int size){
 	int write_size;
 	if(ph->pflag->pause){
+#ifdef OSSV4_DEFS
 		ioctl(ph->sndfd,SNDCTL_DSP_SILENCE,NULL);
+#endif
 		do{
 			usleep(100000);
 		}
 		while(ph->pflag->pause);
+#ifdef OSSV4_DEFS
 		ioctl(ph->sndfd,SNDCTL_DSP_SKIP,NULL);
+#endif
 	}
 	if((write_size=write(ph->sndfd,out,size))!=size)
 		fprintf(stderr,"Write error %d %d\n",size,write_size);

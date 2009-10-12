@@ -844,6 +844,7 @@ static int songGenrePortal(char *args, void *data){
 
 	return portal(portalOptions,"Song-Genre");
 }
+
 static int songPortal(char *args, void *data){
 	struct IDList sid_struct;
 	struct IDList *id_struct=&sid_struct;

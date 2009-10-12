@@ -228,7 +228,6 @@ void editPortal();
 void setDefaultConfig();
 char *expand(char *in);
 int fileFormat(const char *argv);
-int isNumeric(char *argv);
 int getPlugin(struct dbitem *dbi, const int index, void **module);
 int getID(const char *arg);
 int strToID(const char *argv);
