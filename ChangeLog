@@ -6,6 +6,8 @@ Changes in HARP-0.5.1:
 - Fixed a bug in genre management.
 - Increased genre, album, and artist list and play speeds.
 - Removed incompatible OSSv3 macros.
+- Title queries using fitting exception now have fitted columns
+	without truncation.
 
 Changes in HARP-0.5.0:
 - Fixed bugs in edit, admin, tree.

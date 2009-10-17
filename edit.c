@@ -663,29 +663,13 @@ static int listSongs(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return 1;
 	}
-	struct dbitem dbi;
-	dbiInit(&dbi);
 	char query[200],*ptr;
 	int x=0,limit=songids->length;
 
-	//sprintf(query,"SELECT SongID, SongTitle, Location, AlbumTitle AS Album, ArtistName AS Artist FROM SongPubInfo LIMIT 1");
-	sprintf(query,"SELECT SongID, SongTitle, Location, AlbumTitle AS Album, ArtistName AS Artist FROM SongPubInfo WHERE SongID=%d",songids->songid[0]);
-	ptr=&query[108];
-	if(doQuery(query,&dbi)){
-		// Print headers
-		printf("[%s] [%s] [%s] [%s] [%s]\n",dbi.row[0],dbi.row[1],dbi.row[2],dbi.row[3],dbi.row[4]);
-		// Print first song since we have it already.
-		if(fetch_row(&dbi))
-			printf("[%s] [%s] [%s] [%s] [%s]\n",dbi.row[0],dbi.row[1],dbi.row[2],dbi.row[3],dbi.row[4]);
-	}
-	x++;
-
-	for(;x<limit;x++){
-		sprintf(ptr,"%d",songids->songid[x]);
-		if(doQuery(query,&dbi) && fetch_row(&dbi))
-			printf("[%s] [%s] [%s] [%s] [%s]\n",dbi.row[0],dbi.row[1],dbi.row[2],dbi.row[3],dbi.row[4]);
-	}
-	dbiClean(&dbi);
+	int exception[10];
+	for(x=0;x<5;x++)exception[x]=1;
+	sprintf(query,"SELECT SongID, SongTitle, Location, AlbumTitle AS Album, ArtistName AS Artist FROM SongPubInfo WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",songids->tempselectid);
+	doTitleQuery(query,exception,listconf.maxwidth);
 	return 1;
 }
 
@@ -820,7 +804,8 @@ static int listSongGenre(char *args, void *data){
 	}
 	char query[221];
 	int y,exception[10];
-	for(x=2;x<10;x++)exception[x]=listconf.exception;exception[0]=exception[1]=1;
+	for(x=2;x<10;x++)exception[x]=listconf.exception;
+	exception[0]=exception[1]=1;
 
 	// Print a list of genres that the songs belong to.
 	sprintf(query,"SELECT CategoryID AS ID,Name FROM Category WHERE ID IN (SELECT DISTINCT CategoryID FROM SongCategory WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d))",ids->tempselectid);
@@ -909,6 +894,7 @@ static int songPortal(char *args, void *data){
 	if(!(group_ids=getMulti(&args[x],&group_idlen)))return 1;
 	if(group_ids[0]<1){
 		fprintf(stderr,"No results found.\n");
+		free(group_ids);
 		return 1;
 	}
 	for(song_idlen=x=0;x<group_idlen;x++){
@@ -918,6 +904,8 @@ static int songPortal(char *args, void *data){
 		song_idlen+=dbi.row_count;
 		if(!(song_ids=realloc(song_ids,sizeof(int)*(song_idlen)))){
 			debug(2,"Realloc failed (song_ids).");
+			dbiClean(&dbi);
+			free(group_ids);
 			return 1;
 		}
 		for(;fetch_row(&dbi);y++)
@@ -961,13 +949,17 @@ static int albumPortal(char *args, void *data){
 
 	arglist[ATYPE].subarg[0]='a';
 
-	ids->songid=getMulti(&args[x],&ids->length);
-	if(!ids->songid || ids->songid[0]<1){
+	if(!(ids->songid=getMulti(&args[x],&ids->length)))
+		return 1;
+	if(ids->songid[0]<1){
 		fprintf(stderr,"No results found.\n");
+		free(ids->songid);
 		return 1;
 	}
 
-	return portal(portalOptions,"Album");
+	x=portal(portalOptions,"Album");
+	free(ids->songid);
+	return x;
 }
 
 static int artistPortal(char *args, void *data){
@@ -988,13 +980,16 @@ static int artistPortal(char *args, void *data){
 
 	arglist[ATYPE].subarg[0]='r';
 
-	ids->songid=getMulti(&args[x],&ids->length);
-	if(!ids->songid || ids->songid[0]<1){
+	if(!(ids->songid=getMulti(&args[x],&ids->length)))
+		return 1;
+	if(ids->songid[0]<1){
 		fprintf(stderr,"No results found.\n");
 		return 1;
 	}
 
-	return portal(portalOptions,"Artist");
+	x=portal(portalOptions,"Artist");
+	free(ids->songid);
+	return x;
 }
 
 static int playlistPortal(char *args, void *data){
@@ -1017,18 +1012,22 @@ static int playlistPortal(char *args, void *data){
 
 		arglist[ATYPE].subarg[0]='p';
 
-		ids->songid=getMulti(&args[x],&ids->length);
-		if(!ids->songid || ids->songid[0]<1){
+		if(!(ids->songid=getMulti(&args[x],&ids->length)))
+			return 1;
+		if(ids->songid[0]<1){
 			fprintf(stderr,"No results found.\n");
 			return 1;
 		}
 		for(x=0;x<ids->length;x++){
 			if(ids->songid[x]==1){
 				fprintf(stderr,"You may not edit the Library\n");
+				free(ids->songid);
 				return 1;
 			}
 		}
-		return portal(portalOptions,"Playlist");
+		x=portal(portalOptions,"Playlist");
+		free(ids->songid);
+		return x;
 	}
 	else{
 		struct commandOption portalOptions[]={
@@ -1067,13 +1066,16 @@ static int genrePortal(char *args, void *data){
 
 	arglist[ATYPE].subarg[0]='g';
 
-	ids->songid=getMulti(&args[x],&ids->length);
-	if(!ids->songid || ids->songid[0]<1){
+	if(!(ids->songid=getMulti(&args[x],&ids->length)))
+		return 1;
+	if(ids->songid[0]<1){
 		fprintf(stderr,"No results found.\n");
 		return 1;
 	}
 
-	return portal(portalOptions,"Genre");
+	x=portal(portalOptions,"Genre");
+	free(ids->songid);
+	return x;
 }
 
 void editPortal(){

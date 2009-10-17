@@ -19,6 +19,8 @@
 #include <mpg123.h>
 #include "mp3meta.c"
 
+pthread_mutex_t dechandle_lock;
+
 struct mp3Handles{
 	mpg123_handle *m;
 	long total;
@@ -45,6 +47,8 @@ void new_format(struct playerHandles *ph){
 }
 
 int mp3Init(struct playerHandles *ph){
+	pthread_mutex_init(&dechandle_lock,NULL);
+
 	mpg123_init();
 
 	h.m = mpg123_new(NULL, NULL);
@@ -68,6 +72,7 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 		return;
 	}
 
+pthread_mutex_lock(&dechandle_lock);
 	struct mp3Handles *h=(struct mp3Handles *)ph->dechandle;
 	mpg123_seek_frame(h->m,mpg123_timeframe(h->m,(int)modtime),modtime?SEEK_CUR:SEEK_SET);
 
@@ -78,6 +83,7 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 	}
 	else
 		h->total=0;
+pthread_mutex_unlock(&dechandle_lock);
 
 	snd_clear(ph);
 }
@@ -85,6 +91,7 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 void plugin_exit(struct playerHandles *ph){
 	if(h.m!=NULL)mpg123_delete(h.m);
 	mpg123_exit();
+	pthread_mutex_destroy(&dechandle_lock);
 }
 
 int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
@@ -103,6 +110,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	details.percent=-1;
 	ph->dechandle=&h;
 			
+	pthread_mutex_lock(&dechandle_lock);
 	mpg123_getformat(h.m, &ratel, &channels, &enc);
 	rate=(unsigned int)ratel;
 	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
@@ -117,6 +125,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	h.total=0;
 	h.accuracy=1000;
 	int outsize=mpg123_outblock(h.m);
+	pthread_mutex_unlock(&dechandle_lock);
+
 	unsigned char *out;
 	if(!(out=malloc(sizeof(unsigned char)*outsize))){
 		debug(2,"Malloc failed (out decoder buffer).");
@@ -128,10 +138,14 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 		//if outbuff isn't big enough to hold all decoded data from inbuff, keep going
 		if(mret != MPG123_NEED_MORE){
-			mret=mpg123_read(h.m,out,outsize,&len);
+			pthread_mutex_lock(&dechandle_lock);
+				mret=mpg123_read(h.m,out,outsize,&len);
+			pthread_mutex_unlock(&dechandle_lock);
 		}
 		else{
-			mret=mpg123_read(h.m,out,outsize,&len);
+			pthread_mutex_lock(&dechandle_lock);
+				mret=mpg123_read(h.m,out,outsize,&len);
+			pthread_mutex_unlock(&dechandle_lock);
 			if(mret==MPG123_DONE || mret==MPG123_ERR){ // EOF (or read error)
 				retval=DEC_RET_SUCCESS;
 				fprintf(stderr,"\ndone..\n");
@@ -158,10 +172,12 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		if(len==0)continue;
 		size=len;
 
+		pthread_mutex_lock(&dechandle_lock);
 		details.curtime=h.total/h.accuracy;
 		details.percent=(details.curtime*100)/details.totaltime;
 		crOutput(ph->pflag,&details);
 		h.total+=(size*h.accuracy)/h.samptime;
+		pthread_mutex_unlock(&dechandle_lock);
 
 #if WITH_ALSA==1
 		if(writei_snd(ph,(char *)out,size/h.framesize)<0)break;
@@ -181,6 +197,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	/* Done decoding, now just clean up and leave. */
 	plugin_exit(ph);
+	free(out);
 	*totaltime=details.curtime;
 	return retval;
 }

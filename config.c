@@ -133,8 +133,10 @@ void setDefaultConfig(){
 	expand(temp);
 	if((ffd=fopen(temp,"r"))==NULL){
 		sprintf(temp,"%s/harp/defaults.conf",SHARE_PATH);
-		if((ffd=fopen(temp,"r"))==NULL)
+		if((ffd=fopen(temp,"r"))==NULL){
+			free(buffer);
 			return;
+		}
 	}
 
 	while(fgets(buffer,255,ffd)){
@@ -157,4 +159,5 @@ void setDefaultConfig(){
 		}
 	}
 	fclose(ffd);
+	free(buffer);
 }

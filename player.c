@@ -160,6 +160,7 @@ int player(int list){//list - playlist number
 	// Play the list!
 	if(snd_init(&ph)){
 		fprintf(stderr,"snd_init failed");
+		free(query);
 		return 1;
 	}
 
@@ -175,6 +176,7 @@ int player(int list){//list - playlist number
 	tcsetattr(0,TCSANOW,&pca.orig);
 	pthread_mutex_destroy(&actkey);
 	printf("Exiting.\n");
+	free(query);
 	return 0;
 }
 
@@ -290,11 +292,7 @@ static void jump(char *com, struct playercontrolarg *pca){
 
 static void listtemp(char *com, struct playercontrolarg *pca){
 	char query[200];
-	int x,y,limit,*exception;
-	if(!(exception=malloc(sizeof(int)*10))){
-		debug(2,"Malloc failed (exception).");
-		return;
-	}
+	int x,y,limit,exception[10];
 	unsigned int order;
 	for(y=2;y<10;y++)exception[y]=listconf.exception;
 	exception[0]=exception[1]=1;

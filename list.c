@@ -18,12 +18,9 @@
 
 int list(int *ids, int length){
 	char query[401];
-	int x,y,*exception;
-	if(!(exception=malloc(sizeof(int)*10))){
-		debug(2,"Malloc failed (exception).");
-		return 1;
-	}
-	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
+	int x,y,exception[10];
+	for(x=1;x<10;x++)exception[x]=listconf.exception;
+	exception[0]=1;
 	switch(arglist[ATYPE].subarg[0]){
 		case 's':
 			exception[1]=exception[2]=exception[3]=exception[4]=1;
@@ -74,18 +71,14 @@ int list(int *ids, int length){
 			}
 			break;
 	}
-	free(exception);
 	return 0;
 }
 
 int listall(){
 	char query[401];
-	int x,*headpath,*exception;
-	if(!(exception=malloc(sizeof(int)*10))){
-		debug(2,"Malloc failed (exception).");
-		return 1;
-	}
-	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
+	int x,*headpath,exception[10];
+	for(x=1;x<10;x++)exception[x]=listconf.exception;
+	exception[0]=1;
 	switch(arglist[ATYPE].subarg[0]){
 		case 's':
 			sprintf(query,"SELECT Song.SongID, Song.Title, Song.Location, Album.Title AS Album, Artist.Name AS Artist FROM Song,Album,Artist,AlbumArtist WHERE Song.AlbumID=Album.AlbumID AND Album.AlbumID=AlbumArtist.AlbumID AND AlbumArtist.ArtistID=Artist.ArtistID ORDER BY Artist.Name, Album.Title");
@@ -110,6 +103,5 @@ int listall(){
 		default:return 1;
 	}
 	doTitleQuery(query,exception,listconf.maxwidth);
-	free(exception);
 	return 0;
 }

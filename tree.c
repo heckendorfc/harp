@@ -77,6 +77,7 @@ int *getGenreHeadPath(int head){
 		path[x+1]=0;
 		sprintf(qptr,"%d",path[x]);
 	}
+	dbiClean(&dbi);
 	return path;
 }
 
@@ -94,6 +95,7 @@ void printGenreHeadPath(int *path){
 		if(doQuery(query,&dbi) && fetch_row(&dbi))
 			printf("%s -> ",dbi.row[0]);
 	}
+	dbiClean(&dbi);
 }
 
 void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnode*)){
@@ -122,8 +124,6 @@ void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnod
 
 void tierChildPrint(struct dbnode *cur){
 	int x;
-	int exception[10];
-	for(x=1;x<10;x++)exception[x]=listconf.exception;exception[0]=1;
 	if(!cur->dbi.row_count)return;
 	if(cur->depth>0){
 		char *prefix;
@@ -140,7 +140,7 @@ void tierChildPrint(struct dbnode *cur){
 
 	char query[200];
 	sprintf(query,"SELECT SongID,SongTitle,AlbumTitle,ArtistName FROM SongCategory NATURAL JOIN SongPubInfo WHERE CategoryID=%s ORDER BY ArtistName,AlbumTitle",cur->dbi.row[0]);
-	doTitleQuery(query,exception,listconf.maxwidth);
+	doTitleQuery(query,NULL,listconf.maxwidth);
 }
 
 void tierCatPrint(struct dbnode *cur){

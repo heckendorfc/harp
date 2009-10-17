@@ -180,7 +180,8 @@ int str_return_cb(void *arg, int col_count, char **row, char **titles){
 int titlequery_titles_cb(void *data, int col_count, char **row, char **titles){
 	struct titlequery_data *arg=(struct titlequery_data*) data;
 	int x,templen,len=arg->maxwidth+3;
-	for(x=0;x<col_count-1;x++){
+	col_count--;
+	for(x=0;x<col_count;x++){
 		if(!arg->exception[x]){
 			printf("[%1$.*2$s]%3$n",titles[x],arg->maxwidth,&len);
 			printf("%1$*2$c",' ',(arg->maxwidth+3)-len);
@@ -200,17 +201,32 @@ int titlequery_titles_cb(void *data, int col_count, char **row, char **titles){
 	return 1;
 }
 
+int titlequery_columns_cb(void *data, int col_count, char **row, char **titles){
+	struct titlequery_data *arg=(struct titlequery_data*) data;
+	int x,templen;
+	char *ptr;
+	col_count--;
+	for(x=0;x<col_count;x++){
+		if(arg->exception[x]){
+			for(ptr=row[x];*ptr;++ptr);
+			templen=(ptr-row[x])+2;
+			if(templen>arg->exlen[x])arg->exlen[x]=templen;
+		}
+	}
+	return 0;
+}
+
 int titlequery_cb(void *data, int col_count, char **row, char **titles){
 	struct titlequery_data *arg=(struct titlequery_data*) data;
 	int x,templen,len=arg->maxwidth+3;
-	for(x=0;x<col_count-1;x++){
+	col_count--;
+	for(x=0;x<col_count;x++){
 		if(!arg->exception[x]){
 			printf("[%1$.*2$s]%3$n",row[x],arg->maxwidth,&len);
 			printf("%1$*2$c",' ',(arg->maxwidth+3)-len);
 		}
 		else{
 			printf("[%s]%2$n",row[x],&templen);
-			if(templen>arg->exlen[x])arg->exlen[x]=templen;
 			printf("%1$*2$c",' ',(arg->exlen[x]-templen)+1);
 		}
 	}
@@ -226,12 +242,23 @@ int titlequery_cb(void *data, int col_count, char **row, char **titles){
 
 int doTitleQuery(const char *querystr,int *exception, int maxwidth){
 	struct titlequery_data tqd;
+
+	int defexception[10];
+	if(!exception){
+		int x;
+		for(x=1;x<10;x++)defexception[x]=listconf.exception;
+		exception=defexception;
+	}
+
 	tqd.count=0;
 	tqd.exception=exception;
 	tqd.maxwidth=maxwidth;
 	tqd.exlen=calloc(10,sizeof(int));
+
+	sqlite3_exec(conn,querystr,titlequery_columns_cb,&tqd,NULL);
 	sqlite3_exec(conn,querystr,titlequery_titles_cb,&tqd,NULL);
 	sqlite3_exec(conn,querystr,titlequery_cb,&tqd,NULL);
+
 	free(tqd.exlen);
 	return tqd.count;
 }
