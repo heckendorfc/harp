@@ -177,17 +177,17 @@ int str_return_cb(void *arg, int col_count, char **row, char **titles){
 	return 0;
 }
 
-int titlequery_titles_cb(void *data, int col_count, char **row, char **titles){
+static int titlequery_titles_cb(void *data, int col_count, char **row, char **titles){
 	struct titlequery_data *arg=(struct titlequery_data*) data;
 	int x,templen,len=arg->maxwidth+3;
 	col_count--;
 	for(x=0;x<col_count;x++){
 		if(!arg->exception[x]){
-			printf("[%1$.*2$s]%3$n",titles[x],arg->maxwidth,&len);
+			len=printf("[%1$.*2$s]",titles[x],arg->maxwidth);
 			printf("%1$*2$c",' ',(arg->maxwidth+3)-len);
 		}
 		else{
-			printf("[%s]%2$n",titles[x],&templen);
+			templen=printf("[%s]",titles[x]);
 			if(templen>arg->exlen[x])arg->exlen[x]=templen;
 			printf("%1$*2$c",' ',(arg->exlen[x]-templen)+1);
 		}
@@ -201,7 +201,7 @@ int titlequery_titles_cb(void *data, int col_count, char **row, char **titles){
 	return 1;
 }
 
-int titlequery_columns_cb(void *data, int col_count, char **row, char **titles){
+static int titlequery_columns_cb(void *data, int col_count, char **row, char **titles){
 	struct titlequery_data *arg=(struct titlequery_data*) data;
 	int x,templen;
 	char *ptr;
@@ -216,17 +216,17 @@ int titlequery_columns_cb(void *data, int col_count, char **row, char **titles){
 	return 0;
 }
 
-int titlequery_cb(void *data, int col_count, char **row, char **titles){
+static int titlequery_cb(void *data, int col_count, char **row, char **titles){
 	struct titlequery_data *arg=(struct titlequery_data*) data;
 	int x,templen,len=arg->maxwidth+3;
 	col_count--;
 	for(x=0;x<col_count;x++){
 		if(!arg->exception[x]){
-			printf("[%1$.*2$s]%3$n",row[x],arg->maxwidth,&len);
+			len=printf("[%1$.*2$s]",row[x],arg->maxwidth);
 			printf("%1$*2$c",' ',(arg->maxwidth+3)-len);
 		}
 		else{
-			printf("[%s]%2$n",row[x],&templen);
+			templen=printf("[%s]",row[x]);
 			printf("%1$*2$c",' ',(arg->exlen[x]-templen)+1);
 		}
 	}

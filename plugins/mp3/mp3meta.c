@@ -67,38 +67,35 @@ void ID3v2Parse(FILE *ffd, struct musicInfo *mi){
 	int ret,total=3000,next=0;
 	unsigned char buffer[255];
 	fseek(ffd,next,SEEK_SET);
-	fread(buffer,sizeof(char),10,ffd);
+	if(fread(buffer,sizeof(char),10,ffd)<10)return;
 
 	next+=10;
 	do{
 		fseek(ffd,next,SEEK_SET);
-		fread(buffer,sizeof(char),255,ffd);
+		if(fread(buffer,sizeof(char),255,ffd)<255)next=total;
 		ret=getTagData(buffer,mi);
 		next+=ret;
 	}while(ret>0 && next<total);
-//	printf("%s | %s | %s | %s| %s | %s || %d\n\n",mi->title,mi->track,mi->album,mi->artist,mi->length,mi->year,next);
 }
 
 void ID3v1Parse(FILE *ffd, struct musicInfo *mi){
 	int next=-125;
 	char buffer[31],safe[61];
 	fseek(ffd,next,SEEK_END);
-	fread(mi->title,sizeof(char),30,ffd);
+	if(fread(mi->title,sizeof(char),30,ffd)<30)return;
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
-	fread(mi->artist,sizeof(char),30,ffd);
+	if(fread(mi->artist,sizeof(char),30,ffd)<30)return;
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
-	fread(mi->album,sizeof(char),30,ffd);
+	if(fread(mi->album,sizeof(char),30,ffd)<30)return;
 	next+=30;
 
 	fseek(ffd,next,SEEK_END);
-	fread(mi->year,sizeof(char),4,ffd);
+	if(fread(mi->year,sizeof(char),4,ffd)<4)return;
 	next+=4;
-
-//	printf("v1: %s | %s | %s | %s| %s | %s || %d\n\n",mi->title,mi->track,mi->album,mi->artist,mi->length,mi->year,next);
 }
 
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
@@ -106,13 +103,13 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	int next=0;
 	unsigned char buffer[255];
 	fseek(ffd,next,SEEK_SET);
-	fread(buffer,sizeof(char),10,ffd);
+	if(fread(buffer,sizeof(char),10,ffd)<10)return;
 	if(memcmp("ID3",buffer,3)==0 && buffer[4]<=MAX_VERSION){ // ID3v2
 		ID3v2Parse(ffd,mi);
 	}
 	else{
 		fseek(ffd,-128,SEEK_END);
-		fread(buffer,sizeof(char),4,ffd);
+		if(fread(buffer,sizeof(char),4,ffd)<4)return;
 		if(memcmp("TAG",buffer,3)==0)ID3v1Parse(ffd,mi); // ID3v1
 	}
 }

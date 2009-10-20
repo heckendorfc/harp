@@ -8,6 +8,7 @@ Changes in HARP-0.5.1:
 - Removed incompatible OSSv3 macros.
 - Title queries using fitting exception now have fitted columns
 	without truncation.
+- Fixed memory leaks.
 
 Changes in HARP-0.5.0:
 - Fixed bugs in edit, admin, tree.

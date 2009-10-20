@@ -32,12 +32,12 @@ struct mp3Handles{
 int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
 	fseek(ffd,0,SEEK_SET);
-	fread(buf,sizeof(buf),1,ffd);
+	if(fread(buf,sizeof(buf),1,ffd)<1)return 0;
 	if(buf[0]=='I' && buf[1]=='D' && buf[2]=='3'){
 		return 1;
 	}
 	fseek(ffd,-(128*sizeof(buf[0])),SEEK_END);
-	fread(buf,sizeof(buf),1,ffd);
+	if(fread(buf,sizeof(buf),1,ffd)<1)return 0;
 	if(buf[0]=='T' && buf[1]=='A' && buf[2]=='G'){
 		return 1;
 	}

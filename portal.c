@@ -47,8 +47,8 @@ int getStdArgs(char *args,char *prompt){
 	int x;
 	for(x=1;x<200 && args[x] && args[x]==' ';x++);
 	if(!args[x]){
-		printf(prompt);
-		fgets(args,200,stdin);
+		printf("%s",prompt);
+		if(!fgets(args,200,stdin))return -1;
 		if(*args=='\n'){
 			printf("Aborted\n");
 			return -1;

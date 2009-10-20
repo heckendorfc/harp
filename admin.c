@@ -22,8 +22,8 @@ static int addPlugin(char *args, void *data){
 	int size,x;
 
 	printf("Library (e.g., libharpmp3): ");
-	sprintf(lib,"%s/harp/plugins/%2$n",SHARE_PATH,&size);
-	fgets(&lib[size],sizeof(lib)-(size+4),stdin);
+	size=sprintf(lib,"%s/harp/plugins/",SHARE_PATH);
+	if(!fgets(&lib[size],sizeof(lib)-(size+4),stdin))return 1;
 	for(x=size;lib[x]!='\n' && lib[x];x++);
 	strcpy(&lib[x],".sql");
 	debug(1,"Adding information from from file:");
@@ -48,13 +48,11 @@ static int togglePlugin(char *args, void *data){
 	char pid[50];
 	char query[300];
 	int x,id;
-	struct dbitem dbi;
-	dbiInit(&dbi);
 
 	printf("PluginID(e.g., 5): "); // Is actually PluginTypeID but this will be easier for the user to understand.
 	for(x=0;args[x] && (args[x]<'0' || args[x]>'9');x++); // See if id was given as an arg
 	if(!args[x]){ // Get from prompt
-		fgets(pid,sizeof(pid),stdin);
+		if(!fgets(pid,sizeof(pid),stdin))return 1;
 		id=(int)strtol(pid,NULL,10); // In case a number was not entered. ID 0 should not exist in the database.
 	}
 	else{ // Get from arg
@@ -72,29 +70,24 @@ static int removePlugin(char *args, void *data){
 	char lib[200];
 	char query[300];
 	int size,x,id;
-	struct dbitem dbi;
-	dbiInit(&dbi);
 
 	printf("Library (e.g., libharpmp3): ");
-	fgets(lib,sizeof(lib)-3,stdin);
+	if(!fgets(lib,sizeof(lib)-3,stdin))return 1;
 	for(x=0;lib[x]!='\n' && lib[x];x++);
 	strcpy(&lib[x],".so");
 
-	sprintf(query,"SELECT PluginID FROM Plugin WHERE Library='%s'",lib);
-	doQuery(query,&dbi);
-	if(!fetch_row(&dbi)){
+	sprintf(query,"SELECT PluginID FROM Plugin WHERE Library='%s' LIMIT 1",lib);
+	sqlite3_exec(conn,query,uint_return_cb,&id,NULL);
+	if(!id){
 		printf("Library not found\n");
 		return 1;
 	}
-
-	id=(int)strtol(dbi.row[0],NULL,10);
 
 	sprintf(query,"DELETE FROM Plugin WHERE PluginID=%d",id);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	sprintf(query,"DELETE FROM PluginType WHERE PluginID=%d",id);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 
-	dbiClean(&dbi);
 	return 1;
 }
 

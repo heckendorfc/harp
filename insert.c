@@ -208,8 +208,8 @@ static int verifySong(const int sid){
 	doQuery(query,&dbi);
 	if(fetch_row(&dbi)){
 		printf("%s located at: %s.\nIs this correct?[y] ",dbi.row[0],dbi.row[1]);
-		fgets(ans,sizeof(ans),stdin);
 		dbiClean(&dbi);
+		if(!fgets(ans,sizeof(ans),stdin))return -1;
 		if(*ans=='y' || *ans=='\n')
 			return sid;
 		else

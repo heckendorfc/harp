@@ -188,7 +188,6 @@ struct titlequery_data{
 };
 
 //harp.c
-void segv_leave(int sig);
 void int_leave(int sig);
 void cleanExit();
 
@@ -205,7 +204,6 @@ char ** fetch_column_at(struct dbitem *dbi, int index);
 int doQuery(const char *querystr,struct dbitem *dbi);
 int uint_return_cb(void *arg, int col_count, char **row, char **titles);
 int str_return_cb(void *arg, int col_count, char **row, char **titles);
-int titlequery_cb(void *data, int col_count, char **row, char **titles);
 int doTitleQuery(const char *querystr,int *exception, int maxwidth);
 void createTempPlaylistSong();
 
