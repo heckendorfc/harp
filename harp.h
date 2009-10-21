@@ -112,6 +112,7 @@ struct option longopts[]={
 	{"type",1,NULL,'t'},
 	{"zshuffle",0,NULL,'z'},
 	{"admin",0,NULL,'a'},
+	{"version",0,NULL,200},
 	{0,0,0,0}
 };
 

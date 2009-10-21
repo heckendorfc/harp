@@ -17,17 +17,24 @@
 
 static unsigned int argSearch(int argc, char *argv[]);
 
+static void printVersion(){
+	printf("HARP 0.5.1\nCopyright (C) 2009 Christian Heckendorf\n");
+	cleanExit();
+	exit(1);
+}
+
 static void printHelp(){
 	printf("Valid options are:\n\
-	t [s,p,r,a,g]\tType (song, playlist, artist, album, genre)\n\
-	l [name, ID]\tList (requires -t)\n\
-	p [name, ID]\tPlay (requires -t)\n\
-		s\tShuffle (requires -p)\n\
-		z\tSmart shuffle (requires -p)\n\
-	i [name]\tInsert song\n\
-	e\tEdit\n\
-	a\tAdmin\n\
-	v\tVerbose\n");
+	-t [s,p,r,a,g]\tType (song, playlist, artist, album, genre)\n\
+	-l [name, ID]\tList (requires -t)\n\
+	-p [name, ID]\tPlay (requires -t)\n\
+		-s\tShuffle (requires -p)\n\
+		-z\tSmart shuffle (requires -p)\n\
+	-i [file path, directory]\tInsert song\n\
+	-e\tEdit\n\
+	-a\tAdmin\n\
+	-v\tVerbose\n\
+	--version\t Print version information\n");
 	cleanExit();
 	exit(1);
 }
@@ -172,6 +179,7 @@ static unsigned int argSearch(int argc,char *argv[]){
 			case 'v':arglist[AVERBOSE].active++;break;
 			case 'z':arglist[AZSHUFFLE].active=1;arglist[ASHUFFLE].active=0;break;
 			case 'a':arglist[AADMIN].active=1;break;
+			case 200:printVersion();break;
 			case '?':
 			default: printHelp();break;
 		}

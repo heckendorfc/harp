@@ -42,6 +42,7 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 	snd_pcm_hw_params_free(ph->params);
 	return 0;
 }
+
 void changeVolume(struct playerHandles *ph, int mod){
 	snd_ctl_t *ctl;
 	snd_ctl_elem_id_t *id;
