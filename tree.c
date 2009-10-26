@@ -71,7 +71,8 @@ int *getGenreHeadPath(int head){
 	while(doQuery(query,&dbi)>0 && fetch_row(&dbi)){
 		if(!(path=realloc(path,sizeof(int)*((++x)*2)))){
 			debug(2,"Realloc failed (path).");
-			return;
+			dbiClean(&dbi);
+			return NULL;
 		}
 		path[x]=(int)strtol(dbi.row[0],NULL,10);
 		path[x+1]=0;

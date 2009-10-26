@@ -16,7 +16,7 @@
  */
 
 
-void argConfig(char *buffer){
+static void argConfig(char *buffer){
 	char *setting=buffer;
 	int y=0,argfound=0;
 	while(*setting!='=' && *setting)setting++;
@@ -45,7 +45,7 @@ void argConfig(char *buffer){
 	}
 }
 
-void listConfig(char *buffer){
+static void listConfig(char *buffer){
 	char *setting=buffer;
 	int x=0,argfound=0;
 	while(*setting!='=' && *setting)setting++;
@@ -66,7 +66,7 @@ void listConfig(char *buffer){
 	}
 }
 
-void insertConfig(char *buffer){
+static void insertConfig(char *buffer){
 	char *setting=buffer;
 	static int formatsize=0;
 	int x=1,argfound=0;
@@ -110,7 +110,7 @@ void insertConfig(char *buffer){
 	}
 }
 
-int configInit(){
+static void configInit(){
 	if(insertconf.format=malloc(sizeof(char*)))
 		*insertconf.format=NULL;
 	if(insertconf.f_root=malloc(sizeof(char*)))

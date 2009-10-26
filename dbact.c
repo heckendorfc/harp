@@ -183,17 +183,17 @@ static int titlequery_titles_cb(void *data, int col_count, char **row, char **ti
 	col_count--;
 	for(x=0;x<col_count;x++){
 		if(!arg->exception[x]){
-			len=printf("[%1$.*2$s]",titles[x],arg->maxwidth);
-			printf("%1$*2$c",' ',(arg->maxwidth+3)-len);
+			len=printf("[%.*s]",arg->maxwidth,titles[x]);
+			printf("%*c",(arg->maxwidth+3)-len,' ');
 		}
 		else{
 			templen=printf("[%s]",titles[x]);
 			if(templen>arg->exlen[x])arg->exlen[x]=templen;
-			printf("%1$*2$c",' ',(arg->exlen[x]-templen)+1);
+			printf("%*c",(arg->exlen[x]-templen)+1,' ');
 		}
 	}
 	if(!arg->exception[x]){ // Ignore end spacing on final field
-		printf("[%1$.*2$s]",titles[x],arg->maxwidth);
+		printf("[%.*s]",arg->maxwidth,titles[x]);
 	}
 	else
 		printf("[%s] ",titles[x]);
@@ -222,16 +222,16 @@ static int titlequery_cb(void *data, int col_count, char **row, char **titles){
 	col_count--;
 	for(x=0;x<col_count;x++){
 		if(!arg->exception[x]){
-			len=printf("[%1$.*2$s]",row[x],arg->maxwidth);
-			printf("%1$*2$c",' ',(arg->maxwidth+3)-len);
+			len=printf("[%.*s]",arg->maxwidth,row[x]);
+			printf("%*c",(arg->maxwidth+3)-len,' ');
 		}
 		else{
 			templen=printf("[%s]",row[x]);
-			printf("%1$*2$c",' ',(arg->exlen[x]-templen)+1);
+			printf("%*c",(arg->exlen[x]-templen)+1,' ');
 		}
 	}
 	if(!arg->exception[x]){ // Ignore end spacing on final field
-		printf("[%1$.*2$s]",row[x],arg->maxwidth);
+		printf("[%.*s]",arg->maxwidth,row[x]);
 	}
 	else
 		printf("[%s] ",row[x]);

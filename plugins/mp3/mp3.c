@@ -96,7 +96,7 @@ void plugin_exit(struct playerHandles *ph){
 
 int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	size_t size;
-	ssize_t len;
+	size_t len;
 	int mret=MPG123_NEED_MORE;
 	int retval=DEC_RET_SUCCESS;
 	struct outputdetail details;

@@ -120,7 +120,7 @@ static int exportStats(char *args, void *data){
 	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
 	if((ffd=fopen(filename,"w"))==NULL){
 		fprintf(stderr,"Failed to open file\n");
-		return;
+		return 1;
 	}
 	fputs("ID\tTITLE\tLOCATION\tRATING\tPLAYCOUNT\tSKIPCOUNT\tLASTPLAY\tACTIVE\n",ffd);
 	debug(3,args);

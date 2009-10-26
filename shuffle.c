@@ -138,10 +138,7 @@ struct zs_arg{
 		const unsigned int slide;
 	};
 	unsigned int count;
-	union{
-		int increment;
-		int slidemod;
-	};
+	int slidemod;
 	char *query;
 };
 

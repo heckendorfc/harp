@@ -266,7 +266,7 @@ int batchInsert(char *arg){
 		char temp[250];
 		while(printf("File Location: ") && fgets(temp,sizeof(temp),stdin) && *temp!='\n'){
 			expand(temp);
-			if(insertSong(temp,&mi));
+			(void)insertSong(temp,&mi);
 		}
 	}
 	miFree(&mi);

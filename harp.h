@@ -195,6 +195,9 @@ void cleanExit();
 //argparse.c
 unsigned int doArgs(int argc, char *argv[]);
 
+//config.c
+void setDefaultConfig();
+
 //dbact.c
 unsigned int dbInit();
 void dbiInit(struct dbitem *dbi);
@@ -224,7 +227,6 @@ int metadataInsert(struct insert_data *data);
 void editPortal();
 
 //util.c
-void setDefaultConfig();
 char *expand(char *in);
 int fileFormat(const char *argv);
 int getPlugin(struct dbitem *dbi, const int index, void **module);

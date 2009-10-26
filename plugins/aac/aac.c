@@ -25,9 +25,9 @@ uint32_t seek_callback(void *userdata, uint64_t position);
 #include "aacmeta.c"
 
 struct aacHandles{
-	int *total;
-	int *sample;
-	int *rate;
+	unsigned int *total;
+	unsigned int *sample;
+	unsigned int *rate;
 	int framesize;
 	int channels;
 }h;

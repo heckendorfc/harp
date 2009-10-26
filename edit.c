@@ -210,7 +210,7 @@ static int editAlbumArtist(char *args, void *data){
 	ptr=&query[x];
 	debug(3,query);
 	for(x=0;x<ids->length;x++){
-		sprintf(ptr,"%d",artistid,ids->songid[x]);
+		sprintf(ptr,"%d",ids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	cleanOrphans();
@@ -561,7 +561,7 @@ static int editGenreParent(char *args, void *data){
 
 	for(x=0;x<ids->length;x++){
 		if(gid==ids->songid[x])continue;
-		sprintf(query,"UPDATE Category SET ParentID=%1$d WHERE CategoryID=%2$d AND CategoryID NOT IN (SELECT ParentID FROM Category WHERE CategoryID=%1$d)",gid,ids->songid[x]);
+		sprintf(query,"UPDATE Category SET ParentID=%d WHERE CategoryID=%d AND CategoryID NOT IN (SELECT ParentID FROM Category WHERE CategoryID=%d)",gid,ids->songid[x],gid);
 		debug(3,query);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
@@ -582,7 +582,7 @@ static int editGenreDelete(char *args, void *data){
 	for(x=0;x<ids->length;x++){
 		if(ids->songid[x]==1)continue;
 
-		sprintf(query,"UPDATE Category SET ParentID=(SELECT ParentID FROM Category WHERE CategoryID=%1$d) WHERE ParentID=%1$d",ids->songid[x]);
+		sprintf(query,"UPDATE Category SET ParentID=(SELECT ParentID FROM Category WHERE CategoryID=%d) WHERE ParentID=%d",ids->songid[x],ids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 		sprintf(query,"DELETE FROM Category WHERE CategoryID=%d",ids->songid[x]);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
@@ -612,7 +612,7 @@ static int editSongGenreAdd(char *args, void *data){
 	}
 
 	// Insert songs from list that are not already in the category
-	sprintf(query,"INSERT INTO SongCategory(CategoryID,SongID) SELECT '%1$d',SongID FROM SongCategory WHERE SongID NOT IN (SELECT SongID FROM SongCategory WHERE CategoryID=%1$d) AND SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%2$d)",gid,ids->tempselectid);
+	sprintf(query,"INSERT INTO SongCategory(CategoryID,SongID) SELECT '%d',SongID FROM SongCategory WHERE SongID NOT IN (SELECT SongID FROM SongCategory WHERE CategoryID=%d) AND SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",gid,gid,ids->tempselectid);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	return 1;

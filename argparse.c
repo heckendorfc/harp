@@ -52,6 +52,7 @@ static int batch_insert_cb(void *arg, int col_count, char **row, char **titles){
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 
 	data->order++;
+	return 0;
 }
 
 static void genreToPlaylistSong(struct dbnode *cur){
