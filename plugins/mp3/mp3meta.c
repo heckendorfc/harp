@@ -51,9 +51,9 @@ int getTagData(unsigned char *buf, struct musicInfo *mi){
 	else if(memcmp("TYER",buf,4)==0){
 		memcpy(mi->year,tag,(x-1)>MI_YEAR_SIZE?MI_YEAR_SIZE:x-1);
 	}
-	else if(memcmp("TLEN",buf,4)==0){
-		memcpy(mi->length,tag,(x-1)>MI_LENGTH_SIZE?MI_LENGTH_SIZE:x-1);
-	}
+	//else if(memcmp("TLEN",buf,4)==0){
+		//memcpy(mi->length,tag,(x-1)>MI_LENGTH_SIZE?MI_LENGTH_SIZE:x-1);
+	//}
 	else if(memcmp("TPE1",buf,4)==0){
 		memcpy(mi->artist,tag,(x-1)>MI_ARTIST_SIZE?MI_ARTIST_SIZE:x-1);
 	}
@@ -98,6 +98,34 @@ void ID3v1Parse(FILE *ffd, struct musicInfo *mi){
 	next+=4;
 }
 
+int mp3Length(FILE *ffd, int quick){
+	int len;
+	long rate;
+	mpg123_init();
+	mpg123_handle *m;
+	if(!(m = mpg123_new(NULL, NULL))){
+		fprintf(stderr,"Unable to create mpg123 handle\n");
+		return -1;
+	}
+	mpg123_param(m, MPG123_FLAGS, MPG123_QUIET, 0); 
+	mpg123_open_fd(m,fileno(ffd));
+	if(m == NULL) return -1;
+	
+	if(!quick)
+		mpg123_scan(m);
+
+	mpg123_getformat(m,&rate,NULL,NULL);
+
+	if(rate && (len=mpg123_length(m))!=MPG123_ERR)
+		len/=rate;
+	else
+		len=-1;
+
+	mpg123_delete(m);
+	mpg123_exit();
+	return len;
+}
+
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	int MAX_VERSION=4;
 	int next=0;
@@ -112,4 +140,6 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 		if(fread(buffer,sizeof(char),4,ffd)<4)return;
 		if(memcmp("TAG",buffer,3)==0)ID3v1Parse(ffd,mi); // ID3v1
 	}
+
+	mi->length=mp3Length(ffd,mi->length);
 }

@@ -305,7 +305,7 @@ void miClean(struct musicInfo *mi){
 	memset(mi->artist,0,MI_ARTIST_SIZE);
 	memset(mi->year,0,MI_YEAR_SIZE);
 	memset(mi->track,0,MI_TRACK_SIZE);
-	memset(mi->length,0,MI_LENGTH_SIZE);
+	mi->length=insertconf.length;
 }
 
 void miFree(struct musicInfo *mi){
@@ -319,8 +319,6 @@ void miFree(struct musicInfo *mi){
 		free(mi->year);
 	if(mi->track!=NULL)
 		free(mi->track);
-	if(mi->length!=NULL)
-		free(mi->length);
 }
 
 void db_clean(char *str, const char *data, const size_t size){

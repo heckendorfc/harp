@@ -15,24 +15,35 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
-	OggVorbis_File *vf;
-	if(!(vf=malloc(sizeof(OggVorbis_File)))){
-		debug(2,"Malloc failed (vf).");
-		return;
-	}
-
-	if(ov_open_callbacks(ffd,vf,NULL,0,OV_CALLBACKS_NOCLOSE)<0){
-		fprintf(stderr,"ov open failed\n");
-		free(vf);
-		return;
-	}
-
-	if((mi->length=ov_time_total(vf,-1))<1)
-		mi->length=-1;
-		printf("%d\n",mi->length);
-
-	ov_clear(vf);
 	return;
+	/*
+	struct snd_data data;
+	FLAC__StreamDecoder *decoder=NULL;
+	if((decoder=FLAC__stream_decoder_new())==NULL){
+		debug(2,"flac decoder alloc failed");
+		return;
+	}
+
+	FLAC__stream_decoder_set_metadata_ignore_all(decoder);
+	FLAC__stream_decoder_set_metadata_respond(decoder,FLAC__METADATA_TYPE_STREAMINFO);
+
+	if(FLAC__stream_decoder_init_FILE(decoder,ph->ffd,flac_write,flac_meta,flac_error,&data)!=FLAC__STREAM_DECODER_INIT_STATUS_OK){
+		debug(2,"flac init failed");
+		FLAC__stream_decoder_finish(decoder);
+		FLAC__stream_decoder_delete(decoder);
+		return;
+	}
+
+	if(!FLAC__stream_decoder_process_until_end_of_metadata(decoder)){
+		debug(2,"flac decoder metadata failed");
+		FLAC__stream_decoder_finish(decoder);
+		FLAC__stream_decoder_delete(decoder);
+		return DEC_RET_ERROR;
+	}
+
+	mi->length=data.rate;
+
+	return;
+	*/
 }

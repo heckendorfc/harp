@@ -16,6 +16,7 @@
  */
 
 #include "plugin.h"
+#include "flacmeta.c"
 #include <FLAC/all.h>
 
 struct snd_data{
@@ -58,7 +59,7 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 	//int x;for(x=0;x<frame->header.blocksize;x++)if(writei_snd(data->ph, (char *)&buffer[0][x], 1)<0 || writei_snd(data->ph, (char *)&buffer[1][x],1)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	char *buffs;
 	if(!(buffs=malloc(frame->header.blocksize*4))){
-		debug(2,"Malloc failed (decoder buffer)");
+		fprintf(stderr,"Malloc failed (decoder buffer)");
 		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	}
 	int x;
@@ -68,7 +69,7 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 		buffs[x*4+2]=buffer[1][x];
 		buffs[x*4+3]=buffer[1][x]>>8;
 	}
-	writei_snd(data->ph, buffs, frame->header.blocksize);
+	writei_snd(data->ph, buffs, frame->header.blocksize*4);
 	data->curtime+=frame->header.blocksize;
 	//fprintf(stderr,"%d ",frame->header.blocksize);
 	//writei_snd(data->ph, (void *)buffer[0], frame->header.blocksize);
@@ -100,7 +101,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	//int status=0;
 
 	if((decoder=FLAC__stream_decoder_new())==NULL){
-		debug(2,"flac decoder alloc failed");
+		fprintf(stderr,"flac decoder alloc failed");
 		return DEC_RET_ERROR;
 	}
 
@@ -109,7 +110,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	//FLAC__stream_decoder_set_metadata_respond(decoder,FLAC__METADATA_TYPE_SEEKTABLE); //when seeking is implemented
 	
 	if(FLAC__stream_decoder_init_FILE(decoder,ph->ffd,flac_write,flac_meta,flac_error,&data)!=FLAC__STREAM_DECODER_INIT_STATUS_OK){
-		debug(2,"flac init failed");
+		fprintf(stderr,"flac init failed");
 		FLAC__stream_decoder_finish(decoder);
 		FLAC__stream_decoder_delete(decoder);
 		return DEC_RET_ERROR;
@@ -117,12 +118,9 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	unsigned int retval=DEC_RET_SUCCESS,total=0;
 	struct outputdetail details;
-	details.totaltime=*totaltime;
-	details.percent=-1;
-
 
 	if(!FLAC__stream_decoder_process_until_end_of_metadata(decoder)){
-		debug(2,"flac decoder metadata failed");
+		fprintf(stderr,"flac decoder metadata failed");
 		FLAC__stream_decoder_finish(decoder);
 		FLAC__stream_decoder_delete(decoder);
 		return DEC_RET_ERROR;
@@ -132,8 +130,12 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	snd_param_init(ph,&data.enc,&data.channels,&data.rate);
 
+	if((details.totaltime=*data.totaltime)==0)
+		details.totaltime=-1;;
+	details.percent=-1;
+
 	do{ /* Read and write until everything is through. */
-		if(FLAC__stream_decoder_process_single(decoder)==(FLAC__bool)false){debug(2,"uh oh");break;}
+		if(FLAC__stream_decoder_process_single(decoder)==(FLAC__bool)false){fprintf(stderr,"Early abort\n");break;}
 		//if((size=ov_read(vf,buf,len,0,2,1,&vf->current_link))<1){debug("uh oh");break;}
 
 		//data.curtime+=data.size;
@@ -153,10 +155,6 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	FLAC__stream_decoder_delete(decoder);
 	
 	return retval;
-}
-
-void plugin_meta(FILE *ffd, struct musicInfo *mi){
-	return;
 }
 
 int filetype_by_data(FILE *ffd){

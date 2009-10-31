@@ -44,7 +44,6 @@
 #define MI_ARTIST_SIZE 100
 #define MI_ALBUM_SIZE 100
 #define MI_YEAR_SIZE 4
-#define MI_LENGTH_SIZE 8
 
 struct musicInfo{
 	char *title;
@@ -52,7 +51,7 @@ struct musicInfo{
 	char *album;
 	char *year;
 	char *artist;
-	char *length;
+	int length;
 };
 
 int doLocalKey(char *pubkey){

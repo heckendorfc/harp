@@ -108,6 +108,9 @@ static void insertConfig(char *buffer){
 		*(insertconf.format+(formatsize-1))=strdup(ptr);
 		*(insertconf.format+formatsize)=NULL;
 	}
+	else if(strcmp("accuratelength",buffer)==0 && *setting=='y'){
+		insertconf.length=0;
+	}
 }
 
 static void configInit(){
@@ -115,6 +118,7 @@ static void configInit(){
 		*insertconf.format=NULL;
 	if(insertconf.f_root=malloc(sizeof(char*)))
 		*insertconf.f_root=NULL;
+	insertconf.length=-1;
 }
 
 void setDefaultConfig(){

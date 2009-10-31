@@ -257,7 +257,6 @@ int batchInsert(char *arg){
 	if(!(mi.artist=malloc(((MI_ARTIST_SIZE*2)+1)*sizeof(char))))return 0;
 	if(!(mi.album=malloc(((MI_ALBUM_SIZE*2)+1)*sizeof(char))))return 0;
 	if(!(mi.year=malloc(((MI_YEAR_SIZE*2)+1)*sizeof(char))))return 0;
-	if(!(mi.length=malloc(((MI_LENGTH_SIZE*2)+1)*sizeof(char))))return 0;
 	getMusicInfo(&mi);
 	if(arg){//single argv insert
 		directoryInsert(expand(arg));
@@ -453,7 +452,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 		return 0;
 	}
 	if(strcmp(mi->album,"Unknown") && *mi->year){
-		sprintf(query,"UPDATE Song SET `Date`=%s WHERE AlbumID=%d",mi->year,albumid);
+		sprintf(query,"UPDATE Album SET `Date`=%s WHERE AlbumID=%d",mi->year,albumid);
 		debug(3,query);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
@@ -474,7 +473,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	// This prints escaped strings. Is it worth fixing?
 	printf("%s | %s | %s \n",mi->title,mi->album,mi->artist);
 
-	sprintf(query,"UPDATE Song SET Rating=3, TypeID=%d WHERE SongID=%d",fmt,songid);
+	sprintf(query,"UPDATE Song SET Length=%d, Rating=3, TypeID=%d WHERE SongID=%d",mi->length,fmt,songid);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 

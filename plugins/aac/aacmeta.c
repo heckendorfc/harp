@@ -59,7 +59,14 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 		free(temp);
 	}
 
-//	printf("%s | %s | %s | %s| %s\n\n",mi->title,mi->track,mi->album,mi->artist,mi->year);
+	int track;
+	if((track=GetAACTrack(infile))>=0){
+		unsigned int rate=mp4ff_get_sample_rate(infile,track);
+		unsigned int numsamples=mp4ff_num_samples(infile,track);
+		mi->length=(rate && numsamples)?numsamples/(rate>>10):-1;
+	}
+	else
+		mi->length=-1;
 
 	free(mp4cb);
 }

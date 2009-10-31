@@ -53,7 +53,6 @@
 #define MI_ARTIST_SIZE 100
 #define MI_ALBUM_SIZE 100
 #define MI_YEAR_SIZE 4
-#define MI_LENGTH_SIZE 8
 
 sqlite3 *conn;
 struct dbitem{
@@ -71,7 +70,7 @@ struct musicInfo{
 	char *album;
 	char *year;
 	char *artist;
-	char *length;
+	int length;
 };
 
 struct argument{
@@ -156,6 +155,7 @@ struct iconf{
 	int format_length;
 	int (*first_cb)(struct insert_data *data);
 	int (*second_cb)(struct insert_data *data);
+	int length;
 }insertconf;
 
 struct playercontrolarg{

@@ -21,7 +21,7 @@
 
 struct vorbisHandles{
 	OggVorbis_File *vf;
-	int *total;
+	unsigned int *total;
 	int rate;
 	int sizemod;
 }h;
@@ -74,9 +74,9 @@ int vorbStatus(int ret){
 
 void silencer(){
 	OggVorbis_File vf;
-	if(ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_DEFAULT)<0);
-	if(ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_STREAMONLY)<0);
-	if(ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_STREAMONLY_NOCLOSE)<0);
+	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_DEFAULT);
+	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_STREAMONLY);
+	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_STREAMONLY_NOCLOSE);
 }
 
 int plugin_run(struct playerHandles *ph, char *key, int *totaltime){

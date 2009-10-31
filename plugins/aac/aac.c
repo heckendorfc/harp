@@ -21,6 +21,7 @@
 
 uint32_t read_callback(void *userdata, void *buffer, uint32_t length);
 uint32_t seek_callback(void *userdata, uint64_t position);
+int GetAACTrack(mp4ff_t *infile);
 
 #include "aacmeta.c"
 
@@ -72,7 +73,7 @@ uint32_t seek_callback(void *userdata, uint64_t position){
 	return fseek((FILE*)userdata,position,SEEK_SET);
 }
 
-static int GetAACTrack(mp4ff_t *infile){
+int GetAACTrack(mp4ff_t *infile){
 	int i,ret;
 	int numtracks=mp4ff_total_tracks(infile);
 
