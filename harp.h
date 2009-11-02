@@ -73,12 +73,6 @@ struct musicInfo{
 	int length;
 };
 
-struct argument{
-	char arg;
-	char *subarg;
-	unsigned int active;
-};
-
 char subarglist[]={
 	'p',	/*Playlist*/
 	's',	/*Song*/
@@ -88,7 +82,11 @@ char subarglist[]={
 	0		/*Placeholder*/
 };
 
-struct argument arglist[]={
+struct argument{
+	char arg;
+	char *subarg;
+	unsigned int active;
+} arglist[]={
 	{'l',NULL,0},	/*List*/
 	{'p',NULL,0},	/*Play*/
 	{'s',NULL,0},	/*Shuffle*/
