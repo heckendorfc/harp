@@ -36,7 +36,7 @@ struct aacHandles{
 int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
 	fseek(ffd,4*sizeof(buf[0]),SEEK_SET);
-	fread(buf,sizeof(buf),1,ffd);
+	if(!fread(buf,sizeof(buf),1,ffd))return 0;
 	if(buf[0]=='f' && buf[1]=='t' && buf[2]=='y' && buf[3]=='p'){
 		return 1;
 	}
@@ -214,8 +214,9 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		details.percent=(sample*100)/numsamples;
 		crOutput(ph->pflag,&details);
 
-		if((retval=doLocalKey(key))!=DEC_RET_SUCCESS){
-			break;
+		if(ph->pflag->exit!=DEC_RET_SUCCESS){
+			retval=ph->pflag->exit;
+			break;	
 		}
 	}
 

@@ -29,7 +29,7 @@ struct vorbisHandles{
 int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
 	fseek(ffd,0,SEEK_SET);
-	fread(buf,sizeof(buf),1,ffd);
+	if(!fread(buf,sizeof(buf),1,ffd))return 0;
 	if(buf[0]=='O' && buf[1]=='g' && buf[2]=='g' && buf[3]=='S'){
 		return 1;
 	}
@@ -132,8 +132,9 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 #endif
 		total+=size;
 
-		if((retval=doLocalKey(key))!=DEC_RET_SUCCESS){
-			break;
+		if(ph->pflag->exit!=DEC_RET_SUCCESS){
+			retval=ph->pflag->exit;
+			break;	
 		}
 	}while(1);
 

@@ -144,7 +144,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		details.percent=(details.curtime*100)/details.totaltime;
 		crOutput(ph->pflag,&details);
 
-		if((retval=doLocalKey(key))!=DEC_RET_SUCCESS){
+		if(ph->pflag->exit!=DEC_RET_SUCCESS){
+			retval=ph->pflag->exit;
 			break;	
 		}
 	}while(FLAC__stream_decoder_get_state(decoder)!=FLAC__STREAM_DECODER_END_OF_STREAM);
@@ -160,7 +161,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
 	fseek(ffd,4*sizeof(buf[0]),SEEK_SET);
-	fread(buf,sizeof(buf),1,ffd);
+	if(!fread(buf,sizeof(buf),1,ffd))return 0;
 	if(buf[0]=='f' && buf[1]=='L' && buf[2]=='a' && buf[3]=='C'){
 		return 1;
 	}

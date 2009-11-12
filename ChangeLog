@@ -11,6 +11,7 @@ Changes in HARP-0.5.1:
 - Fixed memory leaks.
 - Fixed a bug on setting the album date.
 - Play length is now calculated on insert.
+- Next and quit commands unpause player.
 
 Changes in HARP-0.5.0:
 - Fixed bugs in edit, admin, tree.

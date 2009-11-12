@@ -53,13 +53,3 @@ struct musicInfo{
 	char *artist;
 	int length;
 };
-
-int doLocalKey(char *pubkey){
-	char key=*pubkey;
-	switch(key){
-		case KEY_QUIT:return DEC_RET_ERROR;
-		case KEY_NEXT:return DEC_RET_NEXT;
-		case KEY_NEXT_NOUP:return DEC_RET_NEXT_NOUP;
-		default:return DEC_RET_SUCCESS;
-	}
-}

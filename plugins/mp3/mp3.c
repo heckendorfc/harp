@@ -185,7 +185,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		if(writei_snd(ph,(char *)out,size)<0)break;
 #endif
 
-		if((retval=doLocalKey(key))!=DEC_RET_SUCCESS){
+		if(ph->pflag->exit!=DEC_RET_SUCCESS){
+			retval=ph->pflag->exit;
 			break;	
 		}
 	}while(mret != MPG123_ERR && mret!=MPG123_DONE);

@@ -31,10 +31,11 @@
 #include <stdlib.h>
 
 struct playerflag{
-	int pause;
+	volatile int pause;
 	int mute;
-	int update;
-	int rating;
+	volatile int update;
+	volatile int rating;
+	volatile int exit;
 	char mutec;
 	char pausec;
 };

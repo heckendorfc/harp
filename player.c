@@ -106,6 +106,7 @@ int play_song(void *data, int col_count, char **row, char **titles){
 	fclose(psargs->ph->ffd);
 	psargs->ph->ffd=NULL;
 	psargs->ph->dechandle=NULL;
+	psargs->ph->pflag->exit=DEC_RET_SUCCESS;
 
 	if(ret!=DEC_RET_ERROR){ // Update stats
 		switch(ret){
@@ -142,7 +143,7 @@ int player(int list){//list - playlist number
 	struct play_song_args psargs;
 	struct playercontrolarg pca;
 	struct playerHandles ph;
-	struct playerflag pflag={0,0,1,0,32,32};
+	struct playerflag pflag={0,0,1,0,DEC_RET_SUCCESS,32,32};
 
 	ph.ffd=NULL;
 	ph.dechandle=NULL;
@@ -201,7 +202,6 @@ void playerControl(void *arg){
 			*pca->key=temp;
 		pthread_mutex_unlock(&actkey);
 		if(temp==KEY_QUIT){
-			pca->ph->pflag->pause=0;
 			debug(2,"playerControl found quit");
 			break;
 		}
@@ -287,6 +287,7 @@ static void jump(char *com, struct playercontrolarg *pca){
 	pthread_mutex_lock(&actkey);
 		*pca->key=(*com=='j')?KEY_NEXT:KEY_NEXT_NOUP;
 	pthread_mutex_unlock(&actkey);
+	pca->ph->pflag->exit=*pca->key;
 	pca->ph->pflag->pause=0;
 }
 
@@ -360,53 +361,65 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 	switch(key){
 		case KEY_VOLUP:
 			changeVolume(pca->ph,5);
-			return 1;
+			break;
 		case KEY_VOLDN:
 			changeVolume(pca->ph,-5);
-			return 1;
+			break;
 		case KEY_MUTE:
 			toggleMute(pca->ph,&pca->ph->pflag->mute);
-			return 1;
+			break;
 		case KEY_PAUSE: 
 			pca->ph->pflag->pause=!pca->ph->pflag->pause;
-			return 1;
+			break;
 		case KEY_PREV:
-			if(!pca->decoder)return 1;
+			if(!pca->decoder)break;
 			seek=dlsym(pca->decoder,"plugin_seek");
 			if(seek){
 				pca->ph->pflag->pause=0;
 				seek(pca->ph,0);
 			}
-			return 1;
+			break;
 		case KEY_SEEK_UP:
-			if(!pca->decoder)return 1;
+			if(!pca->decoder)break;
 			seek=dlsym(pca->decoder,"plugin_seek");
 			if(seek){
 				pca->ph->pflag->pause=0;
 				seek(pca->ph,20);
 			}
-			return 1;
+			break;
 		case KEY_SEEK_DN:
-			if(!pca->decoder)return 1;
+			if(!pca->decoder)break;
 			seek=dlsym(pca->decoder,"plugin_seek");
 			if(seek){
 				pca->ph->pflag->pause=0;
 				seek(pca->ph,-20);
 			}
-			return 1;
+			break;
 		case KEY_RATEUP:
 			pca->ph->pflag->rating=pca->ph->pflag->rating==10?10:pca->ph->pflag->rating+1;
 			fprintf(stdout,"\r                               Rating: %d/10  ",pca->ph->pflag->rating);
 			fflush(stdout);
-			return 1;
+			break;
 		case KEY_RATEDN:
 			pca->ph->pflag->rating=pca->ph->pflag->rating==0?0:pca->ph->pflag->rating-1;
 			fprintf(stdout,"\r                               Rating: %d/10  ",pca->ph->pflag->rating);
 			fflush(stdout);
-			return 1;
+			break;
 		case KEY_COMMAND:
 			getCommand(pca);
-			return 1;
-		default:return 0;
+			break;
+		case KEY_QUIT:
+			pca->ph->pflag->exit=DEC_RET_ERROR;
+			pca->ph->pflag->pause=0;
+			return 0;
+		case KEY_NEXT:
+			pca->ph->pflag->exit=DEC_RET_NEXT;
+			pca->ph->pflag->pause=0;
+			break;
+		case KEY_NEXT_NOUP:
+			pca->ph->pflag->exit=DEC_RET_NEXT_NOUP;
+			pca->ph->pflag->pause=0;
+		default:break;
 	}	
+	return 1;
 }
