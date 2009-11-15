@@ -46,13 +46,13 @@
 
 #define DB_PATH "~/.harp/"
 #define DB "harp.db"
-#define DB_BATCH_SIZE 100
+#define DB_BATCH_SIZE (100)
 
-#define MI_TITLE_SIZE 200
-#define MI_TRACK_SIZE 9
-#define MI_ARTIST_SIZE 100
-#define MI_ALBUM_SIZE 100
-#define MI_YEAR_SIZE 4
+#define MI_TITLE_SIZE (200)
+#define MI_TRACK_SIZE (9)
+#define MI_ARTIST_SIZE (100)
+#define MI_ALBUM_SIZE (100)
+#define MI_YEAR_SIZE (4)
 
 sqlite3 *conn;
 struct dbitem{
@@ -132,6 +132,12 @@ enum filetype{
 	FM4A,
 	FVOR,
 	FFLAC
+};
+
+enum portal_ret{
+	PORTAL_RET_MAIN=-1,
+	PORTAL_RET_QUIT=0,
+	PORTAL_RET_PREV=1
 };
 
 struct insert_data{
@@ -262,7 +268,7 @@ void adminPortal();
 int write_stats_cb(void *data, int col_count, char **row, char **titles);
 
 //portal.c
-void cleanString(char **ostr);
+void cleanString(char *ostr);
 int editWarn(char *warn);
 int getStdArgs(char *args,char *prompt);
 int portal(struct commandOption *portalOptions, const char *prefix);

@@ -18,7 +18,7 @@
 static unsigned int argSearch(int argc, char *argv[]);
 
 static void printVersion(){
-	printf("HARP 0.5.1\nCopyright (C) 2009 Christian Heckendorf\n");
+	printf("HARP %s\nCopyright (C) 2009 Christian Heckendorf\n",PACKAGE_VERSION);
 	cleanExit();
 	exit(1);
 }

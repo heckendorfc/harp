@@ -110,13 +110,19 @@ int play_song(void *data, int col_count, char **row, char **titles){
 
 	if(ret!=DEC_RET_ERROR){ // Update stats
 		switch(ret){
-				// Normal play.
-			case DEC_RET_SUCCESS:sprintf(query,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, Length=%d WHERE SongID=%d",(int)time(NULL),totaltime,sid);break;
-				// Next key
-			case DEC_RET_NEXT:sprintf(query,"UPDATE Song SET SkipCount=SkipCount+1, LastPlay=%d WHERE SongID=%d",(int)time(NULL),sid);break;
-				// Next key without update[playcount]
-			case DEC_RET_NEXT_NOUP:
-			default:sprintf(query,"UPDATE Song SET LastPlay=%d WHERE SongID=%d",(int)time(NULL),sid);break;
+			case DEC_RET_SUCCESS: // Normal play.
+				if(totaltime>0)
+					sprintf(query,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, Length=%d WHERE SongID=%d",(int)time(NULL),totaltime,sid);
+				else
+					sprintf(query,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, WHERE SongID=%d",(int)time(NULL),sid);
+				break;
+			case DEC_RET_NEXT: // Next key
+				sprintf(query,"UPDATE Song SET SkipCount=SkipCount+1, LastPlay=%d WHERE SongID=%d",(int)time(NULL),sid);
+				break;
+			case DEC_RET_NEXT_NOUP: // Next key without update[playcount]
+			default:
+				sprintf(query,"UPDATE Song SET LastPlay=%d WHERE SongID=%d",(int)time(NULL),sid);
+				break;
 		}
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}

@@ -9,16 +9,17 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 
 # Checks for programs.
+CFLAGS="$CFLAGS -O2 -I/usr/local/include"
+LDFLAGS="$LDFLAGS -L/usr/local/lib"
+
 AC_PROG_CC
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
-CFLAGS="$CFLAGS -I/usr/local/include"
-LDFLAGS="$LDFLAGS -L/usr/local/lib"
-
 # Checks for libraries.
 AC_CHECK_LIB([pthread], [pthread_create])
 AC_CHECK_LIB([sqlite3], [sqlite3_exec])
+AC_CHECK_LIB([dl], [dlopen])
 
 AC_ARG_WITH([mp3],
 [AS_HELP_STRING(--without-mp3, Disable mp3 support)],

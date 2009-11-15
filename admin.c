@@ -23,7 +23,7 @@ static int addPlugin(char *args, void *data){
 
 	printf("Library (e.g., libharpmp3): ");
 	size=sprintf(lib,"%s/harp/plugins/",SHARE_PATH);
-	if(!fgets(&lib[size],sizeof(lib)-(size+4),stdin))return 1;
+	if(!fgets(&lib[size],sizeof(lib)-(size+4),stdin))return PORTAL_RET_PREV;
 	for(x=size;lib[x]!='\n' && lib[x];x++);
 	strcpy(&lib[x],".sql");
 	debug(1,"Adding information from from file:");
@@ -32,7 +32,7 @@ static int addPlugin(char *args, void *data){
 	if(db_exec_file(lib)){
 		fprintf(stderr,"Error adding plugin from file:\n\t%s\n",lib);
 	}
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int listPlugins(char *args, void *data){
@@ -41,7 +41,7 @@ static int listPlugins(char *args, void *data){
 
 	doTitleQuery("SELECT FileType.Name AS Format, PluginType.PluginTypeID AS PluginID, PluginType.Active AS Active, Plugin.Library AS Library FROM FileType NATURAL JOIN PluginType NATURAL JOIN Plugin ORDER BY Format ASC, Active DESC",exception,1);
 
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int togglePlugin(char *args, void *data){
@@ -52,7 +52,7 @@ static int togglePlugin(char *args, void *data){
 	printf("PluginID(e.g., 5): "); // Is actually PluginTypeID but this will be easier for the user to understand.
 	for(x=0;args[x] && (args[x]<'0' || args[x]>'9');x++); // See if id was given as an arg
 	if(!args[x]){ // Get from prompt
-		if(!fgets(pid,sizeof(pid),stdin))return 1;
+		if(!fgets(pid,sizeof(pid),stdin))return PORTAL_RET_PREV;
 		id=(int)strtol(pid,NULL,10); // In case a number was not entered. ID 0 should not exist in the database.
 	}
 	else{ // Get from arg
@@ -63,7 +63,7 @@ static int togglePlugin(char *args, void *data){
 	sprintf(query,"UPDATE PluginType SET Active=NOT(Active) WHERE PluginTypeID=%d",id);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int removePlugin(char *args, void *data){
@@ -72,7 +72,7 @@ static int removePlugin(char *args, void *data){
 	int size,x,id;
 
 	printf("Library (e.g., libharpmp3): ");
-	if(!fgets(lib,sizeof(lib)-3,stdin))return 1;
+	if(!fgets(lib,sizeof(lib)-3,stdin))return PORTAL_RET_PREV;
 	for(x=0;lib[x]!='\n' && lib[x];x++);
 	strcpy(&lib[x],".so");
 
@@ -80,7 +80,7 @@ static int removePlugin(char *args, void *data){
 	sqlite3_exec(conn,query,uint_return_cb,&id,NULL);
 	if(!id){
 		printf("Library not found\n");
-		return 1;
+		return PORTAL_RET_PREV;
 	}
 
 	sprintf(query,"DELETE FROM Plugin WHERE PluginID=%d",id);
@@ -88,7 +88,7 @@ static int removePlugin(char *args, void *data){
 	sprintf(query,"DELETE FROM PluginType WHERE PluginID=%d",id);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 int write_stats_cb(void *data, int col_count, char **row, char **titles){
@@ -106,53 +106,53 @@ static int exportStats(char *args, void *data){
 	char *num,filename[30];
 	FILE *ffd;
 	int x,limit;
-	if((x=getStdArgs(args,"Number of songs (* for all): "))<0)return 1;
+	if((x=getStdArgs(args,"Number of songs (* for all): "))<0)return PORTAL_RET_PREV;
 	num=args+x;
 	debug(2,args);
 	debug(2,num);
 	if(*num=='*')
 		sprintf(args,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location");
 	else{
-		if((limit=strtol(num,NULL,10))<1)return 1;
+		if((limit=strtol(num,NULL,10))<1)return PORTAL_RET_PREV;
 		sprintf(args,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location LIMIT %d",limit);
 	}
 
 	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
 	if((ffd=fopen(filename,"w"))==NULL){
 		fprintf(stderr,"Failed to open file\n");
-		return 1;
+		return PORTAL_RET_PREV;
 	}
 	fputs("ID\tTITLE\tLOCATION\tRATING\tPLAYCOUNT\tSKIPCOUNT\tLASTPLAY\tACTIVE\n",ffd);
 	debug(3,args);
 	sqlite3_exec(conn,args,write_stats_cb,ffd,NULL);
 	printf("Stats exported to: %s\n",filename);
 	fclose(ffd);
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int resetAll(char *args, void *data){
 	sqlite3_exec(conn,"UPDATE Song SET Rating=3,PlayCount=0,SkipCount=0,LastPlay=0",NULL,NULL,NULL);
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int resetRating(char *args, void *data){
 	sqlite3_exec(conn,"UPDATE Song SET Rating=3",NULL,NULL,NULL);
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int resetPlayCount(char *args, void *data){
 	sqlite3_exec(conn,"UPDATE Song SET PlayCount=0",NULL,NULL,NULL);
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int resetSkipCount(char *args, void *data){
 	sqlite3_exec(conn,"UPDATE Song SET SkipCount=0",NULL,NULL,NULL);
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int resetLastPlay(char *args, void *data){
 	sqlite3_exec(conn,"UPDATE Song SET LastPlay=0",NULL,NULL,NULL);
-	return 1;
+	return PORTAL_RET_PREV;
 }
 
 static int resetPortal(char *args, void *data){

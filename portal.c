@@ -22,15 +22,14 @@
  * 		 0: Quit
  */
 
-
-void cleanString(char **ostr){
-	char *str=*ostr;
-	while(*str!='\n'){str++;}
+void cleanString(char *ostr){
+	char *str=ostr;
+	while(*str && *str!='\n')str++;
 	*str=0;
 	char temp[500];
-	db_clean(temp,*ostr,250);
-	db_safe(temp,*ostr,250);
-	strcpy(*ostr,temp);
+	db_clean(temp,ostr,250);
+	db_safe(ostr,temp,250);
+	//strcpy(*ostr,temp);
 }
 
 int editWarn(char *warn){
@@ -53,10 +52,12 @@ int getStdArgs(char *args,char *prompt){
 			printf("Aborted\n");
 			return -1;
 		}
-		cleanString(&args);
+		cleanString(args);
 		return 0;
 	}
 	else{
+		args+=x;
+		cleanString(args);
 		return x;
 	}
 }
@@ -75,8 +76,8 @@ int portal(struct commandOption *portalOptions, const char *prefix){
 		for(x=0;portalOptions[x].opt && portalOptions[x].opt!=*choice;x++);
 		if(!portalOptions[x].opt){
 			switch(*choice){
-				case 'q':free(choice);return 0;
-				case 'p':free(choice);return 1;
+				case 'q':free(choice);return PORTAL_RET_QUIT;
+				case 'p':free(choice);return PORTAL_RET_PREV;
 				case '?':
 				default:
 					printf("Local:\n");
@@ -87,7 +88,7 @@ int portal(struct commandOption *portalOptions, const char *prefix){
 		}
 		else{
 			ret=portalOptions[x].function(choice,portalOptions[x].data);
-			if(ret<1)break;
+			if(ret<PORTAL_RET_PREV)break;
 		}
 	}
 	free(choice);
