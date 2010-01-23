@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -14,6 +14,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#ifndef _PLUGIN_H
+#define _PLUGIN_H
 
 #if WITH_ALSA==1
 	#include <alsa/asoundlib.h>
@@ -39,6 +42,7 @@
 
 #include "sndutil.h"
 
+/*
 #define MI_TITLE_SIZE 200
 #define MI_TRACK_SIZE 9
 #define MI_ARTIST_SIZE 100
@@ -53,3 +57,14 @@ struct musicInfo{
 	char *artist;
 	int length;
 };
+*/
+
+FILE *plugin_std_fopen(const char *path, const char *mode){
+	return fopen(path,mode);
+}
+
+void plugin_std_fclose(FILE *fd){
+	fclose(fd);
+}
+
+#endif

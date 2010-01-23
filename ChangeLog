@@ -13,6 +13,10 @@ Changes in HARP-0.5.1:
 - Play length is now calculated on insert.
 - Next and quit commands unpause player.
 - Fixed single quote escaping bug in edit.
+- Fixed bug causing the volume to go beyond 100%.
+- Cleaned up headers on playlist listing.
+- Rating changes now display previous rating as well as new rating.
+- Added support for SHOUTcast streams.
 
 Changes in HARP-0.5.0:
 - Fixed bugs in edit, admin, tree.

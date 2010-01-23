@@ -33,7 +33,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = plugins/mp3
+subdir = plugins/stream
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -50,12 +50,12 @@ am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgdatadir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libharpmp3_la_LIBADD =
-am_libharpmp3_la_OBJECTS = libharpmp3_la-mp3.lo
-libharpmp3_la_OBJECTS = $(am_libharpmp3_la_OBJECTS)
-libharpmp3_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libharpmp3_la_CFLAGS) \
-	$(CFLAGS) $(libharpmp3_la_LDFLAGS) $(LDFLAGS) -o $@
+libharpstream_la_LIBADD =
+am_libharpstream_la_OBJECTS = libharpstream_la-stream.lo
+libharpstream_la_OBJECTS = $(am_libharpstream_la_OBJECTS)
+libharpstream_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libharpstream_la_CFLAGS) \
+	$(CFLAGS) $(libharpstream_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -68,8 +68,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libharpmp3_la_SOURCES)
-DIST_SOURCES = $(libharpmp3_la_SOURCES)
+SOURCES = $(libharpstream_la_SOURCES)
+DIST_SOURCES = $(libharpstream_la_SOURCES)
 pkgdataDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(pkgdata_DATA)
 ETAGS = etags
@@ -185,12 +185,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-lib_LTLIBRARIES = libharpmp3.la
-libharpmp3_la_LDFLAGS = -module -avoid-version -lmpg123 $(SOUND_OUT)
-libharpmp3_la_CFLAGS = $(CFLAGS)
-libharpmp3_la_SOURCES = mp3.c
+lib_LTLIBRARIES = libharpstream.la
+pkgdata_DATA = libharpstream.sql
 INCLUDES = -I../.. -I..
-pkgdata_DATA = libharpmp3.sql
+libharpstream_la_LDFLAGS = -module -avoid-version $(SOUND_OUT)
+libharpstream_la_CFLAGS = $(CFLAGS)
+libharpstream_la_SOURCES = stream.c
 all: all-am
 
 .SUFFIXES:
@@ -204,9 +204,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  plugins/mp3/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  plugins/stream/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  plugins/mp3/Makefile
+	  $(AUTOMAKE) --gnu  plugins/stream/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -251,8 +251,8 @@ clean-libLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-libharpmp3.la: $(libharpmp3_la_OBJECTS) $(libharpmp3_la_DEPENDENCIES) 
-	$(libharpmp3_la_LINK) -rpath $(libdir) $(libharpmp3_la_OBJECTS) $(libharpmp3_la_LIBADD) $(LIBS)
+libharpstream.la: $(libharpstream_la_OBJECTS) $(libharpstream_la_DEPENDENCIES) 
+	$(libharpstream_la_LINK) -rpath $(libdir) $(libharpstream_la_OBJECTS) $(libharpstream_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -260,7 +260,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libharpmp3_la-mp3.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libharpstream_la-stream.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -283,12 +283,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-libharpmp3_la-mp3.lo: mp3.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libharpmp3_la_CFLAGS) $(CFLAGS) -MT libharpmp3_la-mp3.lo -MD -MP -MF $(DEPDIR)/libharpmp3_la-mp3.Tpo -c -o libharpmp3_la-mp3.lo `test -f 'mp3.c' || echo '$(srcdir)/'`mp3.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libharpmp3_la-mp3.Tpo $(DEPDIR)/libharpmp3_la-mp3.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mp3.c' object='libharpmp3_la-mp3.lo' libtool=yes @AMDEPBACKSLASH@
+libharpstream_la-stream.lo: stream.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libharpstream_la_CFLAGS) $(CFLAGS) -MT libharpstream_la-stream.lo -MD -MP -MF $(DEPDIR)/libharpstream_la-stream.Tpo -c -o libharpstream_la-stream.lo `test -f 'stream.c' || echo '$(srcdir)/'`stream.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libharpstream_la-stream.Tpo $(DEPDIR)/libharpstream_la-stream.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stream.c' object='libharpstream_la-stream.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libharpmp3_la_CFLAGS) $(CFLAGS) -c -o libharpmp3_la-mp3.lo `test -f 'mp3.c' || echo '$(srcdir)/'`mp3.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libharpstream_la_CFLAGS) $(CFLAGS) -c -o libharpstream_la-stream.lo `test -f 'stream.c' || echo '$(srcdir)/'`stream.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

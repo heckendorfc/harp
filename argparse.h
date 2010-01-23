@@ -15,25 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#ifndef _ARGPARSE_H
+#define _ARGPARSE_H
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
-	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
-}
+unsigned int doArgs(int argc, char *argv[]);
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
-
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-}
+#endif

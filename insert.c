@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,7 +15,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-typedef void (*function_meta)(FILE *ffd, struct musicInfo *mi);
+#include "insert.h"
+#include "defs.h"
+#include "dbact.h"
+#include "util.h"
+
 static int verifySong(const int sid);
 static int insertSong(const char *arg, struct musicInfo *mi);
 
@@ -228,13 +232,20 @@ static struct musicInfo *getMusicInfo(struct musicInfo *mi){
 	return hold;
 }
 
+static struct pluginitem *getPluginList(struct pluginitem *list){
+	static struct pluginitem *hold;
+	if(list)
+		hold=list;
+	return hold;
+}
+
 #ifdef HAVE_FTW_H
 #include <ftw.h>
 int useFile(const char *fpath, const struct stat *sb, int typeflag) {
 	if(typeflag==FTW_F)
 		if(insertSong(fpath,NULL)<0)
-			return -1;
-	return 0;
+			return -1; /* error */
+	return 0; /* continue */
 }
 
 static int directoryInsert(const char *arg){
@@ -252,14 +263,26 @@ static int directoryInsert(const char *arg){
 
 int batchInsert(char *arg){
 	struct musicInfo mi;
-	if(!(mi.title=malloc((MI_TITLE_SIZE*2+1)*sizeof(char))))return 0;
-	if(!(mi.track=malloc(((MI_TRACK_SIZE*2)+1)*sizeof(char))))return 0;
-	if(!(mi.artist=malloc(((MI_ARTIST_SIZE*2)+1)*sizeof(char))))return 0;
-	if(!(mi.album=malloc(((MI_ALBUM_SIZE*2)+1)*sizeof(char))))return 0;
-	if(!(mi.year=malloc(((MI_YEAR_SIZE*2)+1)*sizeof(char))))return 0;
+	struct pluginitem *plugin_head;
+	
+	if(!(plugin_head=openPlugins()))
+		return 0;
+	getPluginList(plugin_head);
+
+	if(!(mi.title=malloc((MI_TITLE_SIZE*2+1)*sizeof(char))) ||
+		!(mi.track=malloc(((MI_TRACK_SIZE*2)+1)*sizeof(char))) ||
+		!(mi.artist=malloc(((MI_ARTIST_SIZE*2)+1)*sizeof(char))) ||
+		!(mi.album=malloc(((MI_ALBUM_SIZE*2)+1)*sizeof(char))) ||
+		!(mi.year=malloc(((MI_YEAR_SIZE*2)+1)*sizeof(char))))
+		return 0;
 	getMusicInfo(&mi);
+
+
 	if(arg){//single argv insert
-		directoryInsert(expand(arg));
+		if(isURL(arg))
+			(void)insertSong(arg,&mi);
+		else
+			directoryInsert(expand(arg));
 	}
 	else{//batch insert
 		char temp[250];
@@ -275,37 +298,20 @@ int batchInsert(char *arg){
 int metadataInsert(struct insert_data *data){
 	int x;
 	FILE *ffd;
-	void *module;
+	struct pluginitem *pi_ptr;
 
-	if((ffd=fopen(data->path,"rb"))==NULL){
-		fprintf(stderr,"Can't open file\n");
-		debug(1,data->path);
-		return 0;
-	}
-
-	function_meta modmeta;
-	sprintf(data->query,"SELECT Library FROM FilePlugin WHERE TypeID=%d LIMIT 1",data->fmt);
-	if(doQuery(data->query,data->dbi)<1)
-		return 0;
-	debug(3,data->query);
-
-	while((x=getPlugin(data->dbi,0,&module))){
-		if(x>1)continue;
-
-		modmeta=dlsym(module,"plugin_meta");
-		if(!modmeta){
-			debug(2,"Plugin does not contain plugin_meta().\n");
-			continue;
-		}
-		else{
-			modmeta(ffd,data->mi);
+	findPluginIDByType(0); // Reset
+	while((pi_ptr=findPluginByID(data->plugin_head,findPluginIDByType(data->fmt)))){
+		if((ffd=pi_ptr->modopen(data->path,"rb"))!=NULL){
+			debug(1,data->path);
+			pi_ptr->modmeta(ffd,data->mi);
+			pi_ptr->modclose(ffd);
 			break;
 		}
-		dlclose(module);
 	}
-	fclose(ffd);
-	if(!x){
-		dbiClean(data->dbi);
+	if(ffd==NULL)
+		fprintf(stderr,"Can't open file\n");
+	if(!pi_ptr){
 		return -1; // Fatal error
 	}
 	return 1;
@@ -358,6 +364,11 @@ int filepathInsert(struct insert_data *data){
 	char *fptr=*f_root;
 	int limit,x=0;
 
+	if(isURL(data->path)){
+		strncpy(data->mi->title,data->path,MI_TITLE_SIZE);
+		return 1;
+	}
+
 	while(fptr){
 		if(*fptr=='*'){
 			reverse_filepathInsert(*(format+x),data);
@@ -400,15 +411,19 @@ int filepathInsert(struct insert_data *data){
 }
 
 static int insertSong(const char *arg, struct musicInfo *mi){
-	if(!mi)mi=getMusicInfo(NULL);
-	miClean(mi);
-
 	struct dbitem dbi;
 	char query[350];
 	char dbfilename[250];
 	char tempname[401];
 	FILE *ffd;
-	unsigned int x,songid=0,fmt,artistid,albumid;
+	unsigned int x,songid=0,artistid,albumid;
+	int fmt;
+	struct insert_data data;
+
+	data.plugin_head=getPluginList(NULL);
+
+	if(!mi)mi=getMusicInfo(NULL);
+	miClean(mi);
 
 	db_safe(dbfilename,arg,250);
 	debug(1,arg);
@@ -423,12 +438,17 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	}
 
 	debug(1,"Finding file type");
-	if((fmt=fileFormat(arg))<1){
+	if((fmt=fileFormat(data.plugin_head,arg))<1){
 		if(fmt==0)fprintf(stderr,"Unknown file type\n");
 		return 0;
 	}
 
-	struct insert_data data={fmt,query,mi,&dbi,arg};
+	data.fmt=fmt;
+	data.query=query;
+	data.mi=mi;
+	data.dbi=&dbi;
+	data.path=arg;
+
 	if(insertconf.first_cb){
 		x=insertconf.first_cb(&data);
 		if(x<0)

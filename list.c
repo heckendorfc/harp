@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it AND/or modify
  *  it under the terms of the GNU General Public License AS published by
@@ -15,6 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "list.h"
+#include "defs.h"
+#include "tree.h"
 
 int list(int *ids, int length){
 	char query[401];
@@ -38,7 +41,7 @@ int list(int *ids, int length){
 				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
 
-				sprintf(query,"SELECT `Order`, SongID,SongTitle,AlbumTitle,ArtistName FROM PlaylistSong NATURAL JOIN SongPubInfo WHERE PlaylistID=%d ORDER BY `Order`",ids[x]);
+				sprintf(query,"SELECT `Order` AS \"#\", SongID,SongTitle,AlbumTitle,ArtistName FROM PlaylistSong NATURAL JOIN SongPubInfo WHERE PlaylistID=%d ORDER BY `Order`",ids[x]);
 				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
 			break;

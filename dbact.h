@@ -15,25 +15,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#ifndef _DBACT_H
+#define _DBACT_H
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
-	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
-}
+#include "defs.h"
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
+unsigned int dbInit();
+void dbiInit(struct dbitem *dbi);
+void dbiClean(struct dbitem *dbi);
+int fetch_row(struct dbitem *dbi);
+int fetch_row_at(struct dbitem *dbi, int index);
+char ** fetch_column_at(struct dbitem *dbi, int index);
+int doQuery(const char *querystr,struct dbitem *dbi);
+int uint_return_cb(void *arg, int col_count, char **row, char **titles);
+int str_return_cb(void *arg, int col_count, char **row, char **titles);
+int doTitleQuery(const char *querystr,int *exception, int maxwidth);
+void createTempPlaylistSong();
 
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-}
+#endif

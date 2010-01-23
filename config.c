@@ -119,6 +119,7 @@ static void configInit(){
 	if(insertconf.f_root=malloc(sizeof(char*)))
 		*insertconf.f_root=NULL;
 	insertconf.length=-1;
+	insertconf.second_cb=insertconf.first_cb=NULL;
 }
 
 void setDefaultConfig(){

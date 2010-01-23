@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,12 +15,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "player.h"
+#include "defs.h"
+#include "dbact.h"
+#include "util.h"
+#include "admin.h"
+#include "sndutil.h"
 
 pthread_mutex_t actkey;
-
-typedef int (*function_play)(struct playerHandles *ph, char *key, int *totaltime);
-typedef void (*function_exit)(struct playerHandles *ph);
-typedef void (*function_seek)(struct playerHandles *ph,int modtime);
 
 struct play_song_args{
 	struct playerHandles *ph;
@@ -43,14 +45,12 @@ static int initList(int list, char *query){
 
 int play_song(void *data, int col_count, char **row, char **titles){
 	struct play_song_args *psargs=(struct play_song_args *)data;
-	if(*psargs->pca->key==KEY_QUIT)return 1;
-
-	int x,ret,sid,totaltime;
+	int x,ret,sid,totaltime,filetype;
 	char query[200];
 	struct dbitem dbi;
-	void *module;
-	function_play modplay;
-	function_exit modexit;
+	struct pluginitem *pi_ptr;
+
+	if(*psargs->pca->key==KEY_QUIT)return 1;
 
 	// Reset key
 	pthread_mutex_lock(&actkey);
@@ -71,39 +71,33 @@ int play_song(void *data, int col_count, char **row, char **titles){
 	printSongPubInfo(dbi.row);
 	printf("---------------------\n");
 
-	if((psargs->ph->ffd=fopen(dbi.row[1],"rb"))==NULL){
-		fprintf(stderr,"Failed to open file\n");
-		return 0;
-	}
-
 	totaltime=(int)strtol(dbi.row[5],NULL,10);
 	psargs->ph->pflag->rating=(int)strtol(dbi.row[7],NULL,10);
 
-	dbi.current_row=dbi.column_count; // Reset for getPlugin
-	while((x=getPlugin(&dbi,6,&module))){
-		if(x>1)continue;
-		modplay=dlsym(module,"plugin_run");
-		if(!modplay){
-			debug(2,"Plugin does not contain plugin_run().\n");
-			ret=-1;
-		}
-		else{
-			psargs->pca->decoder=module;
-			ret=modplay(psargs->ph,psargs->pca->key,&totaltime);
+	//filetype=strtol(dbi.row[6],NULL,10);
+	filetype=getFileTypeByName(dbi.row[4]);
+	findPluginIDByType(0); // Reset
+
+
+	while((pi_ptr=findPluginByID(psargs->ph->plugin_head,findPluginIDByType(filetype)))){
+		if((psargs->ph->ffd=pi_ptr->modopen(dbi.row[1],"rb"))!=NULL){
+			psargs->pca->decoder=pi_ptr;
+			ret=pi_ptr->modplay(psargs->ph,psargs->pca->key,&totaltime);
+			pi_ptr->modclose(psargs->ph->ffd);
 			psargs->pca->decoder=NULL;
-			dlclose(module);
 			break;
 		}
-		dlclose(module);
+		else{
+			fprintf(stderr,"Failed to open file\n");
+			dbiClean(&dbi);
+			return 0;
+		}
 	}
 	if(!x)
 		ret=-1;
 
-	dbiClean(&dbi);
 	printf("\n");
-	modplay=NULL;
-	modexit=NULL;
-	fclose(psargs->ph->ffd);
+	dbiClean(&dbi);
 	psargs->ph->ffd=NULL;
 	psargs->ph->dechandle=NULL;
 	psargs->ph->pflag->exit=DEC_RET_SUCCESS;
@@ -136,13 +130,8 @@ int play_song(void *data, int col_count, char **row, char **titles){
 }
 
 int player(int list){//list - playlist number
-	char *query;
-	if(!(query=malloc(sizeof(char)*320))){
-		debug(2,"Malloc failed (player query).");
-		return 1;
-	}
+	char *query; // Why aren't we using []?
 	char library[255];
-	if(!query || initList(list,query))return 0;
 	
 	// Create playerControl thread
 	char key=KEY_NULL;
@@ -151,7 +140,16 @@ int player(int list){//list - playlist number
 	struct playerHandles ph;
 	struct playerflag pflag={0,0,1,0,DEC_RET_SUCCESS,32,32};
 
+	if(!(query=malloc(sizeof(char)*320))){
+		debug(2,"Malloc failed (player query).");
+		return 1;
+	}
+	else if(initList(list,query) ||
+			(!(ph.plugin_head=openPlugins())))
+		return 0;
+
 	ph.ffd=NULL;
+	ph.device=arglist[ADEVICE].subarg;
 	ph.dechandle=NULL;
 	ph.pflag=&pflag;
 	pca.ph=&ph;
@@ -159,6 +157,7 @@ int player(int list){//list - playlist number
 	pca.key=&key;
 	psargs.ph=&ph;
 	psargs.pca=&pca;
+	
 
 	pthread_t threads;
 	pthread_mutex_init(&actkey,NULL);
@@ -167,16 +166,18 @@ int player(int list){//list - playlist number
 	// Play the list!
 	if(snd_init(&ph)){
 		fprintf(stderr,"snd_init failed");
+		closePluginList(ph.plugin_head);
 		free(query);
 		return 1;
 	}
 
 	// Run the song playing query. Loop for jumping.
-	while(sqlite3_exec(conn,query,play_song,&psargs,NULL)==SQLITE_ABORT 
-			&& pca.next_order!=pca.cur_order){
+	while(sqlite3_exec(conn,query,play_song,&psargs,NULL)==SQLITE_ABORT &&
+			pca.next_order!=pca.cur_order){
 		sprintf(query,"SELECT Song.SongID,`Order` FROM Song NATURAL JOIN TempPlaylistSong WHERE `Order`>=%d ORDER BY `Order`",pca.next_order);
 	}
 
+	closePluginList(ph.plugin_head);
 	snd_close(&ph);
 	pthread_cancel(threads);
 	// Reset term settings
@@ -234,17 +235,17 @@ static void writelist(char *com, struct playercontrolarg *pca){
 	//for(x=1;x<y && com[x];y++);
 	switch(com[1]){
 		case 'h':
-			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
+			sprintf(query,"SELECT `Order` AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
 			break;
 		case 't':
 			sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
 			if(x<0)x=0;
-			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
+			sprintf(query,"SELECT `Order` AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
 			break;
 		case 'r':
 		default:
 			sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
-			sprintf(query,"SELECT `Order`,SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
+			sprintf(query,"SELECT `Order` AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
 			break;
 	}
 	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
@@ -269,8 +270,10 @@ static void advseek(char *com, struct playercontrolarg *pca){
 	if(!pca->decoder)return;
 	function_seek seek;
 	seek=dlsym(pca->decoder,"plugin_seek");
-	if(seek)seek(pca->ph,time);
-	pca->ph->pflag->pause=0;
+	if(seek){
+		pca->ph->pflag->pause=0;
+		seek(pca->ph,time);
+	}
 }
 
 static void jump(char *com, struct playercontrolarg *pca){
@@ -309,15 +312,15 @@ static void listtemp(char *com, struct playercontrolarg *pca){
 	if(limit<=0)limit=30;
 	switch(com[1]){
 		case 'h': // Head
-			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY `Order` LIMIT %d",limit);
+			sprintf(query,"SELECT `Order` AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY `Order` LIMIT %d",limit);
 			break;
 		case 't': // Tail
 			sqlite3_exec(conn,"SELECT MAX(`Order`) FROM TempPlaylistSong",uint_return_cb,&order,NULL);
-			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE `Order`>%d ORDER BY `Order` LIMIT %d",order-limit,limit);
+			sprintf(query,"SELECT `Order` AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE `Order`>%d ORDER BY `Order` LIMIT %d",order-limit,limit);
 			break;
 		case 'r': // Relative
 		default:
-			sprintf(query,"SELECT `Order`,SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE `Order`>=%d ORDER BY `Order` LIMIT %d",pca->cur_order,limit);
+			sprintf(query,"SELECT `Order` AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE `Order`>=%d ORDER BY `Order` LIMIT %d",pca->cur_order,limit);
 			break;
 	}
 	debug(3,query);
@@ -343,14 +346,14 @@ static void getCommand(struct playercontrolarg *pca){
 		if(*com=='l'){ // List the playlist
 			listtemp(ptr,pca);
 		}
+		else if(*com=='w'){ // Write out information about the playlist
+			writelist(ptr,pca);
+		}
 		else if(*com=='j' || *com=='J'){ // Jump to a different song
 			jump(ptr,pca);
 		}
 		else if(*com==KEY_SEEK_DN || *com==KEY_SEEK_UP){ // Seek with specified value
 			advseek(ptr,pca);
-		}
-		else if(*com=='w'){ // Write out information about the playlist
-			writelist(ptr,pca);
 		}
 	}
 	tcgetattr(0,&old);
@@ -364,6 +367,7 @@ static void getCommand(struct playercontrolarg *pca){
 
 int getSystemKey(char key, struct playercontrolarg *pca){
 	function_seek seek;
+	int oldrating;
 	switch(key){
 		case KEY_VOLUP:
 			changeVolume(pca->ph,5);
@@ -379,36 +383,29 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 			break;
 		case KEY_PREV:
 			if(!pca->decoder)break;
-			seek=dlsym(pca->decoder,"plugin_seek");
-			if(seek){
-				pca->ph->pflag->pause=0;
-				seek(pca->ph,0);
-			}
+			pca->ph->pflag->pause=0;
+			pca->decoder->modseek(pca->ph,0);
 			break;
 		case KEY_SEEK_UP:
 			if(!pca->decoder)break;
-			seek=dlsym(pca->decoder,"plugin_seek");
-			if(seek){
-				pca->ph->pflag->pause=0;
-				seek(pca->ph,20);
-			}
+			pca->ph->pflag->pause=0;
+			pca->decoder->modseek(pca->ph,20);
 			break;
 		case KEY_SEEK_DN:
 			if(!pca->decoder)break;
-			seek=dlsym(pca->decoder,"plugin_seek");
-			if(seek){
-				pca->ph->pflag->pause=0;
-				seek(pca->ph,-20);
-			}
+			pca->ph->pflag->pause=0;
+			pca->decoder->modseek(pca->ph,-20);
 			break;
 		case KEY_RATEUP:
+			oldrating=pca->ph->pflag->rating;
 			pca->ph->pflag->rating=pca->ph->pflag->rating==10?10:pca->ph->pflag->rating+1;
-			fprintf(stdout,"\r                               Rating: %d/10  ",pca->ph->pflag->rating);
+			fprintf(stdout,"\r                               Rating: %d/10 -> %d/10  ",oldrating,pca->ph->pflag->rating);
 			fflush(stdout);
 			break;
 		case KEY_RATEDN:
+			oldrating=pca->ph->pflag->rating;
 			pca->ph->pflag->rating=pca->ph->pflag->rating==0?0:pca->ph->pflag->rating-1;
-			fprintf(stdout,"\r                               Rating: %d/10  ",pca->ph->pflag->rating);
+			fprintf(stdout,"\r                               Rating: %d/10 -> %d/10  ",oldrating,pca->ph->pflag->rating);
 			fflush(stdout);
 			break;
 		case KEY_COMMAND:

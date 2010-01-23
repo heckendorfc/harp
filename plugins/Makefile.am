@@ -11,3 +11,6 @@ endif
 if WITH_FLAC
 SUBDIRS += flac
 endif
+if WITH_STREAM
+SUBDIRS += stream
+endif

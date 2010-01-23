@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -14,17 +14,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-/* struct vars:
-
-jack_client_t *sndfd;
-jack_port_t *in_port, *out_port;
-const char **jack_ports;
-char *outbuf,*startptr;
-int fillsize; // Empty space in the buffer
-int maxsize; // Total buffer capacity
-
-*/
 
 pthread_mutex_t outbuf_lock;
 

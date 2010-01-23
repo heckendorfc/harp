@@ -40,10 +40,7 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	ChangeLog INSTALL NEWS config.guess config.sub depcomp \
 	install-sh ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
-	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
-	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -54,7 +51,11 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" \
 	"$(DESTDIR)$(pkgdatadir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_harp_OBJECTS = harp.$(OBJEXT)
+am_harp_OBJECTS = harp.$(OBJEXT) argparse.$(OBJEXT) \
+	harpconfig.$(OBJEXT) dbact.$(OBJEXT) insert.$(OBJEXT) \
+	edit.$(OBJEXT) util.$(OBJEXT) message.$(OBJEXT) \
+	player.$(OBJEXT) shuffle.$(OBJEXT) list.$(OBJEXT) \
+	admin.$(OBJEXT) portal.$(OBJEXT) tree.$(OBJEXT)
 harp_OBJECTS = $(am_harp_OBJECTS)
 harp_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -216,12 +217,42 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4
-harp_SOURCES = harp.c
+harp_SOURCES = \
+harp.c \
+argparse.c \
+harpconfig.c \
+dbact.c \
+insert.c \
+edit.c \
+util.c \
+message.c \
+player.c \
+shuffle.c \
+list.c \
+admin.c \
+portal.c \
+tree.c \
+harp.h \
+argparse.h \
+harpconfig.h \
+dbact.h \
+insert.h \
+edit.h \
+util.h \
+message.h \
+player.h \
+shuffle.h \
+list.h \
+admin.h \
+portal.h \
+tree.h
+
+
 #harp_LDFLAGS = -Wl,-rpath,/usr/local/lib/
 pkgdata_DATA = share/create.sql share/defaults.conf
 man1_MANS = share/harp.1
 AM_CFLAGS = -DSHARE_PATH="\"$(datadir)\"" -DLIB_PATH="\"$(libdir)\""
-SUBDIRS = plugins
+SUBDIRS = . plugins
 all: all-recursive
 
 .SUFFIXES:
@@ -297,7 +328,20 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/admin.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/argparse.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dbact.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/harp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/harpconfig.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/insert.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/message.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/player.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/portal.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shuffle.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tree.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

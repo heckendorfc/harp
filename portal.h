@@ -15,25 +15,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#ifndef _PORTAL_H
+#define _PORTAL_H
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
-	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
-}
+#include "defs.h"
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
+void cleanString(char *ostr);
+int editWarn(char *warn);
+int getStdArgs(char *args,char *prompt);
+int portal(struct commandOption *portalOptions, const char *prefix);
 
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-}
+#endif

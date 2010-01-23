@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,14 +15,18 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include "admin.h"
+#include "defs.h"
+#include "dbact.h"
+#include "util.h"
+#include "portal.h"
 
 static int addPlugin(char *args, void *data){
 	char lib[200];
 	int size,x;
 
 	printf("Library (e.g., libharpmp3): ");
-	size=sprintf(lib,"%s/harp/plugins/",SHARE_PATH);
+	size=sprintf(lib,"%s/harp/",SHARE_PATH);
 	if(!fgets(&lib[size],sizeof(lib)-(size+4),stdin))return PORTAL_RET_PREV;
 	for(x=size;lib[x]!='\n' && lib[x];x++);
 	strcpy(&lib[x],".sql");

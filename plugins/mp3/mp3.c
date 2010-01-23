@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,6 +29,14 @@ struct mp3Handles{
 	int samptime;
 }h;
 
+FILE * plugin_open(const char *path, const char *mode){
+	return plugin_std_fopen(path,mode);
+}
+
+void plugin_close(FILE *ffd){
+	plugin_std_fclose(ffd);
+}
+
 int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
 	fseek(ffd,0,SEEK_SET);
@@ -43,6 +51,7 @@ int filetype_by_data(FILE *ffd){
 	}
 	return 0;
 }
+
 void new_format(struct playerHandles *ph){
 }
 
@@ -68,7 +77,7 @@ int mp3Init(struct playerHandles *ph){
 
 void plugin_seek(struct playerHandles *ph, int modtime){
 	if(ph->dechandle==NULL){
-		fprintf(stderr,"\nno dechandle\n");
+		debug(1,"no dechandle");
 		return;
 	}
 
@@ -148,7 +157,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			pthread_mutex_unlock(&dechandle_lock);
 			if(mret==MPG123_DONE || mret==MPG123_ERR){ // EOF (or read error)
 				retval=DEC_RET_SUCCESS;
-				fprintf(stderr,"\ndone..\n");
+				debug(1,"done..");
 				break;
 			}
 		}
@@ -167,7 +176,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			samptime=rate*framesize;
 			fprintf(stderr,"New Format: framesize samptime %d %d\n",framesize,samptime);
 			//snd_pcm_prepare(ph->sndfd);
-			*/ fprintf(stderr," Should have reformatted here\n");
+			*/
+			debug(2,"Should have reformatted here.");
 		}
 		if(len==0)continue;
 		size=len;

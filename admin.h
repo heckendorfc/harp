@@ -15,25 +15,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#ifndef _ADMIN_H
+#define _ADMIN_H
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
-	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
-}
+void adminPortal();
+int write_stats_cb(void *data, int col_count, char **row, char **titles);
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
-
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-}
+#endif

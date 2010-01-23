@@ -15,25 +15,20 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#ifndef _INSERT_H
+#define _INSERT_H
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
-	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
-}
+#include "defs.h"
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
+int getArtist(const char *arg);
+int getAlbum(const char *arg, int id);
+int getSong(const char *arg, const char *loc, const int id);
+int getPlaylist(const char *arg);
+int getCategory(const char *arg);
+int getPlaylistSong(const int sid, const int pid);
+int getSongCategory(const int sid, const int cid);
+int batchInsert(char *arg);
+int filepathInsert(struct insert_data *data);
+int metadataInsert(struct insert_data *data);
 
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-}
+#endif

@@ -18,7 +18,7 @@ Installing harp:
 	./configure
 		To build without certain plugins use --without-pluginname:
 			./configure --without-flac --without-vorbis
-		Currently available are mp3, aac, vorbis, and flac
+		Currently available are mp3, aac, vorbis, flac and stream
 
 		To use a different sound output (OSS is the default), use:
 			./configure --with-jack

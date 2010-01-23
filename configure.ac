@@ -4,12 +4,12 @@
 AC_INIT(harp, 0.5.1)
 AC_CONFIG_SRCDIR([harp.c],
 	[plugins/plugin.h],
-	[plugins/mp3/mp3.c],[plugins/aac/aac.c],[plugins/vorbis/vorbis.c],[plugins/flac/flac.c])
+	[plugins/mp3/mp3.c],[plugins/aac/aac.c],[plugins/vorbis/vorbis.c],[plugins/flac/flac.c],[plugins/stream/stream.c])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 
 # Checks for programs.
-CFLAGS="$CFLAGS -O2 -I/usr/local/include"
+CFLAGS="$CFLAGS -I/usr/local/include"
 LDFLAGS="$LDFLAGS -L/usr/local/lib"
 
 AC_PROG_CC
@@ -36,6 +36,10 @@ AC_ARG_WITH([vorbis],
 AC_ARG_WITH([flac],
 [AS_HELP_STRING(--without-flac, Disable flac support)],
 [], [with_flac=yes])
+
+AC_ARG_WITH([stream],
+[AS_HELP_STRING(--without-stream, Disable stream support)],
+[], [with_stream=yes])
 
 
 AC_ARG_WITH([alsa],
@@ -68,6 +72,8 @@ AS_IF([test "$with_flac" != no],
 	AC_CONFIG_FILES([plugins/flac/Makefile]),
 	[with_flac=no])])
 
+AS_IF([test "$with_stream" != no],
+	AC_CONFIG_FILES([plugins/stream/Makefile]))
 
 AS_IF([test "$with_alsa" != no],
 [AC_CHECK_LIB([asound], [snd_pcm_open],
@@ -84,6 +90,7 @@ AM_CONDITIONAL([WITH_MP3], [test "$with_mp3" != no])
 AM_CONDITIONAL([WITH_AAC], [test "$with_aac" != no])
 AM_CONDITIONAL([WITH_VORBIS], [test "$with_vorbis" != no])
 AM_CONDITIONAL([WITH_FLAC], [test "$with_flac" != no])
+AM_CONDITIONAL([WITH_STREAM], [test "$with_stream" != no])
 
 #AM_CONDITIONAL([WITH_ALSA], [test "$with_alsa" != no])
 #AM_CONDITIONAL([WITH_JACK], [test "$with_jack" != no])

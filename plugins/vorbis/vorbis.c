@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,14 @@ struct vorbisHandles{
 	int rate;
 	int sizemod;
 }h;
+
+FILE * plugin_open(const char *path, const char *mode){
+	return plugin_std_fopen(path,mode);
+}
+
+void plugin_close(FILE *ffd){
+	plugin_std_fclose(ffd);
+}
 
 int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];

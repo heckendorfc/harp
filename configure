@@ -786,6 +786,8 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+WITH_STREAM_FALSE
+WITH_STREAM_TRUE
 WITH_FLAC_FALSE
 WITH_FLAC_TRUE
 WITH_VORBIS_FALSE
@@ -912,6 +914,7 @@ with_mp3
 with_aac
 with_vorbis
 with_flac
+with_stream
 with_alsa
 with_jack
 '
@@ -1572,6 +1575,7 @@ Optional Packages:
   --without-aac           Disable aac support
   --without-vorbis        Disable vorbis support
   --without-flac          Disable flac support
+  --without-stream        Disable stream support
   --with-alsa             Enable alsa support
   --with-jack             Enable jack support
 
@@ -2526,7 +2530,7 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
 # Checks for programs.
-CFLAGS="$CFLAGS -O2 -I/usr/local/include"
+CFLAGS="$CFLAGS -I/usr/local/include"
 LDFLAGS="$LDFLAGS -L/usr/local/lib"
 
 ac_ext=c
@@ -3644,8 +3648,8 @@ esac
 
 
 
-macro_version='2.2.6'
-macro_revision='1.3012'
+macro_version='2.2.6b'
+macro_revision='1.3017'
 
 
 
@@ -4338,13 +4342,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:4341: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:4345: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4344: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:4348: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4347: output\"" >&5)
+  (eval echo "\"\$as_me:4351: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -5550,7 +5554,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5553 "configure"' > conftest.$ac_ext
+  echo '#line 5557 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7376,10 +7380,6 @@ _lt_linker_boilerplate=`cat conftest.err`
 $RM -r conftest*
 
 
-## CAVEAT EMPTOR:
-## There is no encapsulation within the following macros, do not change
-## the running order or otherwise move them around unless you know exactly
-## what you are doing...
 if test -n "$compiler"; then
 
 lt_prog_compiler_no_builtin_flag=
@@ -11305,6 +11305,15 @@ fi
 
 
 
+# Check whether --with-stream was given.
+if test "${with_stream+set}" = set; then
+  withval=$with_stream;
+else
+  with_stream=yes
+fi
+
+
+
 
 # Check whether --with-alsa was given.
 if test "${with_alsa+set}" = set; then
@@ -11696,6 +11705,11 @@ fi
 fi
 
 
+if test "$with_stream" != no; then
+  ac_config_files="$ac_config_files plugins/stream/Makefile"
+
+fi
+
 
 if test "$with_alsa" != no; then
   { $as_echo "$as_me:$LINENO: checking for snd_pcm_open in -lasound" >&5
@@ -11886,6 +11900,14 @@ fi
 else
   WITH_FLAC_TRUE='#'
   WITH_FLAC_FALSE=
+fi
+
+ if test "$with_stream" != no; then
+  WITH_STREAM_TRUE=
+  WITH_STREAM_FALSE='#'
+else
+  WITH_STREAM_TRUE='#'
+  WITH_STREAM_FALSE=
 fi
 
 
@@ -12220,6 +12242,13 @@ if test -z "${WITH_FLAC_TRUE}" && test -z "${WITH_FLAC_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"WITH_FLAC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"WITH_FLAC\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${WITH_STREAM_TRUE}" && test -z "${WITH_STREAM_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"WITH_STREAM\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"WITH_STREAM\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -12971,6 +13000,7 @@ do
     "plugins/aac/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/aac/Makefile" ;;
     "plugins/vorbis/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/vorbis/Makefile" ;;
     "plugins/flac/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/flac/Makefile" ;;
+    "plugins/stream/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/stream/Makefile" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "plugins/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/Makefile" ;;
 

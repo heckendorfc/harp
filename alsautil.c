@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,8 @@
 
 
 int snd_init(struct playerHandles *ph){
-	if(snd_pcm_open(&ph->sndfd,"default",SND_PCM_STREAM_PLAYBACK,0)<0){
+	if(!ph->device)ph->device=strdup("default");
+	if(snd_pcm_open(&ph->sndfd,ph->device,SND_PCM_STREAM_PLAYBACK,0)<0){
 		fprintf(stderr,"sndfd open failed\n");
 		return 1;
 	}
@@ -49,7 +50,7 @@ void changeVolume(struct playerHandles *ph, int mod){
 	snd_ctl_elem_value_t *value;
 	int err,current;
 
-	if((err=snd_ctl_open(&ctl,"default",0))<0){
+	if((err=snd_ctl_open(&ctl,ph->device,0))<0){
 		return;
 	}
 	snd_ctl_elem_id_malloc(&id);
@@ -67,7 +68,9 @@ void changeVolume(struct playerHandles *ph, int mod){
 
 	for(err=9;err>=0;err--){
 		current=mod+snd_ctl_elem_value_get_integer(value,err);
-		snd_ctl_elem_value_set_integer(value,err,current<0?0:current);
+		if(current<0)current=0;
+		else if(current>100)current=100;
+		snd_ctl_elem_value_set_integer(value,err,current);
 	}
 	fprintf(stdout,"\r                               Volume: %d%%  ",current);
 	fflush(stdout);
@@ -85,7 +88,7 @@ void toggleMute(struct playerHandles *ph, int *mute){
 	snd_ctl_elem_value_t *value;
 	int current=*mute,err;
 
-	if((err=snd_ctl_open(&ctl,"default",0))<0){
+	if((err=snd_ctl_open(&ctl,ph->device,0))<0){
 		return;
 	}
 	snd_ctl_elem_id_malloc(&id);

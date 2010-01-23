@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,9 +15,18 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "util.h"
+#include "defs.h"
+#include "dbact.h"
 
 int experr(const char *epath, int eerrno){
 	fprintf(stderr,"error: %d on %s\n",eerrno,epath);
+	return 0;
+}
+
+int isURL(const char *in){
+	if(strncmp("http://",in,7)==0)
+		return 1;
 	return 0;
 }
 
@@ -26,6 +35,9 @@ char *expand(char *in){
 	char *in_ptr=in-1;
 	char *tmp_ptr=tmp;
 	int x,y,z=0;
+
+	if(isURL(in))return in;
+
 	for(x=0;x<249 && in[x];x++);
 	if(in[x-1]=='\n')
 		in[x-1]=0;
@@ -66,80 +78,92 @@ char *expand(char *in){
 	return in;
 }
 
-typedef int (*filetype_by_data)(FILE *ffd);
-
-int fileFormat(const char *arg){
-	FILE *ffd;
-	char library[200];
+int fileFormat(struct pluginitem *list, const char *arg){
+	FILE *ffd=NULL;
+	char query[200];
 	struct dbitem dbi;
-	int ret=0;
+	struct pluginitem *ret=list;
+	int type=0;
+	
+	// Find by magic numbers
 
-	ffd=fopen(arg,"rb");
-	if(ffd!=NULL){
-		// Check if it is a file
-		struct stat st;
-		if(!stat(arg,&st) && !S_ISREG(st.st_mode)){
-			fprintf(stderr,"\"%s\" is not a regular file.\n",arg);
-			fclose(ffd);
-			return -1;
-		}
-
-		// Find by magic numbers
-		dbiInit(&dbi);
-		doQuery("SELECT TypeID, Library FROM FilePlugin",&dbi);
-
-		void *module;
-		filetype_by_data data;
-		while((ret=getPlugin(&dbi,1,&module))){
-			if(ret>1)continue;
-			data=dlsym(module,"filetype_by_data");
-			if(!module){
-				debug(2,"\nPlugin does not contain filetype_by_data().\n");
-				//ret=-1;
+	while(!type && ret){
+		if((ffd=ret->modopen(arg,"rb"))!=NULL){
+			if(ret->moddata(ffd)){
+				sprintf(query,"SELECT TypeID FROM PluginType WHERE PluginID=%d",ret->id);
+				sqlite3_exec(conn,query,uint_return_cb,&type,NULL);
 			}
-			else if(data(ffd)){
-				ret=(int)strtol(dbi.row[0],NULL,10);
-				dlclose(module);
-				break;
-			}
-			dlclose(module);
+			ret->modclose(ffd);
 		}
-		fclose(ffd);
-		if(ret){
-			dbiClean(&dbi);
-			return ret;
-		}
-
-		// Find by extension
-		doQuery("SELECT TypeID,Extension FROM FileExtension",&dbi);
-		int size=0,x=0;
-		for(x=0;arg[x];x++);size=x;
-		for(;arg[x-1]!='.' && x>0;x--);
-		while(fetch_row(&dbi)){
-			if(strcmp(arg+x,dbi.row[1])==0){
-				ret=(int)strtol(dbi.row[0],NULL,10);
-				break;
-			}
-		}
-		dbiClean(&dbi);
-		return ret;
+		ret=ret->next;
 	}
-	else{
-		fprintf(stderr,"Can't open file: %s\n",arg);
-		return -1;
+	if(ffd==NULL)
+		type=0;
+	if(type){
+		return type;
 	}
+
+	// Find by extension
+	dbiInit(&dbi);
+	doQuery("SELECT TypeID,Extension FROM FileExtension",&dbi);
+	int size=0,x=0;
+	for(x=0;arg[x];x++);size=x;
+	for(;arg[x-1]!='.' && x>0;x--);
+	while(fetch_row(&dbi)){
+		if(strcmp(arg+x,dbi.row[1])==0){
+			type=(int)strtol(dbi.row[0],NULL,10);
+			break;
+		}
+	}
+	dbiClean(&dbi);
+	return type;
 }
 
-int getPlugin(struct dbitem *dbi, const int index, void **module){
-	char library[250];
-	if(!fetch_row(dbi)){
-		if(dbi->current_row==dbi->column_count || dbi->row_count==0)
-			fprintf(stderr,"No plugins found.\n\tSee README for information about installing plugins.\n");
-		return 0;
+int getFileTypeByName(const char *name){
+	char query[200];
+	int type=0;
+
+	if(!name)return 0;
+
+	sprintf(query,"SELECT TypeID FROM FileType WHERE Name='%s' LIMIT 1",name);
+	sqlite3_exec(conn,query,uint_return_cb,&type,NULL);
+
+	return type;
+}
+
+int findPluginIDByType(int type){
+	static int last_type=0;
+	static int index=0;
+	unsigned int id=0;
+	char query[150];
+
+	if(type==0 || (type!=last_type && last_type!=0)){
+		last_type=index=0;
+		if(type==0)return 0;
 	}
-	sprintf(library,"%s/%s",LIB_PATH,dbi->row[index]);
+	last_type=type;
+
+	sprintf(query,"SELECT PluginID FROM PluginType WHERE TypeID=%d LIMIT %d,1",type,index);
+
+	sqlite3_exec(conn,query,uint_return_cb,&id,NULL);
+	index++;
+
+	return id;
+}
+
+struct pluginitem *findPluginByID(struct pluginitem *list, int id){
+	while(list && list->id!=id)
+		list=list->next;
+	return list;
+}
+
+int getPluginModule(void **module, char *lib){
+	char library[250];
+
+	sprintf(library,"%s/%s",LIB_PATH,lib);
 	debug(2,library);
 	dlerror();
+
 	*module=dlopen(library,RTLD_LAZY);
 	if(!*module){
 		fprintf(stderr,"Can't open plugin.\n\t%s\n",dlerror());
@@ -148,7 +172,98 @@ int getPlugin(struct dbitem *dbi, const int index, void **module){
 	else{
 		dlerror();
 	}
+
 	return 1;
+}
+
+int getPlugin(struct dbitem *dbi, const int index, void **module){
+	char library[250];
+
+	if(!fetch_row(dbi)){
+		if(dbi->current_row==dbi->column_count || dbi->row_count==0)
+			fprintf(stderr,"No plugins found.\n\tSee README for information about installing plugins.\n");
+		return 0;
+	}
+
+	return getPluginModule(module,dbi->row[index]);
+}
+
+struct pluginitem *closePlugin(struct pluginitem *head){
+	struct pluginitem *ptr=head;
+
+	if(!head)return NULL;
+
+	ptr=ptr->next;
+	if(head->module)
+		dlclose(head->module);
+	free(head);
+
+	return ptr;
+}
+
+void closePluginList(struct pluginitem *head){
+	struct pluginitem *ptr=head;
+
+	do{
+		ptr=closePlugin(ptr);
+	}while(ptr);
+}
+
+static int regPluginFunctions(struct pluginitem *node){
+	if(!node->module)return 1;
+
+	if(!(node->modopen=dlsym(node->module,"plugin_open")) ||
+		!(node->moddata=dlsym(node->module,"filetype_by_data")) ||
+		!(node->modmeta=dlsym(node->module,"plugin_meta")) ||
+		!(node->modplay=dlsym(node->module,"plugin_run")) ||
+		!(node->modseek=dlsym(node->module,"plugin_seek")) ||
+		!(node->modclose=dlsym(node->module,"plugin_close")))
+		return 1;
+
+	return 0;
+}
+
+static int open_plugin_cb(void *arg, int col_count, char **row, char **titles){
+	struct pluginitem **node = (struct pluginitem**)arg;
+	struct pluginitem *next;
+
+	if(!(next=malloc(sizeof(struct pluginitem)))){
+		debug(2,"Malloc failed (open_plugin_cb).");
+		return 1;
+	}
+	if(getPluginModule(&(next->module),row[1])!=1){
+		free(next);
+			return 1;
+	}
+	else{
+		if(regPluginFunctions(next)){
+			free(next);
+			return 1;
+		}
+		else{
+			(*node)->next=next;
+			*node=next;
+			next->next=NULL;
+			next->id=strtol(row[0],NULL,10);
+		}
+	}
+
+	return 0;
+}
+
+struct pluginitem *openPlugins(){
+	int count;
+	struct pluginitem prehead,*ptr;
+
+	ptr=&prehead;
+	//sqlite3_exec(conn,"SELECT COUNT(PluginID) FROM Plugin",uint_return_cb,&count,NULL);
+	if(sqlite3_exec(conn,"SELECT PluginID,Library FROM Plugin",open_plugin_cb,&ptr,NULL)!=SQLITE_OK){
+		closePluginList(prehead.next);
+		fprintf(stderr,"Error opening plugins.\n");
+		return NULL;
+	}
+
+	return prehead.next; /* List starts at this next */
 }
 
 char *getFilename(const char *path){
@@ -164,7 +279,10 @@ int strToID(const char *argv){ // TODO: add type param
 	char query[201];
 	int id=0,found=0;
 	struct dbitem dbi;
+
+	if(!arglist[ATYPE].subarg)return -1;
 	dbiInit(&dbi);
+
 	switch(arglist[ATYPE].subarg[0]){
 		case 's':sprintf(query,"SELECT SongID,Title FROM Song WHERE Title LIKE '%%%s%%'",argv);break;
 		case 'p':sprintf(query,"SELECT PlaylistID,Title FROM Playlist WHERE Title LIKE '%%%s%%'",argv);break;
@@ -173,6 +291,7 @@ int strToID(const char *argv){ // TODO: add type param
 		case 'g':sprintf(query,"SELECT CategoryID,Name FROM Category WHERE Name LIKE '%%%s%%'",argv);break;
 		default:return -1;
 	}
+
 	if(doQuery(query,&dbi)==1 && fetch_row(&dbi)){
 		id=(int)strtol(dbi.row[0],NULL,10);
 	}
@@ -193,6 +312,7 @@ int strToID(const char *argv){ // TODO: add type param
 		if(id)
 			printf("Using best match: %d\n",id);
 	}
+
 	dbiClean(&dbi);
 	return id;
 }

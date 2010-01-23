@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,6 +32,14 @@ struct aacHandles{
 	int framesize;
 	int channels;
 }h;
+
+FILE * plugin_open(const char *path, const char *mode){
+	return plugin_std_fopen(path,mode);
+}
+
+void plugin_close(FILE *ffd){
+	plugin_std_fclose(ffd);
+}
 
 int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
@@ -115,13 +123,13 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	infile=mp4ff_open_read(mp4cb);
 	if(!infile){
-		fprintf(stderr,"mp4ffopenread failed");
+		debug(1,"mp4ffopenread failed");
 		free(mp4cb);
 		return DEC_RET_ERROR;
 	}
 
 	if((track=GetAACTrack(infile))<0){
-		fprintf(stderr,"getaactrack failed");
+		debug(1,"getaactrack failed");
 		mp4ff_close(infile);
 		free(mp4cb);
 		return DEC_RET_ERROR;
@@ -138,7 +146,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	conf->defSampleRate=44100;
 	conf->downMatrix=1;*/
 	if(NeAACDecSetConfiguration(hAac,conf)==0){
-		fprintf(stderr,"set conf failed");
+		debug(1,"set conf failed");
 		return DEC_RET_ERROR;
 	}
 
