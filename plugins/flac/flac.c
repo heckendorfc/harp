@@ -144,7 +144,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	do{ /* Read and write until everything is through. */
 		if(FLAC__stream_decoder_process_single(decoder)==(FLAC__bool)false){fprintf(stderr,"Early abort\n");break;}
-		//if((size=ov_read(vf,buf,len,0,2,1,&vf->current_link))<1){debug("uh oh");break;}
+		//if((size=ov_read(vf,buf,len,0,2,1,&vf->current_link))<1){fprintf(stderruh oh");break;}
 
 		//data.curtime+=data.size;
 

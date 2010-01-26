@@ -19,7 +19,7 @@
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	OggVorbis_File *vf;
 	if(!(vf=malloc(sizeof(OggVorbis_File)))){
-		debug(2,"Malloc failed (vf).");
+		fprintf(stderr,"Malloc failed (vf).");
 		return;
 	}
 

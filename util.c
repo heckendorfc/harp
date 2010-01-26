@@ -34,15 +34,20 @@ char *expand(char *in){
 	char tmp[250];
 	char *in_ptr=in-1;
 	char *tmp_ptr=tmp;
-	int x,y,z=0;
+	int url=0,x,y,z=0;
 
-	if(isURL(in))return in;
+	if(isURL(in))url=1; /* Clean \n but do no globbing */
 
 	for(x=0;x<249 && in[x];x++);
-	if(in[x-1]=='\n')
+	if(x>0 && in[x-1]=='\n')
 		in[x-1]=0;
+	if(x>1 && in[x-2]=='\r')
+		in[x-2]=0;
 	in[x]=0;
 	y=x;
+
+	if(url)return in;
+
 	if(in[0]=='~'){
 		strcpy(tmp,getenv("HOME"));
 		strcat(tmp,"/");

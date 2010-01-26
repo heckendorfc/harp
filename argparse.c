@@ -99,7 +99,7 @@ struct insertps_arg{
 static int batch_insert_cb(void *arg, int col_count, char **row, char **titles){
 	struct insertps_arg *data=(struct insertps_arg*)arg;
 
-	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,`Order`) VALUES(%s,%d)",*row,data->order);
+	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,data->order);
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 
 	data->order++;

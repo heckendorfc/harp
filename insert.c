@@ -472,7 +472,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 		return 0;
 	}
 	if(strcmp(mi->album,"Unknown") && *mi->year){
-		sprintf(query,"UPDATE Album SET `Date`=%s WHERE AlbumID=%d",mi->year,albumid);
+		sprintf(query,"UPDATE Album SET \"Date\"=%s WHERE AlbumID=%d",mi->year,albumid);
 		debug(3,query);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}

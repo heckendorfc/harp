@@ -362,14 +362,14 @@ static int editPlaylistSongAdd(char *args, void *data){
 	*arglist[ATYPE].subarg='p';
 
 	for(x=0;x<ids->length;x++){
-		sprintf(query,"SELECT `Order` FROM PlaylistSong WHERE PlaylistID=%d ORDER BY `Order` DESC LIMIT 1",ids->songid[x]);
+		sprintf(query,"SELECT \"Order\" FROM PlaylistSong WHERE PlaylistID=%d ORDER BY \"Order\" DESC LIMIT 1",ids->songid[x]);
 		doQuery(query,&dbi);
 		if(fetch_row(&dbi))
 			order=(int)strtol(dbi.row[0],NULL,10)+1;
 		else
 			order=1;
 
-		sprintf(query,"INSERT INTO PlaylistSong(PlaylistID,SongID,`Order`) VALUES (%d,%d,%d)",ids->songid[x],songid,order);
+		sprintf(query,"INSERT INTO PlaylistSong(PlaylistID,SongID,\"Order\") VALUES (%d,%d,%d)",ids->songid[x],songid,order);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 	dbiClean(&dbi);
@@ -394,11 +394,11 @@ static int editPlaylistSongDelete(char *args, void *data){
 	}
 
 	x=(int)strtol(args,NULL,10);
-	sprintf(query,"DELETE FROM PlaylistSong WHERE `Order`=%d AND PlaylistID=%d",x,ids->songid[0]);
+	sprintf(query,"DELETE FROM PlaylistSong WHERE \"Order\"=%d AND PlaylistID=%d",x,ids->songid[0]);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	// Remove the empty place at the old order
-	sprintf(query,"UPDATE PlaylistSong SET `Order`=`Order`-1 WHERE `Order`>%d AND PlaylistID=%d",x,ids->songid[0]);
+	sprintf(query,"UPDATE PlaylistSong SET \"Order\"=\"Order\"-1 WHERE \"Order\">%d AND PlaylistID=%d",x,ids->songid[0]);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 
 	return PORTAL_RET_PREV;
@@ -469,19 +469,19 @@ static int editPlaylistSongOrder(char *args, void *data){
 	}
 
 	// Move song out of the way. Order 0 should not be used.
-	sprintf(query,"UPDATE PlaylistSong SET `Order`=0 WHERE PlaylistID=%d AND `Order`=%d",ids->songid[0],current_order);
+	sprintf(query,"UPDATE PlaylistSong SET \"Order\"=0 WHERE PlaylistID=%d AND \"Order\"=%d",ids->songid[0],current_order);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	// Remove the empty place at the old order
-	sprintf(query,"UPDATE PlaylistSong SET `Order`=`Order`-1 WHERE `Order`>%d AND PlaylistID=%d",current_order,ids->songid[0]);
+	sprintf(query,"UPDATE PlaylistSong SET \"Order\"=\"Order\"-1 WHERE \"Order\">%d AND PlaylistID=%d",current_order,ids->songid[0]);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	// Make room for the song. TODO: find performance of ignoring the overlap vs testing for overlap in the query.
-	sprintf(query,"UPDATE PlaylistSong SET `Order`=`Order`+1 WHERE `Order`>%d AND PlaylistID=%d",new_order-1,ids->songid[0]);
+	sprintf(query,"UPDATE PlaylistSong SET \"Order\"=\"Order\"+1 WHERE \"Order\">%d AND PlaylistID=%d",new_order-1,ids->songid[0]);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 	// Change the song's order
-	sprintf(query,"UPDATE PlaylistSong SET `Order`=%d WHERE PlaylistID=%d AND `Order`=0",new_order,ids->songid[0]);
+	sprintf(query,"UPDATE PlaylistSong SET \"Order\"=%d WHERE PlaylistID=%d AND \"Order\"=0",new_order,ids->songid[0]);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 

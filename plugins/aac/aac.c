@@ -114,7 +114,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	
 	mp4ff_callback_t *mp4cb;
 	if(!(mp4cb=malloc(sizeof(mp4ff_callback_t)))){
-		debug(2,"Malloc failed (mp4cb).");
+		fprintf(stderr,"Malloc failed (mp4cb).");
 		return DEC_RET_ERROR;
 	}
 	mp4cb->read=read_callback;
@@ -123,13 +123,13 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	infile=mp4ff_open_read(mp4cb);
 	if(!infile){
-		debug(1,"mp4ffopenread failed");
+		fprintf(stderr,"mp4ffopenread failed");
 		free(mp4cb);
 		return DEC_RET_ERROR;
 	}
 
 	if((track=GetAACTrack(infile))<0){
-		debug(1,"getaactrack failed");
+		fprintf(stderr,"getaactrack failed");
 		mp4ff_close(infile);
 		free(mp4cb);
 		return DEC_RET_ERROR;
@@ -146,7 +146,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	conf->defSampleRate=44100;
 	conf->downMatrix=1;*/
 	if(NeAACDecSetConfiguration(hAac,conf)==0){
-		debug(1,"set conf failed");
+		fprintf(stderr,"set conf failed");
 		return DEC_RET_ERROR;
 	}
 

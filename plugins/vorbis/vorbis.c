@@ -94,7 +94,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	
 	OggVorbis_File *vf;
 	if(!(vf=malloc(sizeof(OggVorbis_File)))){
-		debug(2,"Malloc failed (vf).");
+		fprintf(stderr,"Malloc failed (vf).");
 		return DEC_RET_ERROR;
 	}
 

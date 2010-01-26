@@ -77,7 +77,7 @@ int mp3Init(struct playerHandles *ph){
 
 void plugin_seek(struct playerHandles *ph, int modtime){
 	if(ph->dechandle==NULL){
-		debug(1,"no dechandle");
+		fprintf(stderr,"no dechandle");
 		return;
 	}
 
@@ -138,7 +138,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	unsigned char *out;
 	if(!(out=malloc(sizeof(unsigned char)*outsize))){
-		debug(2,"Malloc failed (out decoder buffer).");
+		fprintf(stderr,"Malloc failed (out decoder buffer).");
 		plugin_exit(ph);
 		return DEC_RET_ERROR;
 	}
@@ -157,7 +157,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			pthread_mutex_unlock(&dechandle_lock);
 			if(mret==MPG123_DONE || mret==MPG123_ERR){ // EOF (or read error)
 				retval=DEC_RET_SUCCESS;
-				debug(1,"done..");
+				fprintf(stderr,"done..");
 				break;
 			}
 		}
@@ -177,7 +177,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			fprintf(stderr,"New Format: framesize samptime %d %d\n",framesize,samptime);
 			//snd_pcm_prepare(ph->sndfd);
 			*/
-			debug(2,"Should have reformatted here.");
+			fprintf(stderr,"Should have reformatted here.");
 		}
 		if(len==0)continue;
 		size=len;

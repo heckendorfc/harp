@@ -266,5 +266,5 @@ int doTitleQuery(const char *querystr,int *exception, int maxwidth){
 }
 
 void createTempPlaylistSong(){
-	sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempPlaylistSong( PlaylistSongID integer primary key, SongID integer not null, `Order` integer NOT NULL)",NULL,NULL,NULL);
+	sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempPlaylistSong( PlaylistSongID integer primary key, SongID integer not null, \"Order\" integer NOT NULL)",NULL,NULL,NULL);
 }

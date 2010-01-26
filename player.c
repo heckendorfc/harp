@@ -32,12 +32,12 @@ struct play_song_args{
 static int initList(int list, char *query){
 	// If we shuffled, TempPlaylistSong will be a temp table. list will be 0.
 	if(list){
-		sprintf(query,"CREATE TEMP VIEW IF NOT EXISTS TempPlaylistSong AS SELECT PlaylistSongID, SongID, `Order` FROM PlaylistSong WHERE PlaylistID=%d ORDER BY `Order`",list);
+		sprintf(query,"CREATE TEMP VIEW IF NOT EXISTS TempPlaylistSong AS SELECT PlaylistSongID, SongID, \"Order\" FROM PlaylistSong WHERE PlaylistID=%d ORDER BY \"Order\"",list);
 		sqlite3_exec(conn,query,NULL,NULL,NULL);
-		sprintf(query,"SELECT Song.SongID, `Order` FROM Song, PlaylistSong WHERE Song.SongID=PlaylistSong.SongID AND PlaylistSong.PlaylistID=%d ORDER BY `Order`",list);
+		sprintf(query,"SELECT Song.SongID, \"Order\" FROM Song, PlaylistSong WHERE Song.SongID=PlaylistSong.SongID AND PlaylistSong.PlaylistID=%d ORDER BY \"Order\"",list);
 	}
 	else{
-		sprintf(query,"SELECT Song.SongID,`Order` FROM Song, TempPlaylistSong WHERE Song.SongID=TempPlaylistSong.SongID ORDER BY `Order`");
+		sprintf(query,"SELECT Song.SongID,\"Order\" FROM Song, TempPlaylistSong WHERE Song.SongID=TempPlaylistSong.SongID ORDER BY \"Order\"");
 	}
 	return 0;
 }
@@ -174,7 +174,7 @@ int player(int list){//list - playlist number
 	// Run the song playing query. Loop for jumping.
 	while(sqlite3_exec(conn,query,play_song,&psargs,NULL)==SQLITE_ABORT &&
 			pca.next_order!=pca.cur_order){
-		sprintf(query,"SELECT Song.SongID,`Order` FROM Song NATURAL JOIN TempPlaylistSong WHERE `Order`>=%d ORDER BY `Order`",pca.next_order);
+		sprintf(query,"SELECT Song.SongID,\"Order\" FROM Song NATURAL JOIN TempPlaylistSong WHERE \"Order\">=%d ORDER BY \"Order\"",pca.next_order);
 	}
 
 	closePluginList(ph.plugin_head);
@@ -235,17 +235,17 @@ static void writelist(char *com, struct playercontrolarg *pca){
 	//for(x=1;x<y && com[x];y++);
 	switch(com[1]){
 		case 'h':
-			sprintf(query,"SELECT `Order` AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
+			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 		case 't':
 			sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
 			if(x<0)x=0;
-			sprintf(query,"SELECT `Order` AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
+			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 		case 'r':
 		default:
 			sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
-			sprintf(query,"SELECT `Order` AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY `Order` LIMIT %d",limit);
+			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 	}
 	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
@@ -268,12 +268,8 @@ static void advseek(char *com, struct playercontrolarg *pca){
 		time*=-1;
 
 	if(!pca->decoder)return;
-	function_seek seek;
-	seek=dlsym(pca->decoder,"plugin_seek");
-	if(seek){
-		pca->ph->pflag->pause=0;
-		seek(pca->ph,time);
-	}
+	pca->ph->pflag->pause=0;
+	pca->decoder->modseek(pca->ph,time);
 }
 
 static void jump(char *com, struct playercontrolarg *pca){
@@ -285,7 +281,7 @@ static void jump(char *com, struct playercontrolarg *pca){
 	if(dest<=0)return;
 
 	if(com[1]=='s'){ // Jump by SongID. Find the Order first,
-		sprintf(query,"SELECT `Order` FROM TempPlaylistSong WHERE SongID=%d",dest);
+		sprintf(query,"SELECT \"Order\" FROM TempPlaylistSong WHERE SongID=%d",dest);
 		debug(3,query);
 		sqlite3_exec(conn,query,uint_return_cb,&dest,NULL);
 		if(dest<=0)return;
@@ -312,15 +308,15 @@ static void listtemp(char *com, struct playercontrolarg *pca){
 	if(limit<=0)limit=30;
 	switch(com[1]){
 		case 'h': // Head
-			sprintf(query,"SELECT `Order` AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY `Order` LIMIT %d",limit);
+			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 		case 't': // Tail
-			sqlite3_exec(conn,"SELECT MAX(`Order`) FROM TempPlaylistSong",uint_return_cb,&order,NULL);
-			sprintf(query,"SELECT `Order` AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE `Order`>%d ORDER BY `Order` LIMIT %d",order-limit,limit);
+			sqlite3_exec(conn,"SELECT MAX(\"Order\") FROM TempPlaylistSong",uint_return_cb,&order,NULL);
+			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE \"Order\">%d ORDER BY \"Order\" LIMIT %d",order-limit,limit);
 			break;
 		case 'r': // Relative
 		default:
-			sprintf(query,"SELECT `Order` AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE `Order`>=%d ORDER BY `Order` LIMIT %d",pca->cur_order,limit);
+			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE \"Order\">=%d ORDER BY \"Order\" LIMIT %d",pca->cur_order,limit);
 			break;
 	}
 	debug(3,query);

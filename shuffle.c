@@ -106,7 +106,7 @@ static int shuffle_cb(void *arg, int col_count, char **row, char **titles){
 	}
 	sprintf(data->query,"DELETE FROM TempPlaylistSong WHERE PlaylistSongID=%s",*(row+1));
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,`Order`) VALUES(%s,%d)",*row,order+1);
+	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,order+1);
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 	data->count++;
 	if(data->count>DB_BATCH_SIZE){
@@ -166,9 +166,9 @@ static int zs_skip_cb(void *arg, int col_count, char **row, char **titles){
 	int id=data->count;
 
 	// SWAP ORDERS!
-	sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=%s  WHERE `Order`=%d",*(row+2),id);
+	sprintf(data->query,"UPDATE TempPlaylistSong SET \"Order\"=%s  WHERE \"Order\"=%d",*(row+2),id);
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=%d  WHERE PlaylistSongID=%s",id,*(row+1));
+	sprintf(data->query,"UPDATE TempPlaylistSong SET \"Order\"=%d  WHERE PlaylistSongID=%s",id,*(row+1));
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 
 	data->count+=data->increment;
@@ -188,11 +188,11 @@ static int zs_slide_cb(void *arg, int col_count, char **row, char **titles){
 	else if(neworder>data->items)neworder=data->items;
 	
 	if(data->slidemod<0) // Moving up
-		sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=`Order`+1  WHERE `Order`>%d AND `Order`<(SELECT `Order` FROM TempPlaylistSong WHERE PlaylistSongID=%s LIMIT 1)",neworder-1,*(row+1));
+		sprintf(data->query,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"+1  WHERE \"Order\">%d AND \"Order\"<(SELECT \"Order\" FROM TempPlaylistSong WHERE PlaylistSongID=%s LIMIT 1)",neworder-1,*(row+1));
 	else // Moving down
-		sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=`Order`-1  WHERE `Order`<%d AND `Order`>(SELECT `Order` FROM TempPlaylistSong WHERE PlaylistSongID=%s LIMIT 1)",neworder+1,*(row+1));
+		sprintf(data->query,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"-1  WHERE \"Order\"<%d AND \"Order\">(SELECT \"Order\" FROM TempPlaylistSong WHERE PlaylistSongID=%s LIMIT 1)",neworder+1,*(row+1));
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	sprintf(data->query,"UPDATE TempPlaylistSong SET `Order`=%d  WHERE PlaylistSongID=%s",neworder,*(row+1));
+	sprintf(data->query,"UPDATE TempPlaylistSong SET \"Order\"=%d  WHERE PlaylistSongID=%s",neworder,*(row+1));
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 
 	data->count++;
@@ -221,7 +221,7 @@ void zshuffle(unsigned int items){
 	// Skip Count
 	data.slidemod=data.slide*3;
 	data.count=0;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order` FROM TempPlaylistSong NATURAL JOIN Song WHERE SkipCount>0 ORDER BY SkipCount DESC LIMIT %d",mod_count);
+	sprintf(query,"SELECT Song.SongID,PlaylistSongID,\"Order\" FROM TempPlaylistSong NATURAL JOIN Song WHERE SkipCount>0 ORDER BY SkipCount DESC LIMIT %d",mod_count);
 	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
 	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
@@ -229,7 +229,7 @@ void zshuffle(unsigned int items){
 	// Play Count
 	data.slidemod=data.slide*-2;
 	data.count=0;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order` FROM TempPlaylistSong NATURAL JOIN Song WHERE PlayCount>0 ORDER BY SkipCount DESC LIMIT %d",mod_count);
+	sprintf(query,"SELECT Song.SongID,PlaylistSongID,\"Order\" FROM TempPlaylistSong NATURAL JOIN Song WHERE PlayCount>0 ORDER BY SkipCount DESC LIMIT %d",mod_count);
 	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
 	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
@@ -237,7 +237,7 @@ void zshuffle(unsigned int items){
 	// Rating
 	data.slidemod=data.slide*-1;
 	data.count=0;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,`Order`,Rating FROM TempPlaylistSong NATURAL JOIN Song WHERE Rating>3 ORDER BY SkipCount DESC LIMIT %d",mod_count);
+	sprintf(query,"SELECT Song.SongID,PlaylistSongID,\"Order\",Rating FROM TempPlaylistSong NATURAL JOIN Song WHERE Rating>3 ORDER BY SkipCount DESC LIMIT %d",mod_count);
 	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
 	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
@@ -252,7 +252,7 @@ void zshuffle(unsigned int items){
 	}
 	for(x=0;x<mod_count;x+=group){
 		// What have I done...
-		sprintf(query,"SELECT SongID,PlaylistSongID,`Order` FROM TempPlaylistSong WHERE SongID IN (SELECT SongID FROM Song NATURAL JOIN TempPlaylistSong ORDER BY LastPlay ASC LIMIT %d,%d) ORDER BY `Order` ASC",x,group);
+		sprintf(query,"SELECT SongID,PlaylistSongID,\"Order\" FROM TempPlaylistSong WHERE SongID IN (SELECT SongID FROM Song NATURAL JOIN TempPlaylistSong ORDER BY LastPlay ASC LIMIT %d,%d) ORDER BY \"Order\" ASC",x,group);
 		sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 		sqlite3_exec(conn,query,zs_skip_cb,&data,NULL);
 		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);

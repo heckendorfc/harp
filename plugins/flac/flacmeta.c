@@ -21,7 +21,7 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	struct snd_data data;
 	FLAC__StreamDecoder *decoder=NULL;
 	if((decoder=FLAC__stream_decoder_new())==NULL){
-		debug(2,"flac decoder alloc failed");
+		fprintf(stderr,"flac decoder alloc failed");
 		return;
 	}
 
@@ -29,14 +29,14 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	FLAC__stream_decoder_set_metadata_respond(decoder,FLAC__METADATA_TYPE_STREAMINFO);
 
 	if(FLAC__stream_decoder_init_FILE(decoder,ph->ffd,flac_write,flac_meta,flac_error,&data)!=FLAC__STREAM_DECODER_INIT_STATUS_OK){
-		debug(2,"flac init failed");
+		fprintf(stderr,"flac init failed");
 		FLAC__stream_decoder_finish(decoder);
 		FLAC__stream_decoder_delete(decoder);
 		return;
 	}
 
 	if(!FLAC__stream_decoder_process_until_end_of_metadata(decoder)){
-		debug(2,"flac decoder metadata failed");
+		fprintf(stderr,"flac decoder metadata failed");
 		FLAC__stream_decoder_finish(decoder);
 		FLAC__stream_decoder_delete(decoder);
 		return DEC_RET_ERROR;

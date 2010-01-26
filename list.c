@@ -41,7 +41,7 @@ int list(int *ids, int length){
 				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
 
-				sprintf(query,"SELECT `Order` AS \"#\", SongID,SongTitle,AlbumTitle,ArtistName FROM PlaylistSong NATURAL JOIN SongPubInfo WHERE PlaylistID=%d ORDER BY `Order`",ids[x]);
+				sprintf(query,"SELECT \"Order\" AS \"#\", SongID,SongTitle,AlbumTitle,ArtistName FROM PlaylistSong NATURAL JOIN SongPubInfo WHERE PlaylistID=%d ORDER BY \"Order\"",ids[x]);
 				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
 			break;
