@@ -24,9 +24,12 @@ void debug(const int level, const char *msg){
 }
 
 void printSongPubInfo(char **row){
-	printf("Title: %s\n",row[0]);
-	printf("Artist: %s\n",row[3]);
-	printf("Album: %s\n",row[2]);
-	printf("Location: %s\n",row[1]);
-	printf("File Type: %s\n",row[4]);
+	printf( "\n=====================\n"
+			"Title: %s\n"
+			"Artist: %s\n"
+			"Album: %s\n"
+			"Location: %s\n"
+			"File Type: %s\n"
+			"---------------------\n",
+			row[0],row[3],row[2],row[1],row[4]);
 }

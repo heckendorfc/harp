@@ -67,9 +67,7 @@ int play_song(void *data, int col_count, char **row, char **titles){
 	if(!fetch_row(&dbi))
 		return 0;
 
-	printf("\n=====================\n");
 	printSongPubInfo(dbi.row);
-	printf("---------------------\n");
 
 	totaltime=(int)strtol(dbi.row[5],NULL,10);
 	psargs->ph->pflag->rating=(int)strtol(dbi.row[7],NULL,10);

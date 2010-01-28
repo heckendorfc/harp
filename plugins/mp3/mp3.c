@@ -53,6 +53,20 @@ int filetype_by_data(FILE *ffd){
 }
 
 void new_format(struct playerHandles *ph){
+	long ratel;
+	int channels, enc,enc_bit=2;
+	unsigned int rate;
+	
+	mpg123_getformat(h.m, &ratel, &channels, &enc);
+	rate=(unsigned int)ratel;
+	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
+	snd_param_init(ph,&enc_bit,&channels,&rate);
+
+	ph->dec_rate=ratel;
+	ph->dec_enc=enc_bit;
+	ph->dec_chan=channels;
+	h.framesize=enc_bit*channels;
+	h.samptime=ratel*h.framesize;
 }
 
 int mp3Init(struct playerHandles *ph){
@@ -112,6 +126,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	long ratel;
 	int channels, enc,enc_bit=2;
 	unsigned int rate;
+	unsigned char *out;
+	int outsize;
 	
 	if(mp3Init(ph)<0)return DEC_RET_ERROR;
 
@@ -120,23 +136,12 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	ph->dechandle=&h;
 			
 	pthread_mutex_lock(&dechandle_lock);
-	mpg123_getformat(h.m, &ratel, &channels, &enc);
-	rate=(unsigned int)ratel;
-	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
-	snd_param_init(ph,&enc_bit,&channels,&rate);
-
-	ph->dec_rate=ratel;
-	ph->dec_enc=enc_bit;
-	ph->dec_chan=channels;
-	h.framesize=enc_bit*channels;
-	h.samptime=ratel*h.framesize;
-
-	h.total=0;
-	h.accuracy=1000;
-	int outsize=mpg123_outblock(h.m);
+		new_format(ph);
+		h.total=0;
+		h.accuracy=1000;
+		outsize=mpg123_outblock(h.m);
 	pthread_mutex_unlock(&dechandle_lock);
 
-	unsigned char *out;
 	if(!(out=malloc(sizeof(unsigned char)*outsize))){
 		fprintf(stderr,"Malloc failed (out decoder buffer).");
 		plugin_exit(ph);
@@ -162,22 +167,10 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			}
 		}
 		if(mret==MPG123_NEW_FORMAT){
-			/*
-			mpg123_getformat(h.m, &ratel, &channels, &enc);
-			//ratel=44100;channels=2;enc=MPG123_ENC_16;
-			rate=(unsigned int)ratel;
-			//enc=getMp3EncBytes(&enc_bit);
-			fprintf(stderr,"New format (Hz;channels;encoding): %d %d %d\n",(int)ratel, channels, enc);
-			snd_param_init(ph,&enc,&channels,&rate);
-			//mpg123_info(h.m,&fi);
-			//TODO:don't hardcode the padding byte
-			//framesize=ceil((double)fi.framesize/144)+1;
-			framesize=channels*enc_bit;//channels*sample_bits
-			samptime=rate*framesize;
-			fprintf(stderr,"New Format: framesize samptime %d %d\n",framesize,samptime);
-			//snd_pcm_prepare(ph->sndfd);
-			*/
-			fprintf(stderr,"Should have reformatted here.");
+			//fprintf(stderr,"Should have reformatted here.");
+			pthread_mutex_lock(&dechandle_lock);
+				new_format(ph);
+			pthread_mutex_unlock(&dechandle_lock);
 		}
 		if(len==0)continue;
 		size=len;
