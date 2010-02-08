@@ -134,7 +134,7 @@ void snd_clear(struct playerHandles *ph){
 			case SND_PCM_STATE_SETUP:
 			case SND_PCM_STATE_XRUN:
 			case SND_PCM_STATE_OPEN:
-			case SND_PCM_STATE_PREPARED:usleep(50000);break; // TODO: fix possible infinate loop
+			case SND_PCM_STATE_PREPARED:usleep(50000);break; // TODO: fix possible infinite loop
 			case SND_PCM_STATE_DRAINING:
 			case SND_PCM_STATE_RUNNING:
 			default:flag=0;break;
@@ -155,39 +155,6 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 		snd_pcm_prepare(ph->sndfd);
 	}
 	ret=snd_pcm_writei(ph->sndfd,out,size);
-	if(ret == -EAGAIN)return 0;
-	if(ret<0){
-		if(ret == -EPIPE){
-			ret=snd_pcm_prepare(ph->sndfd);
-			if(ret<0){
-				snd_pcm_drain(ph->sndfd);
-				snd_pcm_close(ph->sndfd);
-				return -1;
-			}
-		}
-		else if(ret == -ESTRPIPE){
-			while((ret=snd_pcm_resume(ph->sndfd)) == -EAGAIN)
-				sleep(1);
-			if(ret<0){
-				ret=snd_pcm_prepare(ph->sndfd);
-				if(ret<0){
-					snd_pcm_drain(ph->sndfd);
-					snd_pcm_close(ph->sndfd);
-					return -1;
-				}
-			}
-		}
-	}
-	return 0;
-}
-
-int writen_snd(struct playerHandles *ph, void *out[], const unsigned int size){
-	int ret;
-
-	char *x=(char*)out[0];
-	for(ret=0;ret<50;ret++){fprintf(stderr,"%x ",x[ret]);} fprintf(stderr,"\n");
-
-	ret=snd_pcm_writen(ph->sndfd,out,size);
 	if(ret == -EAGAIN)return 0;
 	if(ret<0){
 		if(ret == -EPIPE){

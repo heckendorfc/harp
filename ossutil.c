@@ -67,8 +67,9 @@ void changeVolume(struct playerHandles *ph, int mod){
 
 	current+=mod<<8;
 	current+=mod;
-	if((current&0xff)>0)
-		if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
+	if((current&0xff)<0)current=0;
+	if((current&0xff)>100)current=100+(100<<8);
+	if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
 	fprintf(stdout,"\r                               Volume: %d%%  ",(0xff&current));
 	fflush(stdout);
@@ -120,10 +121,6 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 	if((write_size=write(ph->sndfd,out,size))!=size)
 		fprintf(stderr,"Write error %d %d\n",size,write_size);
 	return write_size;
-}
-
-int writen_snd(struct playerHandles *ph, void *out[], const unsigned int size){
-	return 0;
 }
 
 void snd_close(struct playerHandles *ph){

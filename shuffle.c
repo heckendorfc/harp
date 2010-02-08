@@ -208,9 +208,9 @@ void zshuffle(unsigned int items){
 	char query[250],cb_query[250];
 	int x;
 	const int ten_percent=items*0.1;
-	const int alter_limit=100;
-	const int mod_count=ten_percent>alter_limit?alter_limit:ten_percent;
-	const int group=mod_count>>2;
+	const int alter_limit=100; // Max songs to alter
+	const int mod_count=ten_percent>alter_limit?alter_limit:ten_percent; // Songs to alter this round
+	const int group=(mod_count>>2)|1; // Number of songs to float each iter
 
 	srandom((unsigned int)time(NULL));
 	struct zs_arg data={items,group,(random()%2)+2,(random()%3)+2,0,1,cb_query};

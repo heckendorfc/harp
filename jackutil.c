@@ -297,9 +297,6 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 	return 0;
 }
 
-int writen_snd(struct playerHandles *ph, void *out[], const unsigned int size){
-}
-
 void snd_close(struct playerHandles *ph){
 	jack_client_close(ph->sndfd);
 	jack_ringbuffer_free(ph->outbuf[0]);

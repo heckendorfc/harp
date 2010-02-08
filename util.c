@@ -261,7 +261,7 @@ struct pluginitem *openPlugins(){
 	struct pluginitem prehead,*ptr;
 
 	ptr=&prehead;
-	//sqlite3_exec(conn,"SELECT COUNT(PluginID) FROM Plugin",uint_return_cb,&count,NULL);
+	// Add order by active?
 	if(sqlite3_exec(conn,"SELECT PluginID,Library FROM Plugin",open_plugin_cb,&ptr,NULL)!=SQLITE_OK){
 		closePluginList(prehead.next);
 		fprintf(stderr,"Error opening plugins.\n");

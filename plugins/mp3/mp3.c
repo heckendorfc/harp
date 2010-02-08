@@ -137,10 +137,11 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			
 	pthread_mutex_lock(&dechandle_lock);
 		new_format(ph);
-		h.total=0;
-		h.accuracy=1000;
 		outsize=mpg123_outblock(h.m);
 	pthread_mutex_unlock(&dechandle_lock);
+
+	h.total=0;
+	h.accuracy=1000;
 
 	if(!(out=malloc(sizeof(unsigned char)*outsize))){
 		fprintf(stderr,"Malloc failed (out decoder buffer).");
