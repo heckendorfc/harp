@@ -174,6 +174,28 @@ static int deleteSong(char *args, void *data){
 	return PORTAL_RET_PREV;
 }
 
+static int editSongTrack(char *args, void *data){
+	struct IDList *songids=(struct IDList *)data;
+	if(!songids || !songids->songid){
+		fprintf(stderr,"no data\n");
+		return PORTAL_RET_PREV;
+	}
+	char query[100],*ptr;
+	int x;
+
+	if((x=getStdArgs(args,"Track number: "))<0)return PORTAL_RET_PREV;
+
+	sprintf(query,"UPDATE Song SET Track=%d WHERE SongID=",(int)strtol(&args[x],NULL,10));
+	for(x=0;query[x];x++);
+	ptr=query+x;
+
+	for(x=0;x<songids->length;x++){
+		sprintf(ptr,"%d",songids->songid[x]);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+	return PORTAL_RET_PREV;
+}
+
 static int songActivation(char *args, void *data){
 	struct IDList *songids=(struct IDList *)data;
 	if(!songids || !songids->songid){
@@ -672,7 +694,7 @@ static int listSongs(char *args, void *data){
 
 	int exception[10];
 	for(x=0;x<5;x++)exception[x]=1;
-	sprintf(query,"SELECT SongID, SongTitle, Location, AlbumTitle AS Album, ArtistName AS Artist FROM SongPubInfo WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",songids->tempselectid);
+	sprintf(query,"SELECT SongID, SongTitle, SongTrack, Location, AlbumTitle AS Album, ArtistName AS Artist FROM SongPubInfo WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",songids->tempselectid);
 	doTitleQuery(query,exception,listconf.maxwidth);
 	return PORTAL_RET_PREV;
 }
@@ -840,6 +862,7 @@ static int songPortal(char *args, void *data){
 	struct commandOption portalOptions[]={
 		{'L',listSongs,"List affected songs",id_struct},
 		{'t',editSongName,"Change title",id_struct},
+		{'k',editSongTrack,"Change track number",id_struct},
 		{'l',editSongLocation,"Change location",id_struct},
 		{'a',editSongAlbum,"Change album",id_struct},
 		{'r',editSongArtist,"Change artist",id_struct}, 

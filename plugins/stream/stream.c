@@ -203,7 +203,7 @@ static int parse_meta(char *buf, int len, void *data){
 }
 
 static void streamIO(int parse(char*,int,void*),void *data){
-	const char hello[]="GET / HTTP/1.0\r\nIcy-MetaData:0\r\n\r\n";
+	const char hello[]="GET / HTTP/1.0\r\nUser-Agent: HARP\r\nIcy-MetaData:0\r\n\r\n";
 	const int hello_len=strlen(hello);
 	int ret;
 	char buf[S_BUFSIZE+1];

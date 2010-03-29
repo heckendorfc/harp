@@ -128,6 +128,9 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	unsigned int rate;
 	unsigned char *out;
 	int outsize;
+	int metaret;
+	int metacount;
+	char *icymeta;
 	
 	if(mp3Init(ph)<0)return DEC_RET_ERROR;
 
@@ -188,7 +191,18 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 #else
 		if(writei_snd(ph,(char *)out,size)<0)break;
 #endif
-
+		/*
+		if(metacount++>2000){
+			printf("1\n");
+			metacount=0;
+			pthread_mutex_lock(&dechandle_lock);
+				metaret=mpg123_meta_check(h.m);
+				if(metaret & MPG123_NEW_ICY){
+					mpg123_icy(h.m,&icymeta);
+					printf("%s\n",icymeta);
+				}
+			pthread_mutex_unlock(&dechandle_lock);
+		}*/
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){
 			retval=ph->pflag->exit;
 			break;	

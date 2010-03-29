@@ -33,6 +33,7 @@ Title varchar(200) not null,
 Location varchar(250) not null,
 TypeID integer(3) not null default 1,
 AlbumID integer not null,
+Track integer not null default 0,
 Rating integer(3) not null default 3,
 PlayCount integer not null default 0,
 SkipCount integer not null default 0,
@@ -74,7 +75,7 @@ SELECT Song.Title AS SongTitle, Song.Location AS Location,
 Album.Title AS AlbumTitle, Artist.Name AS ArtistName,
 FilePlugin.Name AS FilePluginName, Song.Length AS Length,
 FilePlugin.Library AS Library, Song.Rating AS Rating,
-Song.SongID AS SongID
+Song.SongID AS SongID, Song.Track AS SongTrack
 FROM FilePlugin
 INNER JOIN Song ON FilePlugin.TypeID=Song.TypeID
 INNER JOIN Album ON Song.AlbumID=Album.AlbumID

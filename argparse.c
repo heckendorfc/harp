@@ -138,13 +138,13 @@ static void makeTempPlaylist(int *multilist, int multi){
 			break;
 		case 'a':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM Album INNER JOIN Song USING(AlbumID) WHERE Active=1 AND Album.AlbumID=%d",multilist[mx]);
+				sprintf(query,"SELECT Song.SongID FROM Album INNER JOIN Song USING(AlbumID) WHERE Active=1 AND Album.AlbumID=%d ORDER BY Track",multilist[mx]);
 				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
 			}
 			break;
 		case 'r':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM AlbumArtist NATURAL JOIN Song WHERE Active=1 AND AlbumArtist.ArtistID=%d",multilist[mx]);
+				sprintf(query,"SELECT Song.SongID FROM AlbumArtist NATURAL JOIN Song WHERE Active=1 AND AlbumArtist.ArtistID=%d ORDER BY AlbumArtist.AlbumID,Track",multilist[mx]);
 				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
 			}
 			break;

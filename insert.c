@@ -317,6 +317,26 @@ int metadataInsert(struct insert_data *data){
 	return 1;
 }
 
+static void filepathinsert_flags(char flag, struct insert_data *data, int *limit, char **dest){
+	switch(flag){
+		case 'r':
+			*limit=MI_ARTIST_SIZE;
+			*dest=data->mi->artist;break;
+		case 'a':
+			*limit=MI_ALBUM_SIZE;
+			*dest=data->mi->album;break;
+		case 't':
+			*limit=MI_TITLE_SIZE;
+			*dest=data->mi->title;break;
+		case 'y':
+			*limit=MI_YEAR_SIZE;
+			*dest=data->mi->year;break;
+		case 'k':
+			*limit=MI_TRACK_SIZE;
+			*dest=data->mi->track;break;
+	}
+}
+
 static void reverse_filepathInsert(char *orig_format, struct insert_data *data){
 	char *format=orig_format;
 	char *orig_ptr=(char*)data->path;
@@ -328,20 +348,7 @@ static void reverse_filepathInsert(char *orig_format, struct insert_data *data){
 	while(*(++format)); // terminated
 	while(format>orig_format && *(--format)!='%'); // Get first %
 	while(format>=orig_format){
-		switch(*(format+1)){ // % coefficient
-			case 'r':
-				limit=MI_ARTIST_SIZE;
-				dest=data->mi->artist;break;
-			case 'a':
-				limit=MI_ALBUM_SIZE;
-				dest=data->mi->album;break;
-			case 't':
-				limit=MI_TITLE_SIZE;
-				dest=data->mi->title;break;
-			case 'y':
-				limit=MI_YEAR_SIZE;
-				dest=data->mi->year;break;
-		}
+		filepathinsert_flags(*(format+1),data,&limit,&dest); // % coefficient
 		if(dest && *(--format)!='%'){ // Char before %
 			tmp=ptr;
 			while((ptr--)>orig_ptr && *ptr!=*format); // Skip back to start of this str
@@ -385,20 +392,7 @@ int filepathInsert(struct insert_data *data){
 
 	while(*fptr && *(fptr++)!='%');
 	while(*fptr){
-		switch(*fptr){
-			case 'r':
-				limit=MI_ARTIST_SIZE;
-				dest=data->mi->artist;break;
-			case 'a':
-				limit=MI_ALBUM_SIZE;
-				dest=data->mi->album;break;
-			case 't':
-				limit=MI_TITLE_SIZE;
-				dest=data->mi->title;break;
-			case 'y':
-				limit=MI_YEAR_SIZE;
-				dest=data->mi->year;break;
-		}
+		filepathinsert_flags(*fptr,data,&limit,&dest);
 		if(dest && *(++fptr)!='%'){
 			while(*ptr!=*fptr && x++<limit)
 				*(dest++)=*(ptr++);
@@ -493,7 +487,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	// This prints escaped strings. Is it worth fixing?
 	printf("%s | %s | %s \n",mi->title,mi->album,mi->artist);
 
-	sprintf(query,"UPDATE Song SET Length=%d, Rating=3, TypeID=%d WHERE SongID=%d",mi->length,fmt,songid);
+	sprintf(query,"UPDATE Song SET Track=%d, Length=%d, Rating=3, TypeID=%d WHERE SongID=%d",(int)strtol(mi->track,NULL,10),mi->length,fmt,songid);
 	debug(3,query);
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 
