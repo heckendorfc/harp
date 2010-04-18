@@ -21,6 +21,9 @@
 void debug(const int level, const char *msg){
 	if(arglist[AVERBOSE].active>=level)
 		fprintf(stderr,"%s\n",msg);
+	if(debugconf.log==1 && debugconf.level>=level && debugconf.msglog){
+		fprintf(debugconf.msglog,"%s\n",msg);
+	}
 }
 
 void printSongPubInfo(char **row){
@@ -32,4 +35,8 @@ void printSongPubInfo(char **row){
 			"File Type: %s\n"
 			"---------------------\n",
 			row[0],row[3],row[2],row[1],row[4]);
+	if(debugconf.log==1 && debugconf.playlog){
+		fprintf(debugconf.playlog,"%s\t%s\t%s\t%s\t%s\n",row[0],row[3],row[2],row[1],row[4]);
+		fflush(debugconf.playlog);
+	}
 }

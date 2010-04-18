@@ -398,17 +398,27 @@ void cleanTempSelect(const int tempid){
 	sqlite3_exec(conn,query,NULL,NULL,NULL);
 }
 
+static void createTempSelect(){
+	sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempSelect(TempSelectID integer not null primary key, TempID integer not null, SelectID integer not null)",NULL,NULL,NULL);
+}
+
+static int getNextTempSelectID(){
+	int tempid=0;
+	/* Replace with MAX(TempID)? */
+	if(sqlite3_exec(conn,"SELECT TempID FROM TempSelect ORDER BY TempID DESC LIMIT 1",uint_return_cb,&tempid,NULL)==SQLITE_DONE)
+		return 1;
+	return ++tempid;
+}
+
 int insertTempSelect(const int *ids, const int idlen){
 	unsigned int x,currentlimit,tempid;
 	struct dbitem dbi;
 	dbiInit(&dbi);
 	char query[150];
 
-	sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempSelect(TempSelectID integer not null primary key, TempID integer not null, SelectID integer not null)",NULL,NULL,NULL);
+	createTempSelect();
 
-	// Replace with MAX(TempID)?
-	sqlite3_exec(conn,"SELECT TempID FROM TempSelect ORDER BY TempID DESC LIMIT 1",uint_return_cb,&tempid,NULL);
-	tempid++;
+	tempid=getNextTempSelectID();
 
 	x=currentlimit=0;
 	while(x<idlen){
@@ -421,6 +431,31 @@ int insertTempSelect(const int *ids, const int idlen){
 		sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 	}
 
+	return tempid;
+}
+
+int insertTempSelectQuery(const char *query){
+	const char *ins_q="INSERT INTO TempSelect(TempID,SelectID) ";
+	unsigned int x,currentlimit,tempid;
+	char *temp_q,*ptr;
+
+	if(!(temp_q=malloc(strlen(ins_q)+strlen(query)+1))){
+		debug(2,"Malloc failed (tempquery)");
+		exit(1);
+	}
+
+	createTempSelect();
+
+	tempid=getNextTempSelectID();
+	sprintf(temp_q,query,tempid);
+	ptr=strdup(temp_q);
+	sprintf(temp_q,"%s%s",ins_q,ptr);
+	debug(2,temp_q);
+
+	sqlite3_exec(conn,temp_q,NULL,NULL,NULL);
+	
+	free(temp_q);
+	free(ptr);
 	return tempid;
 }
 

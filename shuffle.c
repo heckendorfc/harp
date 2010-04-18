@@ -97,6 +97,54 @@ static struct prime_rand_data *prime_rand_init(int items){
 	return data;
 }
 
+static struct shuffle_queries{
+	char group;
+	char *count;
+	char *primary_select;
+	char *fill;
+}shuffle_q[]={
+	{	's',
+		"SELECT COUNT(SelectID) FROM TempSelect WHERE TempID=%d",
+		"SELECT SelectID FROM TempSelect WHERE TempID=%d",
+		"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"*-1"
+	},
+	{	'a',
+		"SELECT COUNT(SongID) FROM Song WHERE SongID IN (SELECT SelectID FROM TempSelect,Song WHERE SelectID=SongID AND TempID=%d GROUP BY AlbumID)",
+		"SELECT DISTINCT AlbumID FROM Song WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",
+		"SELECT SelectID,\"Order\" FROM TempSelect INNER JOIN Song ON SelectID=Song.SongID INNER JOIN TempPlaylistSong ON TempPlaylistSong.SongID=Song.AlbumID WHERE TempID=%d AND \"Order\"<1 ORDER BY \"Order\" ASC,Track ASC"
+	},
+	{	'r',
+		"SELECT COUNT(SongID) FROM Song WHERE SongID IN (SELECT SelectID FROM TempSelect,Song,AlbumArtist WHERE SelectID=SongID AND Song.AlbumID=AlbumArtist.AlbumID AND TempID=%d GROUP BY ArtistID)",
+		"SELECT DISTINCT ArtistID FROM AlbumArtist NATURAL JOIN Song WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",
+		"SELECT SelectID,\"Order\" FROM TempSelect INNER JOIN Song ON SelectID=Song.SongID NATURAL JOIN AlbumArtist INNER JOIN TempPlaylistSong ON TempPlaylistSong.SongID=ArtistID WHERE TempID=%d AND \"Order\"<1 ORDER BY \"Order\" ASC,AlbumID ASC,Track ASC"
+	},
+	{0,NULL,NULL,NULL}
+};
+
+struct insertps_arg{
+	int order;
+	int count;
+	char *query;
+};
+
+static int batch_insert_cb(void *arg, int col_count, char **row, char **titles){
+	struct insertps_arg *data=(struct insertps_arg*)arg;
+
+	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,data->order);
+	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
+
+	data->order++;
+	return 0;
+}
+
+static void fillTempPlaylistSong(int tempid,int group){
+	char query[350],cb_query[150];
+	static struct insertps_arg data={1,0,NULL};
+	data.query=cb_query;
+	sprintf(query,shuffle_q[group].fill,tempid);
+	sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
+}
+
 static int shuffle_cb(void *arg, int col_count, char **row, char **titles){
 	unsigned int order;
 	struct prime_rand_data *data=(struct prime_rand_data*)arg;
@@ -104,9 +152,7 @@ static int shuffle_cb(void *arg, int col_count, char **row, char **titles){
 		debug(2,"prime_rand_next returned -1");
 		return 1;
 	}
-	sprintf(data->query,"DELETE FROM TempPlaylistSong WHERE PlaylistSongID=%s",*(row+1));
-	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,order+1);
+	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,-(order+1));
 	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 	data->count++;
 	if(data->count>DB_BATCH_SIZE){
@@ -118,21 +164,30 @@ static int shuffle_cb(void *arg, int col_count, char **row, char **titles){
 }
 
 void shuffle(int list){
-	char query[250],cb_query[250];
+	char query[350],cb_query[350];
+	int tempid,group=0;
 	unsigned int items=0;
 
+	if(arglist[ASHUFFLE].active && arglist[ASHUFFLE].subarg){
+		for(group=0;shuffle_q[group].group && shuffle_q[group].group!=*arglist[ASHUFFLE].subarg;group++);
+		if(!shuffle_q[group].group)
+			group=0;
+	}
+
 	if(list){
-		sprintf(query,"SELECT COUNT(SongID) FROM PlaylistSong WHERE PlaylistID=%d",list);
-		sqlite3_exec(conn,query,uint_return_cb,&items,NULL);
-		sprintf(query,"SELECT SongID,PlaylistSongID FROM PlaylistSong WHERE PlaylistID=%d",list);
+		sprintf(query,"SELECT %%d,SongID FROM PlaylistSong WHERE PlaylistID=%d",list);
+		tempid=insertTempSelectQuery(query);
 		createTempPlaylistSong();
 	}
 	else{
-		sprintf(query,"SELECT COUNT(SongID) FROM TempPlaylistSong");
-		sqlite3_exec(conn,query,uint_return_cb,&items,NULL);
-		sprintf(query,"SELECT SongID,PlaylistSongID FROM TempPlaylistSong");
+		tempid=insertTempSelectQuery("SELECT %d,SongID FROM TempPlaylistSong");
 	}
+	sprintf(query,shuffle_q[group].count,tempid);
+	sqlite3_exec(conn,query,uint_return_cb,&items,NULL);
+	sprintf(query,shuffle_q[group].primary_select,tempid);
 	
+	sqlite3_exec(conn,"DELETE FROM TempPlaylistSong",NULL,NULL,NULL);
+
 	struct prime_rand_data *data=prime_rand_init(items);
 	if(!data)
 		return;
@@ -141,6 +196,15 @@ void shuffle(int list){
 	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	sqlite3_exec(conn,query,shuffle_cb,data,NULL);
 	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+
+	if(group>0)
+		fillTempPlaylistSong(tempid,group);
+	else{
+		sprintf(query,shuffle_q[group].fill,tempid);
+		sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+
+	sqlite3_exec(conn,"DELETE FROM TempPlaylistSong WHERE \"Order\"<1",NULL,NULL,NULL); /* Just in case */
 	free(data);
 	if(arglist[AZSHUFFLE].active){
 		debug(1,"Z Shuffling");

@@ -54,7 +54,7 @@ struct argument arglist[]={
 struct option longopts[]={
 	{"list",2,NULL,'l'},
 	{"play",1,NULL,'p'},
-	{"shuffle",0,NULL,'s'},
+	{"shuffle",2,NULL,'s'},
 	{"insert",2,NULL,'i'},
 	{"edit",1,NULL,'e'},
 	{"verbose",0,NULL,'v'},
@@ -79,7 +79,7 @@ static void printHelp(){
 	-t [s,p,r,a,g]\tType (song, playlist, artist, album, genre)\n\
 	-l [name, ID]\tList (requires -t)\n\
 	-p [name, ID]\tPlay (requires -t)\n\
-		-s\tShuffle (requires -p)\n\
+		-s [s,a,r]\tShuffle (requires -p)\n\
 		-z\tSmart shuffle (requires -p)\n\
 	-i [file path, directory]\tInsert song\n\
 	-e\tEdit\n\
@@ -188,8 +188,8 @@ unsigned int doArgs(int argc,char *argv[]){
 		else{
 			id=multilist[0];
 		}
-		free(multilist);
 
+		free(multilist);
 		if(arglist[ASHUFFLE].active || arglist[AZSHUFFLE].active){
 			shuffle(id);
 			id=0;
@@ -218,7 +218,7 @@ unsigned int doArgs(int argc,char *argv[]){
 
 static unsigned int argSearch(int argc,char *argv[]){
 	int opt,optindex;
-	while((opt=getopt_long(argc,argv,"i::l::e::D::p:st:vza",longopts,&optindex))!=-1){
+	while((opt=getopt_long(argc,argv,"i::l::e::D::p:s::t:vza",longopts,&optindex))!=-1){
 		switch(opt){
 			//case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=optarg;break;
 			case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
@@ -226,7 +226,7 @@ static unsigned int argSearch(int argc,char *argv[]){
 			case 'l':arglist[ALIST].active=1;arglist[ALIST].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
 			case 'D':arglist[ADEVICE].active=1;arglist[ADEVICE].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
 			case 'p':arglist[APLAY].active=1;arglist[APLAY].subarg=optarg;break;
-			case 's':arglist[ASHUFFLE].active=1;arglist[AZSHUFFLE].active=0;break;
+			case 's':arglist[ASHUFFLE].active=1;arglist[AZSHUFFLE].active=0;arglist[ASHUFFLE].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
 			case 't':arglist[ATYPE].active=1;arglist[ATYPE].subarg=optarg;break;
 			case 'v':arglist[AVERBOSE].active++;break;
 			case 'z':arglist[AZSHUFFLE].active=1;arglist[ASHUFFLE].active=0;break;

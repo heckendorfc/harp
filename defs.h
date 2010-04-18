@@ -167,6 +167,14 @@ struct iconf{
 	int length;
 }extern insertconf;
 
+struct dconf{
+	char *dir;
+	int log;
+	FILE *playlog;
+	FILE *msglog;
+	int level;
+}extern debugconf;
+
 struct commandOption{
 	char opt;
 	int (*function)(char *args, void *data);

@@ -19,6 +19,8 @@ Changes in HARP-0.5.1:
 - Added support for SHOUTcast streams.
 - Fixed bug in ZShuffle causing it to hang on small playlists.
 - Added track listing to songs.
+- Added options to shuffle albums, artists, or individual tracks.
+- Added player and debug logs.
 
 Changes in HARP-0.5.0:
 - Fixed bugs in edit, admin, tree.
