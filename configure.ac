@@ -51,10 +51,22 @@ AC_ARG_WITH([jack],
 [], [with_jack=no])
 
 
+#AS_IF([test "$with_mp3" != no],
+#[AC_CHECK_LIB([mpg123], [mpg123_open],
+	#AC_CONFIG_FILES([plugins/mp3/Makefile]),
+	#[AC_CHECK_LIB([mpg123], [mpg123_open_64],
+		#[AC_DEFINE(_FILE_OFFSET_BITS,64) AC_CONFIG_FILES([plugins/mp3/Makefile])],
+		#[with_mp3=no])])])
+
 AS_IF([test "$with_mp3" != no],
-[AC_CHECK_LIB([mpg123], [mpg123_init],
-	AC_CONFIG_FILES([plugins/mp3/Makefile]),
-	[with_mp3=no])])
+[AC_CHECK_LIB([mpg123], [mpg123_open_64],
+	[AC_DEFINE(_FILE_OFFSET_BITS,64)],
+	[AC_CHECK_LIB([mpg123], [mpg123_open],
+		[],
+		[with_mp3=no])])])
+
+AS_IF([test "$with_mp3" != no],
+	AC_CONFIG_FILES([plugins/mp3/Makefile]))
 
 AS_IF([test "$with_aac" != no],
 [AC_CHECK_LIB([faad], [NeAACDecOpen],
@@ -98,7 +110,7 @@ AM_CONDITIONAL([WITH_STREAM], [test "$with_stream" != no])
 # Checks for header files.
 AC_CHECK_HEADERS([ftw.h])
 
-AC_DEFINE(_FILE_OFFSET_BITS,64)
+#AC_DEFINE(_FILE_OFFSET_BITS,64)
 
 AC_CONFIG_FILES([Makefile plugins/Makefile])
 

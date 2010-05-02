@@ -21,22 +21,23 @@
 void debug(const int level, const char *msg){
 	if(arglist[AVERBOSE].active>=level)
 		fprintf(stderr,"%s\n",msg);
-	if(debugconf.log==1 && debugconf.level>=level && debugconf.msglog){
-		fprintf(debugconf.msglog,"%s\n",msg);
+	if(debugconf.log==1 && debugconf.level>=level && debugconf.msgfd){
+		fprintf(debugconf.msgfd,"%s\n",msg);
+		fflush(debugconf.msgfd);
 	}
 }
 
 void printSongPubInfo(char **row){
 	printf( "\n=====================\n"
-			"Title: %s\n"
-			"Artist: %s\n"
-			"Album: %s\n"
-			"Location: %s\n"
+			"Title:     %s\n"
+			"Artist:    %s\n"
+			"Album:     %s\n"
+			"Location:  %s\n"
 			"File Type: %s\n"
 			"---------------------\n",
 			row[0],row[3],row[2],row[1],row[4]);
-	if(debugconf.log==1 && debugconf.playlog){
-		fprintf(debugconf.playlog,"%s\t%s\t%s\t%s\t%s\n",row[0],row[3],row[2],row[1],row[4]);
-		fflush(debugconf.playlog);
+	if(debugconf.log==1 && debugconf.playfd){
+		fprintf(debugconf.playfd,"%s\t%s\t%s\t%s\t%s\n",row[0],row[3],row[2],row[1],row[4]);
+		fflush(debugconf.playfd);
 	}
 }

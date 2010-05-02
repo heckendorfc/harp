@@ -67,6 +67,9 @@
 #define MI_ARTIST_SIZE (100)
 #define MI_ALBUM_SIZE (100)
 #define MI_YEAR_SIZE (4)
+#define MI_TYPE_SIZE (30)
+
+#define ICONF_MAX_FORMAT_SIZE (64)
 
 #include "message.h"
 
@@ -108,6 +111,7 @@ struct pluginitem{
 	function_play modplay;
 	function_seek modseek;
 	int id;
+	char *contenttype;
 	struct pluginitem *next;
 };
 
@@ -170,8 +174,10 @@ struct iconf{
 struct dconf{
 	char *dir;
 	int log;
-	FILE *playlog;
-	FILE *msglog;
+	FILE *playfd;
+	char *playfilename;
+	FILE *msgfd;
+	char *msgfilename;
 	int level;
 }extern debugconf;
 

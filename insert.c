@@ -455,14 +455,14 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	db_insert_safe(tempname,mi->artist,MI_ARTIST_SIZE);
 	strcpy(mi->artist,tempname);
 	if((artistid=getArtist(mi->artist))==-1){
-		fprintf(stderr,"Error inserting artist.");
+		fprintf(stderr,"Error inserting artist: %s\n",mi->artist);
 		return 0;
 	}
 
 	db_insert_safe(tempname,mi->album,MI_ALBUM_SIZE);
 	strcpy(mi->album,tempname);
 	if((albumid=getAlbum(mi->album,artistid))==-1){
-		fprintf(stderr,"Error inserting album.");
+		fprintf(stderr,"Error inserting album: %s\n",mi->album);
 		return 0;
 	}
 	if(strcmp(mi->album,"Unknown") && *mi->year){
@@ -480,7 +480,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 		strcpy(mi->title,tempname);
 	}
 	if((songid=getSong(mi->title,dbfilename,albumid))==-1){
-		fprintf(stderr,"Error inserting song.");
+		fprintf(stderr,"Error inserting song: %s\n",mi->title);
 		return 0;
 	}
 

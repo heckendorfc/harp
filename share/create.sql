@@ -10,7 +10,8 @@ SongID integer not null);
 
 CREATE TABLE FileType(
 TypeID integer primary key,
-Name varchar(10) not null UNIQUE);
+Name varchar(10) not null UNIQUE,
+ContentType varchar(30) not null UNIQUE);
 
 CREATE TABLE PluginType(
 PluginTypeID integer primary key,

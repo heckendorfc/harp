@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO FileType(Name) VALUES('STREAM');
+INSERT OR IGNORE INTO FileType(Name,ContentType) VALUES('STREAM','null');
 INSERT OR IGNORE INTO Plugin(Library) VALUES('libharpstream.so');
 INSERT INTO PluginType(TypeID,PluginID)
 SELECT TypeID,(SELECT PluginID FROM Plugin WHERE Library='libharpstream.so')

@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO FileType(Name) VALUES('VORBIS');
+INSERT OR IGNORE INTO FileType(Name,ContentType) VALUES('VORBIS','ogg;vorbis');
 INSERT OR IGNORE INTO Plugin(Library) VALUES('libharpvorbis.so');
 INSERT INTO PluginType(TypeID,PluginID)
 SELECT TypeID,(SELECT PluginID FROM Plugin WHERE Library='libharpvorbis.so')

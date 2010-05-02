@@ -77,6 +77,7 @@ static void listConfig(char *buffer){
 
 static void insertConfig(char *buffer){
 	char *setting=buffer;
+	char *tmp;
 	static int formatsize=0;
 	int x=1,argfound=0;
 	while(*setting!='=' && *setting)setting++;
@@ -84,23 +85,54 @@ static void insertConfig(char *buffer){
 	*(setting++)=0;
 
 	if(strcmp("usemetadata",buffer)==0 && *setting=='y'){
-		if(insertconf.first_cb)
-			insertconf.second_cb=&metadataInsert;
-		else if(!insertconf.second_cb)
+		if(*setting!='y'){
+			if(insertconf.second_cb==&metadataInsert)
+				insertconf.second_cb=NULL;
+			if(insertconf.first_cb==&metadataInsert)
+				insertconf.first_cb=NULL;
+			if(insertconf.second_cb && !insertconf.first_cb){
+				insertconf.first_cb=insertconf.second_cb;
+				insertconf.second_cb=NULL;
+			}
+		}
+
+		if(insertconf.first_cb && insertconf.second_cb){
+			insertconf.first_cb=insertconf.second_cb;
+			insertconf.second_cb=NULL;
+		}
+		if(!insertconf.first_cb)
 			insertconf.first_cb=&metadataInsert;
+		else
+			insertconf.second_cb=&metadataInsert;
 	}
 	else if(strcmp("usefilepath",buffer)==0 && *setting=='y'){
-		if(insertconf.first_cb)
-			insertconf.second_cb=&filepathInsert;
-		else if(!insertconf.second_cb)
+		if(*setting!='y'){
+			if(insertconf.second_cb==&filepathInsert)
+				insertconf.second_cb=NULL;
+			if(insertconf.first_cb==&filepathInsert)
+				insertconf.first_cb=NULL;
+			if(insertconf.second_cb && !insertconf.first_cb){
+				insertconf.first_cb=insertconf.second_cb;
+				insertconf.second_cb=NULL;
+			}
+		}
+
+		if(insertconf.first_cb && insertconf.second_cb){
+			insertconf.first_cb=insertconf.second_cb;
+			insertconf.second_cb=NULL;
+		}
+		if(!insertconf.first_cb)
 			insertconf.first_cb=&filepathInsert;
+		else
+			insertconf.second_cb=&filepathInsert;
 	}
 	else if(strcmp("format",buffer)==0){
 		char *root=setting;
 		char *ptr=setting;
-		if(!(insertconf.format=realloc(insertconf.format,sizeof(char*)*(++formatsize)))
-			|| !(insertconf.f_root=realloc(insertconf.f_root,sizeof(char*)*formatsize)))
+		if(++formatsize==ICONF_MAX_FORMAT_SIZE){
+			fprintf(stderr,"Insert format buffer is full. Please check your config file.");
 			return;
+		}
 
 		if(*ptr=='*'){
 			*(insertconf.f_root+(formatsize-1))=strdup("*");
@@ -112,14 +144,43 @@ static void insertConfig(char *buffer){
 		while(*ptr && *(++ptr)!='%');
 
 		*ptr=0;
-		*(insertconf.f_root+(formatsize-1))=strdup(setting);
+		*(insertconf.f_root+(formatsize-1))=tmp=strdup(setting);
+		if(!tmp){fprintf(stderr,"Can't strdup f_root: %s\n",setting);return;};
 		*ptr='%';
-		*(insertconf.format+(formatsize-1))=strdup(ptr);
+		*(insertconf.format+(formatsize-1))=tmp=strdup(ptr);
+		if(!tmp){fprintf(stderr,"Can't strdup format: %s\n",ptr);return;};
 		*(insertconf.format+formatsize)=NULL;
 	}
 	else if(strcmp("accuratelength",buffer)==0 && *setting=='y'){
 		insertconf.length=0;
 	}
+}
+
+static void create_logfile(char *template, char *dir, char **dst_filename, FILE **dst_fd){
+		char tmp[256];
+		int fid;
+
+		sprintf(tmp,template,dir);
+		expand(tmp);
+
+		if((fid=mkstemp(tmp))==-1)
+			return;
+
+		if(*dst_filename){
+			/* Debugs won't print at this point unless specified in the config file. */
+			//char msg[350];
+			//sprintf(msg,"Removing log: %s.\n\tPlease check config file for duplicate entries.",*dst_filename);
+			//debug(1,msg);
+			unlink(*dst_filename);
+			free(*dst_filename);
+		}
+		*dst_filename=strdup(tmp);
+
+		if(*dst_fd)
+			fclose(*dst_fd);
+		*dst_fd=fdopen(fid,"w");
+		//sprintf(tmp,"Logging to: %s",*dst_filename);
+		//debug(1,tmp);
 }
 
 static void debugConfig(char *buffer){
@@ -140,33 +201,26 @@ static void debugConfig(char *buffer){
 		}
 	}
 	else if(strcmp("playlog",buffer)==0 && *setting=='y' && debugconf.dir){
-		char tmp[256];
-		sprintf(tmp,"%s/player.log",debugconf.dir);
-		expand(tmp);
-		if(debugconf.playlog)fclose(debugconf.playlog);
-		debugconf.playlog=fopen(tmp,"w");
+		create_logfile("%s/player.log.XXXXX",debugconf.dir,&debugconf.playfilename,&debugconf.playfd);
 	}
 	else if(strcmp("loglevel",buffer)==0 && *setting=='y'){
 		debugconf.level=(int)strtol(setting,NULL,10);
 		if(debugconf.level>0 && debugconf.dir){
-			char tmp[256];
-			sprintf(tmp,"%s/debug.log",debugconf.dir);
-			expand(tmp);
-			if(debugconf.msglog)fclose(debugconf.playlog);
-			debugconf.msglog=fopen(tmp,"w");
+			create_logfile("%s/debug.log.XXXXX",debugconf.dir,&debugconf.msgfilename,&debugconf.msgfd);
 		}
 	}
 }
 
 static void configInit(){
-	if(insertconf.format=malloc(sizeof(char*)))
+	if(insertconf.format=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE))
 		*insertconf.format=NULL;
-	if(insertconf.f_root=malloc(sizeof(char*)))
+	if(insertconf.f_root=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE))
 		*insertconf.f_root=NULL;
 	insertconf.length=-1;
 	insertconf.second_cb=insertconf.first_cb=NULL;
 
-	debugconf.msglog=debugconf.playlog=debugconf.dir=NULL;
+	debugconf.playfilename=debugconf.msgfilename=debugconf.dir=NULL;
+	debugconf.msgfd=debugconf.playfd=NULL;
 }
 
 static void parseConfig(FILE *ffd){

@@ -19,6 +19,8 @@
 #include <vorbis/vorbisfile.h>
 #include "vorbismeta.c"
 
+#define VORB_CONTINUE (-50)
+
 struct vorbisHandles{
 	OggVorbis_File *vf;
 	unsigned int *total;
@@ -72,10 +74,10 @@ int vorbStatus(int ret){
 	fprintf(stderr,"\n");
 	switch(ret){
 		case 0:fprintf(stderr,"EOF - done\n");return DEC_RET_SUCCESS;
-		case OV_HOLE:fprintf(stderr,"OV_HOLE - data interruption\n");break;
+		case OV_HOLE:fprintf(stderr,"OV_HOLE - data interruption\n");return VORB_CONTINUE;
 		case OV_EBADLINK:fprintf(stderr,"OV_EBADLINK - invalid stream\n");break;
 		case OV_EINVAL:fprintf(stderr,"OV_EINVAL - read or open error\n");break;
-		default:fprintf(stderr,"unknown\n");
+		default:fprintf(stderr,"Unknown return value (%d)\n",ret);
 	}
 	return DEC_RET_ERROR;
 }
@@ -89,9 +91,10 @@ void silencer(){
 
 int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	size_t size;
+	long ret;
 	const ssize_t len=1600;
 	char buf[len];  /* input buffer  */
-	
+
 	OggVorbis_File *vf;
 	if(!(vf=malloc(sizeof(OggVorbis_File)))){
 		fprintf(stderr,"Malloc failed (vf).");
@@ -103,7 +106,6 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		free(vf);
 		return DEC_RET_ERROR;
 	}
-
 	unsigned int total=0;
 	int channels, enc, retval=DEC_RET_SUCCESS;
 	unsigned int rate;
@@ -128,7 +130,12 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	ph->dechandle=&h;
 
 	do{ /* Read and write until everything is through. */
-		if((size=ov_read(vf,buf,len,0,2,1,&vf->current_link))<1){retval=vorbStatus(size);break;}
+		if((ret=ov_read(vf,buf,len,0,2,1,&vf->current_link))<1){
+			if((retval=vorbStatus(ret))==VORB_CONTINUE)
+				continue;
+			break;
+		}
+		size=ret;
 		details.curtime=total/(rate*sizemod);
 		details.percent=(details.curtime*100)/details.totaltime;
 		crOutput(ph->pflag,&details);

@@ -56,10 +56,21 @@ void new_format(struct playerHandles *ph){
 	long ratel;
 	int channels, enc,enc_bit=2;
 	unsigned int rate;
+	int guess=0;
 	
 	mpg123_getformat(h.m, &ratel, &channels, &enc);
 	rate=(unsigned int)ratel;
 	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
+
+	if(!rate)
+		guess=ratel=rate=44100;
+	if(!channels)
+		guess=channels=2;
+	if(!enc)
+		guess=enc=16;
+	if(guess)
+		fprintf(stderr,"Format invalid. Guessing: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
+
 	snd_param_init(ph,&enc_bit,&channels,&rate);
 
 	ph->dec_rate=ratel;

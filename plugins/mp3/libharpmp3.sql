@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO FileType(Name) VALUES('MP3');
+INSERT OR IGNORE INTO FileType(Name,ContentType) VALUES('MP3','mpeg');
 INSERT OR IGNORE INTO Plugin(Library) VALUES('libharpmp3.so');
 INSERT INTO PluginType(TypeID,PluginID)
 SELECT TypeID,(SELECT PluginID FROM Plugin WHERE Library='libharpmp3.so')

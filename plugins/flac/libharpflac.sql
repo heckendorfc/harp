@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO FileType(Name) VALUES('FLAC');
+INSERT OR IGNORE INTO FileType(Name,ContentType) VALUES('FLAC','x-flac');
 INSERT OR IGNORE INTO Plugin(Library) VALUES('libharpflac.so');
 INSERT INTO PluginType(TypeID,PluginID)
 SELECT TypeID,(SELECT PluginID FROM Plugin WHERE Library='libharpflac.so')

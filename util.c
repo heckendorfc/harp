@@ -250,6 +250,7 @@ static int open_plugin_cb(void *arg, int col_count, char **row, char **titles){
 			*node=next;
 			next->next=NULL;
 			next->id=strtol(row[0],NULL,10);
+			next->contenttype=strdup(row[2]);
 		}
 	}
 
@@ -262,7 +263,7 @@ struct pluginitem *openPlugins(){
 
 	ptr=&prehead;
 	// Add order by active?
-	if(sqlite3_exec(conn,"SELECT PluginID,Library FROM Plugin",open_plugin_cb,&ptr,NULL)!=SQLITE_OK){
+	if(sqlite3_exec(conn,"SELECT Plugin.PluginID,Plugin.Library,FileType.ContentType FROM Plugin NATURAL JOIN PluginType NATURAL JOIN FileType",open_plugin_cb,&ptr,NULL)!=SQLITE_OK){
 		closePluginList(prehead.next);
 		fprintf(stderr,"Error opening plugins.\n");
 		return NULL;
