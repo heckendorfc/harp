@@ -238,7 +238,7 @@ static int open_plugin_cb(void *arg, int col_count, char **row, char **titles){
 	}
 	if(getPluginModule(&(next->module),row[1])!=1){
 		free(next);
-			return 1;
+		return 1;
 	}
 	else{
 		if(regPluginFunctions(next)){
@@ -261,6 +261,7 @@ struct pluginitem *openPlugins(){
 	int count;
 	struct pluginitem prehead,*ptr;
 
+	prehead.next=NULL;
 	ptr=&prehead;
 	// Add order by active?
 	if(harp_sqlite3_exec(conn,"SELECT Plugin.PluginID,Plugin.Library,FileType.ContentType FROM Plugin NATURAL JOIN PluginType NATURAL JOIN FileType",open_plugin_cb,&ptr,NULL)!=SQLITE_OK){
@@ -403,8 +404,15 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 	int song_idlen;
 	int group_idlen;
 	char query[200],*ptr;
+	char temp=0;
 	struct dbitem dbi;
 	dbiInit(&dbi);
+
+	/* Default should be hit. Avoid selecting another option. */
+	if(args[x+1]!=' '){
+		temp=args[x];
+		args[x]=' ';
+	}
 
 	switch(args[x]){
 		case 'a':
@@ -425,6 +433,7 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 		case 's':
 			x++;
 		default:
+			if(temp)args[x]=temp;
 			// List of SongIDs.
 			for(;x<arglen && args[x] && args[x]==' ';x++);
 			arglist[ATYPE].subarg[0]='s';

@@ -155,9 +155,14 @@ int player(int list){//list - playlist number
 		debug(2,"Malloc failed (player query).");
 		return 1;
 	}
-	else if(initList(list,query) ||
-			(!(ph.plugin_head=openPlugins())))
-		return 0;
+	else{
+		if(initList(list,query))
+			return 0;
+		if(!(ph.plugin_head=openPlugins())){
+			fprintf(stderr,"No plugins found. Please add them with harp -a\n");
+			return 0;
+		}
+	}
 
 	ph.ffd=NULL;
 	ph.device=arglist[ADEVICE].subarg;

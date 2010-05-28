@@ -103,6 +103,7 @@ unsigned int dbInit(){
 			sqlite3_close(conn);
 			return 0;
 		}
+		fprintf(stderr,"Please add any installed plugins to the database with harp -a\n");
 	}
 	return 1;
 }

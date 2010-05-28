@@ -265,8 +265,10 @@ int batchInsert(char *arg){
 	struct musicInfo mi;
 	struct pluginitem *plugin_head;
 	
-	if(!(plugin_head=openPlugins()))
+	if(!(plugin_head=openPlugins())){
+		fprintf(stderr,"No plugins found. Please add them with harp -a\n");
 		return 0;
+	}
 	getPluginList(plugin_head);
 
 	if(!(mi.title=malloc((MI_TITLE_SIZE*2+1)*sizeof(char))) ||
