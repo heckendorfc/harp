@@ -106,6 +106,22 @@ Seek backward a specified number of seconds. (e.g., :,50)
 .TP
 .B .
 Seek forward a specified number of seconds. (e.g., :.50)
+.TP
+.B a
+Add song(s) to the temporary playlist currently playing. By default, the songs will be added to the location directly following the current song. Songs can be specified by name, ID, or all songs by particular artists, albums, or genres may be added using a similar syntax to the edit menu. :a [s | a | r | g] [unique name | id]. (e.g., :a r special_artist)
+.RS
+.TP
+.B ao
+Specify the destination of the added songs. (e.g. To add special_song at order 12, :ao 12 s special_song)
+.RE
+.TP
+.B r
+Remove song(s) from the temporary playlist currently playing. Syntax is the same as the add command.
+.RS
+.TP
+.B ro
+Remove a single song at the specified order.
+.RE
 .SH FILES
 .TP
 ~/.harp/defaults.conf

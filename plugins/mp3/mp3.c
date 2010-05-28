@@ -177,7 +177,6 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			pthread_mutex_unlock(&dechandle_lock);
 			if(mret==MPG123_DONE || mret==MPG123_ERR){ // EOF (or read error)
 				retval=DEC_RET_SUCCESS;
-				fprintf(stderr,"done..");
 				break;
 			}
 		}

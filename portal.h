@@ -20,6 +20,8 @@
 
 #include "defs.h"
 
+#define PORTAL_ARG_LEN (200)
+
 void cleanString(char *ostr);
 int editWarn(char *warn);
 int getStdArgs(char *args,char *prompt);

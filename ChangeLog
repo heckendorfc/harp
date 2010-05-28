@@ -16,10 +16,11 @@ Changes in HARP-0.5.1:
 - Fixed bug causing the volume to go beyond 100%.
 - Cleaned up headers on playlist listing.
 - Rating changes now display previous rating as well as new rating.
-- Added support for SHOUTcast streams.
+- Added support for SHOUTcast/Icecast streams.
 - Fixed bug in ZShuffle causing it to hang on small playlists.
 - Added track listing to songs.
 - Added player and debug logs
+- Added advanced player commands to edit the temporary playlist at runtime.
 
 Changes in HARP-0.5.0:
 - Fixed bugs in edit, admin, tree.

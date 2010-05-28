@@ -513,6 +513,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	pthread_create(&threads,NULL,(void *)&sio_thread,(void *)ph);
 	ret=plugin->modplay(ph,key,&temp);
 
+	h.wfd=NULL;
 	pthread_cancel(threads);
 
 	return ret;

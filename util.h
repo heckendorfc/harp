@@ -28,6 +28,7 @@ int strToID(const char *argv);
 char *getFilename(const char *path);
 int *getMulti(char *arg, int *length);
 int getFileTypeByName(const char *name);
+int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct);
 
 int findPluginIDByType(int type);
 struct pluginitem *findPluginByID(struct pluginitem *list, int id);

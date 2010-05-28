@@ -17,6 +17,12 @@
 
 #include "dbact.h"
 #include "defs.h"
+#include "util.h"
+
+
+int harp_sqlite3_exec(sqlite3 *connection, const char *sql, int (*callback)(void*,int,char**,char**), void *arg, char **errmsg){
+	return sqlite3_exec(connection,sql,callback,arg,errmsg);
+}
 
 int db_exec_file(char *file){
 	FILE *ffd;
@@ -54,12 +60,12 @@ int db_exec_file(char *file){
 				continue;
 			}
 
-			if(sqlite3_exec(conn,query,NULL,NULL,&err)!=SQLITE_OK){
+			if(harp_sqlite3_exec(conn,query,NULL,NULL,&err)!=SQLITE_OK){
 				if(err){
 					fprintf(stderr,"SQL Error: %s\n",err);
 					sqlite3_free(err);
 				}
-				debug(2,"sqlite3_exec error.");
+				debug(2,"harp_sqlite3_exec error.");
 				ret=1;break;
 			}
 			x=0;
@@ -257,14 +263,24 @@ int doTitleQuery(const char *querystr,int *exception, int maxwidth){
 	tqd.maxwidth=maxwidth;
 	tqd.exlen=calloc(10,sizeof(int));
 
-	sqlite3_exec(conn,querystr,titlequery_columns_cb,&tqd,NULL);
-	sqlite3_exec(conn,querystr,titlequery_titles_cb,&tqd,NULL);
-	sqlite3_exec(conn,querystr,titlequery_cb,&tqd,NULL);
+	harp_sqlite3_exec(conn,querystr,titlequery_columns_cb,&tqd,NULL);
+	harp_sqlite3_exec(conn,querystr,titlequery_titles_cb,&tqd,NULL);
+	harp_sqlite3_exec(conn,querystr,titlequery_cb,&tqd,NULL);
 
 	free(tqd.exlen);
 	return tqd.count;
 }
 
+int batch_tempplaylistsong_insert_cb(void *arg, int col_count, char **row, char **titles){
+	struct insert_tps_arg *data=(struct insert_tps_arg*)arg;
+
+	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,data->order);
+	harp_sqlite3_exec(conn,data->query,NULL,NULL,NULL);
+
+	data->order++;
+	return 0;
+}
+
 void createTempPlaylistSong(){
-	sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempPlaylistSong( PlaylistSongID integer primary key, SongID integer not null, \"Order\" integer NOT NULL)",NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,"CREATE TEMP TABLE IF NOT EXISTS TempPlaylistSong( PlaylistSongID integer primary key, SongID integer not null, \"Order\" integer NOT NULL)",NULL,NULL,NULL);
 }

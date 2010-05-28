@@ -18,6 +18,7 @@
 #include "list.h"
 #include "defs.h"
 #include "tree.h"
+#include "dbact.h"
 
 int list(int *ids, int length){
 	char query[401];

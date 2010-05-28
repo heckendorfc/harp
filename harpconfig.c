@@ -18,6 +18,7 @@
 #include "harpconfig.h"
 #include "defs.h"
 #include "insert.h"
+#include "util.h"
 
 struct lconf listconf;
 struct iconf insertconf;
@@ -212,9 +213,9 @@ static void debugConfig(char *buffer){
 }
 
 static void configInit(){
-	if(insertconf.format=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE))
+	if((insertconf.format=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE)))
 		*insertconf.format=NULL;
-	if(insertconf.f_root=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE))
+	if((insertconf.f_root=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE)))
 		*insertconf.f_root=NULL;
 	insertconf.length=-1;
 	insertconf.second_cb=insertconf.first_cb=NULL;

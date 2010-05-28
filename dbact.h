@@ -20,16 +20,25 @@
 
 #include "defs.h"
 
+struct insert_tps_arg{
+	int order;
+	int count;
+	char *query;
+};
+
 unsigned int dbInit();
 void dbiInit(struct dbitem *dbi);
 void dbiClean(struct dbitem *dbi);
+int db_exec_file(char *file);
 int fetch_row(struct dbitem *dbi);
 int fetch_row_at(struct dbitem *dbi, int index);
 char ** fetch_column_at(struct dbitem *dbi, int index);
-int doQuery(const char *querystr,struct dbitem *dbi);
+int doQuery(const char *querystr, struct dbitem *dbi);
 int uint_return_cb(void *arg, int col_count, char **row, char **titles);
 int str_return_cb(void *arg, int col_count, char **row, char **titles);
-int doTitleQuery(const char *querystr,int *exception, int maxwidth);
+int batch_tempplaylistsong_insert_cb(void *arg, int col_count, char **row, char **titles);
+int doTitleQuery(const char *querystr, int *exception, int maxwidth);
 void createTempPlaylistSong();
+int harp_sqlite3_exec(sqlite3*, const char *sql, int (*callback)(void*,int,char**,char**), void *arg, char **errmsg);
 
 #endif

@@ -20,6 +20,8 @@
 
 #include "defs.h"
 
+#define ADV_COM_ARG_LEN (50)
+
 struct playercontrolarg{
 	char *key;
 	unsigned int cur_order;

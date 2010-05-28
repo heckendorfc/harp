@@ -58,6 +58,9 @@
 	#include <sys/ioctl.h>
 #endif
 
+#define HARP_RET_ERR (-1)
+#define HARP_RET_OK (0)
+
 #define DB_PATH "~/.harp/"
 #define DB "harp.db"
 #define DB_BATCH_SIZE (100)
@@ -202,6 +205,12 @@ struct titlequery_data{
 	int *exlen;
 };
 
+struct IDList {
+	int *songid;
+	int length;
+	int tempselectid;
+};
+
 /* */
 
 struct playerflag{
@@ -232,7 +241,7 @@ enum defkeys{
 };
 
 enum decreturns{
-	DEC_RET_ERROR,
+	DEC_RET_ERROR=1,
 	DEC_RET_SUCCESS,
 	DEC_RET_NEXT,
 	DEC_RET_NEXT_NOUP

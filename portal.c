@@ -17,12 +17,7 @@
 
 #include "portal.h"
 #include "defs.h"
-
-/* Portal return values:
- * 		 1: Previous menu
- * 		-1: Main menu
- * 		 0: Quit
- */
+#include "util.h"
 
 void cleanString(char *ostr){
 	char *str=ostr;
@@ -46,10 +41,10 @@ int editWarn(char *warn){
 
 int getStdArgs(char *args,char *prompt){
 	int x;
-	for(x=1;x<200 && args[x] && args[x]==' ';x++);
+	for(x=1;x<PORTAL_ARG_LEN && args[x] && args[x]==' ';x++);
 	if(!args[x]){
 		printf("%s",prompt);
-		if(!fgets(args,200,stdin))return -1;
+		if(!fgets(args,PORTAL_ARG_LEN,stdin))return -1;
 		if(*args=='\n'){
 			printf("Aborted\n");
 			return -1;
@@ -66,13 +61,13 @@ int getStdArgs(char *args,char *prompt){
 
 int portal(struct commandOption *portalOptions, const char *prefix){
 	char *choice;
-	if(!(choice=malloc(sizeof(char)*200))){
+	if(!(choice=malloc(sizeof(char)*PORTAL_ARG_LEN))){
 		debug(2,"Malloc failed (portal choice).");
 		return 0;
 	}
 	int x,ret=0;
 
-	while(printf("%s> ",prefix) && fgets(choice,200,stdin)){
+	while(printf("%s> ",prefix) && fgets(choice,PORTAL_ARG_LEN,stdin)){
 		for(x=0;choice[x] && choice[x]!='\n';x++);
 		choice[x]=0;
 		for(x=0;portalOptions[x].opt && portalOptions[x].opt!=*choice;x++);

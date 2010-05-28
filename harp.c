@@ -19,6 +19,7 @@
 
 int main(int argc, char *argv[]){
 	(void) signal(SIGINT,int_leave);
+	(void) signal(SIGPIPE,int_leave);
 	if(!dbInit()){
 		fprintf(stderr,"db init error\n");
 		return 1;

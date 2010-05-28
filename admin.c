@@ -65,7 +65,7 @@ static int togglePlugin(char *args, void *data){
 	}
 
 	sprintf(query,"UPDATE PluginType SET Active=NOT(Active) WHERE PluginTypeID=%d",id);
-	sqlite3_exec(conn,query,NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 
 	return PORTAL_RET_PREV;
 }
@@ -81,16 +81,16 @@ static int removePlugin(char *args, void *data){
 	strcpy(&lib[x],".so");
 
 	sprintf(query,"SELECT PluginID FROM Plugin WHERE Library='%s' LIMIT 1",lib);
-	sqlite3_exec(conn,query,uint_return_cb,&id,NULL);
+	harp_sqlite3_exec(conn,query,uint_return_cb,&id,NULL);
 	if(!id){
 		printf("Library not found\n");
 		return PORTAL_RET_PREV;
 	}
 
 	sprintf(query,"DELETE FROM Plugin WHERE PluginID=%d",id);
-	sqlite3_exec(conn,query,NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	sprintf(query,"DELETE FROM PluginType WHERE PluginID=%d",id);
-	sqlite3_exec(conn,query,NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 
 	return PORTAL_RET_PREV;
 }
@@ -128,34 +128,34 @@ static int exportStats(char *args, void *data){
 	}
 	fputs("ID\tTITLE\tLOCATION\tRATING\tPLAYCOUNT\tSKIPCOUNT\tLASTPLAY\tACTIVE\n",ffd);
 	debug(3,args);
-	sqlite3_exec(conn,args,write_stats_cb,ffd,NULL);
+	harp_sqlite3_exec(conn,args,write_stats_cb,ffd,NULL);
 	printf("Stats exported to: %s\n",filename);
 	fclose(ffd);
 	return PORTAL_RET_PREV;
 }
 
 static int resetAll(char *args, void *data){
-	sqlite3_exec(conn,"UPDATE Song SET Rating=3,PlayCount=0,SkipCount=0,LastPlay=0",NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,"UPDATE Song SET Rating=3,PlayCount=0,SkipCount=0,LastPlay=0",NULL,NULL,NULL);
 	return PORTAL_RET_PREV;
 }
 
 static int resetRating(char *args, void *data){
-	sqlite3_exec(conn,"UPDATE Song SET Rating=3",NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,"UPDATE Song SET Rating=3",NULL,NULL,NULL);
 	return PORTAL_RET_PREV;
 }
 
 static int resetPlayCount(char *args, void *data){
-	sqlite3_exec(conn,"UPDATE Song SET PlayCount=0",NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,"UPDATE Song SET PlayCount=0",NULL,NULL,NULL);
 	return PORTAL_RET_PREV;
 }
 
 static int resetSkipCount(char *args, void *data){
-	sqlite3_exec(conn,"UPDATE Song SET SkipCount=0",NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,"UPDATE Song SET SkipCount=0",NULL,NULL,NULL);
 	return PORTAL_RET_PREV;
 }
 
 static int resetLastPlay(char *args, void *data){
-	sqlite3_exec(conn,"UPDATE Song SET LastPlay=0",NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,"UPDATE Song SET LastPlay=0",NULL,NULL,NULL);
 	return PORTAL_RET_PREV;
 }
 

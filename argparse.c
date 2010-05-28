@@ -25,6 +25,9 @@
 #include "insert.h"
 #include "admin.h"
 #include "util.h"
+#include "harp.h"
+#include "tree.h"
+#include "edit.h"
 
 #if 0
 static char subarglist[]={
@@ -90,36 +93,19 @@ static void printHelp(){
 	exit(1);
 }
 
-struct insertps_arg{
-	int order;
-	int count;
-	char *query;
-};
-
-static int batch_insert_cb(void *arg, int col_count, char **row, char **titles){
-	struct insertps_arg *data=(struct insertps_arg*)arg;
-
-	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,data->order);
-	sqlite3_exec(conn,data->query,NULL,NULL,NULL);
-
-	data->order++;
-	return 0;
-}
-
 static void genreToPlaylistSong(struct dbnode *cur){
 	if(!cur->dbi.row_count)return;
 	char query[150],cb_query[150];
-	static struct insertps_arg data={1,0,NULL};
+	static struct insert_tps_arg data={1,0,NULL};
 	data.query=cb_query;
 	sprintf(query,"SELECT Song.SongID FROM SongCategory NATURAL JOIN Song WHERE Active=1 AND CategoryID=%s",cur->dbi.row[0]);
-	// TODO: See if order will auto increment. It would be nice to skip this function call.
-	sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
+	harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 }
 
 static void makeTempPlaylist(int *multilist, int multi){
 	int mx,x,order=1,currentlimit=0;
 	char query[250],cb_query[150];
-	struct insertps_arg data={1,0,cb_query};
+	struct insert_tps_arg data={1,0,cb_query};
 
 	createTempPlaylistSong();
 
@@ -127,25 +113,25 @@ static void makeTempPlaylist(int *multilist, int multi){
 		case 'p':
 			for(mx=0;mx<multi;mx++){
 				sprintf(query,"SELECT Song.SongID FROM PlaylistSong NATURAL JOIN Song WHERE Active=1 AND PlaylistID=%d",multilist[mx]);
-				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
+				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
 		case 's':
 			for(mx=0;mx<multi;mx++){
 				sprintf(query,"SELECT SongID FROM Song WHERE SongID=%d",multilist[mx]);
-				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
+				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
 		case 'a':
 			for(mx=0;mx<multi;mx++){
 				sprintf(query,"SELECT Song.SongID FROM Album INNER JOIN Song USING(AlbumID) WHERE Active=1 AND Album.AlbumID=%d ORDER BY Track",multilist[mx]);
-				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
+				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
 		case 'r':
 			for(mx=0;mx<multi;mx++){
 				sprintf(query,"SELECT Song.SongID FROM AlbumArtist NATURAL JOIN Song WHERE Active=1 AND AlbumArtist.ArtistID=%d ORDER BY AlbumArtist.AlbumID,Track",multilist[mx]);
-				sqlite3_exec(conn,query,batch_insert_cb,&data,NULL);
+				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
 		case 'g':
