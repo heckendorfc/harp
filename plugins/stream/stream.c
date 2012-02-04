@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -345,22 +345,23 @@ static int parse_meta_mi(char *buf, int *orig_len, void *data){
 	return ret--;
 }
 
-static char *print_streamtitle(char *buf, int *len, int size){
-	if(*len>size)
-		size-=*len;
+static char *print_streamtitle(char *buf, int buf_size, int *meta_len){
+	if(*meta_len>buf_size)
+		buf_size-=*meta_len;
 	else
-		size=0;
-	for(;*len>size;(*len)--,buf++)
+		buf_size=0;
+	for(;*meta_len>buf_size;(*meta_len)--,buf++)
 		if(*buf)
 			printf("%c",*buf<32?'?':*buf);
-	if(!*len)
+	if(!*meta_len)
 		putchar('\n');
+		else putchar('$');
 	return buf;
 }
 
 static char *handle_streamtitle(char *buf, int *len, int *metasize){
 	int temp=*metasize;
-	buf=print_streamtitle(buf,metasize,*len);
+	buf=print_streamtitle(buf,*len,metasize);
 	*len-=temp-*metasize;
 	return buf;
 }
@@ -476,7 +477,7 @@ static struct pluginitem *selectPlugin(struct pluginitem *list, char *type){
 }
 
 void sio_thread(void *data){
-	if(h.metaint)
+	if(h.print_meta && h.metaint)
 		streamIO(write_pipe_parse_meta,data);
 	else
 		streamIO(write_pipe,data);
@@ -513,8 +514,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	pthread_create(&threads,NULL,(void *)&sio_thread,(void *)ph);
 	ret=plugin->modplay(ph,key,&temp);
 
-	h.wfd=NULL;
 	pthread_cancel(threads);
+	h.wfd=NULL;
 
 	return ret;
 }

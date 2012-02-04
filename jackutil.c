@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,13 +15,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "jackutil.h"
+#include "sndutil.h"
+
 pthread_mutex_t outbuf_lock;
-
-#include <math.h>
-
-#define NORMFACT (float)0x8000
-#define GAIN_MAX 10
-#define GAIN_MIN -40
 
 int decimate(float *buf, int len, int M){
 	int x;
@@ -203,6 +200,7 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 
 void changeVolume(struct playerHandles *ph, int mod){
 	int current;
+	char tail[OUTPUT_TAIL_SIZE];
 	mod=mod>0?2:-2;
 	ph->out_gain+=mod; // 5 DB increment is too much
 	if(ph->out_gain>GAIN_MAX)ph->out_gain=GAIN_MAX;
@@ -210,20 +208,22 @@ void changeVolume(struct playerHandles *ph, int mod){
 
 	ph->vol_mod=powf(10.0f,(float)ph->out_gain*0.05f);
 
-	fprintf(stdout,"\r                               Volume: %d%% (%dDb)      ",(int)((ph->out_gain-GAIN_MIN)*2),ph->out_gain);
-	fflush(stdout);
+	sprintf(tail,"Volume: %d%% (%dDb)",(int)((ph->out_gain-GAIN_MIN)*2),ph->out_gain);
+	addStatusTail(tail,ph->outdetail);
 }
 
 void toggleMute(struct playerHandles *ph, int *mute){
 	int x;
 
 	if(*mute>0){ // Unmute and perform volume change
+		char tail[OUTPUT_TAIL_SIZE];
 		*mute=0;
-		fprintf(stdout,"\r                               Volume: %d%% (%dDb)      ",(int)((ph->out_gain-GAIN_MIN)*2),ph->out_gain);
+		sprintf(tail,"Volume: %d%% (%dDb)",(int)((ph->out_gain-GAIN_MIN)*2),ph->out_gain);
+		addStatusTail(tail,ph->outdetail);
 	}
 	else{ // Mute 
 		*mute=1;
-		fprintf(stdout,"\r                               Volume Muted           ");
+		addStatusTail("Volume Muted",ph->outdetail);
 	}
 	fflush(stdout);
 }

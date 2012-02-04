@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -9,7 +9,7 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU General Public License for more details->
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -110,17 +110,19 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	int channels, enc, retval=DEC_RET_SUCCESS;
 	unsigned int rate;
 	vorbis_info *vi;
-	struct outputdetail details;
-	details.totaltime=*totaltime;
-	details.percent=-1;
+	struct outputdetail *details=ph->outdetail;
+	details->totaltime=*totaltime;
+	details->percent=-1;
 
 	vi=ov_info(vf,-1);
 	rate=(unsigned int)vi->rate;
 	channels=(unsigned int)vi->channels;
 
 	const int sizemod=2*channels;
+	char tail[OUTPUT_TAIL_SIZE];
 
-	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",rate, channels, (int)vi->bitrate_nominal);
+	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit",rate, channels, (int)vi->bitrate_nominal);
+	addStatusTail(tail,ph->outdetail);
 	snd_param_init(ph,&enc,&channels,&rate);
 
 	h.vf=vf;
@@ -136,8 +138,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			break;
 		}
 		size=ret;
-		details.curtime=total/(rate*sizemod);
-		details.percent=(details.curtime*100)/details.totaltime;
+		details->curtime=total/(rate*sizemod);
+		details->percent=(details->curtime*100)/details->totaltime;
 		crOutput(ph->pflag,&details);
 
 #if WITH_ALSA==1
@@ -155,6 +157,6 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	/* Done decoding, now just clean up and leave. */
 	ov_clear(vf);
-	*totaltime=details.curtime;
+	*totaltime=details->curtime;
 	return retval;
 }

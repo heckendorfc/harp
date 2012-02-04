@@ -15,6 +15,7 @@ list.c \
 admin.c \
 portal.c \
 tree.c \
+sndutil.c \
 harp.h \
 argparse.h \
 harpconfig.h \
@@ -28,7 +29,18 @@ shuffle.h \
 list.h \
 admin.h \
 portal.h \
-tree.h
+tree.h \
+sndutil.h
+
+if WITH_OSS
+harp_SOURCES += ossutil.c ossutil.h
+endif
+if WITH_ALSA
+harp_SOURCES += alsautil.c alsautil.h
+endif
+if WITH_JACK
+harp_SOURCES += jackutil.c jackutil.h
+endif
 
 #harp_LDFLAGS = -Wl,-rpath,/usr/local/lib/
 pkgdata_DATA = share/create.sql share/defaults.conf

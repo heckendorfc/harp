@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -9,7 +9,7 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU General Public License for more details->
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -154,8 +154,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	unsigned char channelchar;
 	unsigned long ratel;
+	char tail[OUTPUT_TAIL_SIZE];
 	if((ret=NeAACDecInit2(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
-		fprintf(stderr,"New format: %dHz %d channels\n",(int)ratel, (int)channelchar);
 		channels=(int)channelchar;
 		fmt=(int)conf->outputFormat;
 		rate=(unsigned int)ratel;
@@ -164,8 +164,9 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		fprintf(stderr,"NeAACDecInit2 error %d\n",ret);
 		channels=2;
 		rate=44100;
-		fprintf(stderr,"New format: %dHz %d channels\n",(int)ratel, (int)channelchar);
 	}
+	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch",rate, channels);
+	addStatusTail(tail,ph->outdetail);
 
 	mp4AudioSpecificConfig mp4cfg;
 	unsigned int framesize=1024;
@@ -181,8 +182,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	snd_param_init(ph,&fmt,&channels,&rate);
 
 	unsigned int total=0,sample,numsamples=mp4ff_num_samples(infile,track);
-	struct outputdetail details;
-	details.totaltime=*totaltime;
+	struct outputdetail *details=ph->outdetail;
+	details->totaltime=*totaltime;
 
 	h.total=&total;
 	h.sample=&sample;
@@ -218,9 +219,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 		if(writei_snd(ph,out,outsize)<0)break;
 
-		details.curtime=total/rate;
-		details.percent=(sample*100)/numsamples;
-		crOutput(ph->pflag,&details);
+		details->curtime=total/rate;
+		details->percent=(sample*100)/numsamples;
 
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){
 			retval=ph->pflag->exit;
@@ -232,6 +232,6 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	mp4ff_close(infile);
 	free(mp4cb);
 	NeAACDecClose(hAac);
-	*totaltime=details.curtime;
+	*totaltime=details->curtime;
 	return retval;
 }

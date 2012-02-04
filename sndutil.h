@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,12 +18,12 @@
 #ifndef _SNDUTIL_H
 #define _SNDUTIL_H
 
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "defs.h"
+#include "player.h"
 
 //sndutil.c
 int snd_init(struct playerHandles *ph);
@@ -35,19 +35,6 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 int writen_snd(struct playerHandles *ph, void *out[], const unsigned int size);
 void snd_close(struct playerHandles *ph);
 
-#if WITH_ALSA==1
-	#include "alsautil.c"
-#elif WITH_JACK==1
-	#include "jackutil.c"
-#else
-	#include "ossutil.c"
-#endif
-
-void crOutput(struct playerflag *pflag, struct outputdetail *details){
-	if(pflag->update){
-		fprintf(stdout,"\r [%c %c][%ds of %ds (%d%%)]", pflag->pausec, pflag->mutec, details->curtime, details->totaltime, details->percent<-1?-1:details->percent);
-		fflush(stdout);
-	}
-}
+void crOutput(struct playerflag *pflag, struct outputdetail *details);
 
 #endif

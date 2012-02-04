@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,10 @@
 #ifndef _MESSAGE_H
 #define _MESSAGE_H
 
+struct outputdetail;
+
 void debug(const int level, const char *msg);
 void printSongPubInfo(char **row);
+void addStatusTail(char *msg, struct outputdetail *detail);
 
 #endif

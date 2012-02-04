@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -81,6 +81,7 @@ static int removePlugin(char *args, void *data){
 	strcpy(&lib[x],".so");
 
 	sprintf(query,"SELECT PluginID FROM Plugin WHERE Library='%s' LIMIT 1",lib);
+	id=0;
 	harp_sqlite3_exec(conn,query,uint_return_cb,&id,NULL);
 	if(!id){
 		printf("Library not found\n");

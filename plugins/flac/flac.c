@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -9,7 +9,7 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU General Public License for more details->
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -125,7 +125,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	}
 
 	unsigned int retval=DEC_RET_SUCCESS,total=0;
-	struct outputdetail details;
+	struct outputdetail *details=ph->outdetail;
 
 	if(!FLAC__stream_decoder_process_until_end_of_metadata(decoder)){
 		fprintf(stderr,"flac decoder metadata failed");
@@ -134,13 +134,15 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		return DEC_RET_ERROR;
 	}
 	//fprintf(stderr,"New format: %d Hz, %i channels, encoding value %d\n", data.rate, data.channels, data.size);
-	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",data.rate, data.channels, data.size);
+	char tail[OUTPUT_TAIL_SIZE];
+	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit",data.rate, data.channels, data.size);
+	addStatusTail(tail,ph->outdetail);
 
 	snd_param_init(ph,&data.enc,&data.channels,&data.rate);
 
-	if((details.totaltime=*data.totaltime)==0)
-		details.totaltime=-1;;
-	details.percent=-1;
+	if((details->totaltime=*data.totaltime)==0)
+		details->totaltime=-1;;
+	details->percent=-1;
 
 	do{ /* Read and write until everything is through. */
 		if(FLAC__stream_decoder_process_single(decoder)==(FLAC__bool)false){fprintf(stderr,"Early abort\n");break;}
@@ -148,8 +150,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 		//data.curtime+=data.size;
 
-		details.curtime=data.curtime/data.rate; // Not perfect, but close enough
-		details.percent=(details.curtime*100)/details.totaltime;
+		details->curtime=data.curtime/data.rate; // Not perfect, but close enough
+		details->percent=(details->curtime*100)/details->totaltime;
 		crOutput(ph->pflag,&details);
 
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -74,8 +74,11 @@
 
 #define ICONF_MAX_FORMAT_SIZE (64)
 
+#define OUTPUT_TAIL_SIZE (50)
+
 #include "message.h"
 
+pthread_mutex_t outstatus;
 sqlite3 *conn;
 
 struct dbitem{
@@ -219,8 +222,8 @@ struct playerflag{
 	volatile int update;
 	volatile int rating;
 	volatile int exit;
-	char mutec;
-	char pausec;
+	volatile char mutec;
+	volatile char pausec;
 };
 
 enum defkeys{
@@ -252,6 +255,7 @@ struct outputdetail{
 	int totaltime;
 	int percent;
 	int status;
+	char tail[OUTPUT_TAIL_SIZE];
 };
 
 struct playerHandles{

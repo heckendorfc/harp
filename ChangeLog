@@ -1,3 +1,11 @@
+Changes in HARP-0.5.2:
+- Added output to temp playlist editor.
+- Added order to song selection by album/artist/genre commands.
+- Added ID selection prompt for ambiguous string identifiers.
+- Added sorting by album date and date editing.
+- Added writing the current playlist to the database.
+- Moved player status updates to a separate thread.
+
 Changes in HARP-0.5.1:
 - Increased ZShuffle speed.
 - ZShuffle now preserves randomness.

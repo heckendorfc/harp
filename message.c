@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,14 +19,22 @@
 #include "defs.h"
 
 void debug(const int level, const char *msg){
+#ifndef _HARP_PLUGIN
 	if(arglist[AVERBOSE].active>=level)
 		fprintf(stderr,"%s\n",msg);
 	if(debugconf.log==1 && debugconf.level>=level && debugconf.msgfd){
 		fprintf(debugconf.msgfd,"%s\n",msg);
 		fflush(debugconf.msgfd);
 	}
+#else
+#ifdef HARP_PLUGIN_DEBUG
+	if(HARP_PLUGIN_DEBUG>=level)
+		fprintf(stderr,"%s\n",msg);
+#endif
+#endif
 }
 
+#ifndef _HARP_PLUGIN
 void printSongPubInfo(char **row){
 	printf( "\n=====================\n"
 			"Title:     %s\n"
@@ -41,3 +49,15 @@ void printSongPubInfo(char **row){
 		fflush(debugconf.playfd);
 	}
 }
+#endif
+
+void addStatusTail(char *msg, struct outputdetail *detail){
+	int len=0;
+	pthread_mutex_lock(&outstatus);
+		len=snprintf(detail->tail,OUTPUT_TAIL_SIZE,"    %s",msg);
+		for(;len<OUTPUT_TAIL_SIZE-2;len++)detail->tail[len]=' ';
+		detail->tail[OUTPUT_TAIL_SIZE-1]=0;
+		detail->tail[OUTPUT_TAIL_SIZE-2]='\r';
+	pthread_mutex_unlock(&outstatus);
+}
+

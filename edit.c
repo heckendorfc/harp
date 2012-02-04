@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -278,6 +278,27 @@ static int editAlbumTitle(char *args, void *data){
 	}
 	ids->length=1;
 	dbiClean(&dbi);
+	return PORTAL_RET_PREV;
+}
+
+static int editAlbumDate(char *args, void *data){
+	struct IDList *ids=(struct IDList *)data;
+	if(!ids || !ids->songid){
+		fprintf(stderr,"no data\n");
+		return PORTAL_RET_PREV;
+	}
+	char query[200],*ptr;
+	int x,date;
+
+	if((x=getStdArgs(args,"Album date: "))<0)return PORTAL_RET_PREV;
+	args=&args[x];
+
+	date=(int)strtol(args,NULL,10);
+
+	for(x=0;x<ids->length;x++){
+		sprintf(query,"UPDATE Album SET \"Date\"=%d WHERE AlbumID=%d",date,ids->songid[x]);
+		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
 	return PORTAL_RET_PREV;
 }
 
@@ -689,7 +710,7 @@ static int listSongs(char *args, void *data){
 	int x=0,limit=songids->length;
 
 	int exception[10];
-	for(x=0;x<5;x++)exception[x]=1;
+	for(x=0;x<10;x++)exception[x]=x<5?1:listconf.exception;
 	sprintf(query,"SELECT SongID, SongTitle, SongTrack, Location, AlbumTitle AS Album, ArtistName AS Artist FROM SongPubInfo WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",songids->tempselectid);
 	doTitleQuery(query,exception,listconf.maxwidth);
 	return PORTAL_RET_PREV;
@@ -701,27 +722,13 @@ static int listAlbums(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	struct dbitem dbi;
-	dbiInit(&dbi);
-	char query[120],*ptr;
+	char query[200],*ptr;
 	int x=0;
 
-	sprintf(query,"SELECT AlbumID, Title FROM Album WHERE AlbumID=%d",ids->songid[x]);
-	ptr=&query[47];
-	debug(3,query);
-	if(doQuery(query,&dbi)){
-		printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-		if(fetch_row(&dbi))
-			printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-	}
-	x++;
-
-	for(;x<ids->length;x++){
-		sprintf(ptr,"%d",ids->songid[x]);
-		if(doQuery(query,&dbi) && fetch_row(&dbi))
-			printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-	}
-	dbiClean(&dbi);
+	int exception[10];
+	for(x=0;x<10;x++)exception[x]=x<1?1:listconf.exception;
+	sprintf(query,"SELECT AlbumID, Title, \"Date\" FROM Album WHERE AlbumID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",ids->tempselectid);
+	doTitleQuery(query,exception,listconf.maxwidth);
 	return PORTAL_RET_PREV;
 }
 
@@ -731,27 +738,13 @@ static int listArtists(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	struct dbitem dbi;
-	dbiInit(&dbi);
-	char query[120],*ptr;
+	char query[200],*ptr;
 	int x=0;
 
-	sprintf(query,"SELECT ArtistID, Name FROM Artist WHERE ArtistID=%d",ids->songid[x]);
-	ptr=&query[49];
-	debug(3,query);
-	if(doQuery(query,&dbi)){
-		printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-		if(fetch_row(&dbi))
-			printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-	}
-	x++;
-
-	for(;x<ids->length;x++){
-		sprintf(ptr,"%d",ids->songid[x]);
-		if(doQuery(query,&dbi) && fetch_row(&dbi))
-			printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-	}
-	dbiClean(&dbi);
+	int exception[10];
+	for(x=0;x<10;x++)exception[x]=x<1?1:listconf.exception;
+	sprintf(query,"SELECT ArtistID, Name FROM Artist WHERE ArtistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",ids->tempselectid);
+	doTitleQuery(query,exception,listconf.maxwidth);
 	return PORTAL_RET_PREV;
 }
 
@@ -775,23 +768,10 @@ static int listPlaylists(char *args, void *data){
 		return PORTAL_RET_PREV;
 	}
 
-	sprintf(query,"SELECT PlaylistID, Title FROM Playlist WHERE PlaylistID=%d",ids->songid[x]);
-	ptr=&query[56];
-	debug(3,query);
-	if(doQuery(query,&dbi)){
-		printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-		if(fetch_row(&dbi))
-			printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-	}
-	x++;
-
-	for(;x<ids->length;x++){
-		sprintf(ptr,"%d",ids->songid[x]);
-		debug(3,query);
-		if(doQuery(query,&dbi) && fetch_row(&dbi))
-			printf("[%s] [%s]\n",dbi.row[0],dbi.row[1]);
-	}
-	dbiClean(&dbi);
+	int exception[10];
+	for(x=0;x<10;x++)exception[x]=x<1?1:listconf.exception;
+	sprintf(query,"SELECT PlaylistID, Title FROM Playlist WHERE PlaylistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",ids->tempselectid);
+	doTitleQuery(query,exception,listconf.maxwidth);
 	return PORTAL_RET_PREV;
 }
 
@@ -895,6 +875,7 @@ static int albumPortal(char *args, void *data){
 		{'L',listAlbums,"List affected alubms",ids},
 		{'t',editAlbumTitle,"Change title",ids},
 		{'r',editAlbumArtist,"Change artist",ids},
+		{'d',editAlbumDate,"Change date",ids},
 		{0,NULL,NULL,NULL}
 	};
 	int x;
@@ -914,8 +895,10 @@ static int albumPortal(char *args, void *data){
 		free(ids->songid);
 		return PORTAL_RET_PREV;
 	}
+	ids->tempselectid=insertTempSelect(ids->songid,ids->length);
 
 	x=portal(portalOptions,"Album");
+	cleanTempSelect(ids->tempselectid);
 	free(ids->songid);
 	return x;
 }
@@ -944,8 +927,10 @@ static int artistPortal(char *args, void *data){
 		fprintf(stderr,"No results found.\n");
 		return PORTAL_RET_PREV;
 	}
+	ids->tempselectid=insertTempSelect(ids->songid,ids->length);
 
 	x=portal(portalOptions,"Artist");
+	cleanTempSelect(ids->tempselectid);
 	free(ids->songid);
 	return x;
 }
@@ -983,7 +968,9 @@ static int playlistPortal(char *args, void *data){
 				return PORTAL_RET_PREV;
 			}
 		}
+		ids->tempselectid=insertTempSelect(ids->songid,ids->length);
 		x=portal(portalOptions,"Playlist");
+		cleanTempSelect(ids->tempselectid);
 		free(ids->songid);
 		return x;
 	}
@@ -1030,8 +1017,10 @@ static int genrePortal(char *args, void *data){
 		fprintf(stderr,"No results found.\n");
 		return PORTAL_RET_PREV;
 	}
+	ids->tempselectid=insertTempSelect(ids->songid,ids->length);
 
 	x=portal(portalOptions,"Genre");
+	cleanTempSelect(ids->tempselectid);
 	free(ids->songid);
 	return x;
 }

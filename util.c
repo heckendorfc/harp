@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -282,10 +282,50 @@ char *getFilename(const char *path){
 	return filestart;
 }
 
-int strToID(const char *argv){ // TODO: add type param
-	char query[301];
-	char clean_str[200];
+static void printIDMatchRow(struct dbitem *dbi){
+	int x;
+	printf("%s\t%s",dbi->row[0],dbi->row[1]);
+	if(dbi->column_count>2){
+		printf("\t(%s",dbi->row[2]);
+		for(x=3;x<dbi->column_count;x++)
+			printf(": %s",dbi->row[x]);
+		printf(")");
+	}
+	printf("\n");
+}
+
+int getBestIDMatch(struct dbitem *dbi, const char *argv){
 	int id=0,found=0;
+	if(!dbi)return 0;
+
+	printf("Total matches for string '%s': %d\n",argv,dbi->row_count);
+	while(fetch_row(dbi)){
+		printIDMatchRow(dbi);
+		if(!strcmp(argv,dbi->row[1])){ // Perfect matches take priority
+			id=(int)strtol(dbi->row[0],NULL,10);
+			if(id)found++;
+		}
+		else if(!strcasecmp(argv,dbi->row[1])){  // Case-insensitive matches can be used
+			id=(int)strtol(dbi->row[0],NULL,10); // Continue to look for perfect matches
+		}
+	}
+	if(id && found==1)
+		printf("Using best match: %d\n",id);
+	else{
+		char choice[100];
+		printf("Please choose an ID: ");
+		if(!fgets(choice,sizeof(choice),stdin))
+			id=0;
+		else
+			id=(int)strtol(choice,NULL,10);
+	}
+	return id;
+}
+
+int strToID(const char *argv){ // TODO: add type param
+	char query[351];
+	char clean_str[200];
+	int id=0;
 	struct dbitem dbi;
 	
 	db_safe(clean_str,argv,200);
@@ -294,10 +334,10 @@ int strToID(const char *argv){ // TODO: add type param
 	dbiInit(&dbi);
 
 	switch(arglist[ATYPE].subarg[0]){
-		case 's':sprintf(query,"SELECT SongID,Title FROM Song WHERE Title LIKE '%%%s%%'",clean_str);break;
+		case 's':sprintf(query,"SELECT SongID,SongTitle,ArtistName,AlbumTitle FROM SongPubInfo WHERE SongTitle LIKE '%%%s%%'",clean_str);break;
 		case 'p':sprintf(query,"SELECT PlaylistID,Title FROM Playlist WHERE Title LIKE '%%%s%%'",clean_str);break;
 		case 'r':sprintf(query,"SELECT ArtistID,Name FROM Artist WHERE Name LIKE '%%%s%%'",clean_str);break;
-		case 'a':sprintf(query,"SELECT AlbumID,Title FROM Album WHERE Title LIKE '%%%s%%'",clean_str);break;
+		case 'a':sprintf(query,"SELECT AlbumID,Title,Artist.Name FROM Album NATURAL JOIN AlbumArtist NATURAL JOIN Artist WHERE Title LIKE '%%%s%%'",clean_str);break;
 		case 'g':sprintf(query,"SELECT CategoryID,Name FROM Category WHERE Name LIKE '%%%s%%'",clean_str);break;
 		default:return -1;
 	}
@@ -305,23 +345,8 @@ int strToID(const char *argv){ // TODO: add type param
 	if(doQuery(query,&dbi)==1 && fetch_row(&dbi)){
 		id=(int)strtol(dbi.row[0],NULL,10);
 	}
-	else if(dbi.row_count>1){
-		printf("Total matches for string '%s': %d\n",argv,dbi.row_count);
-		while(fetch_row(&dbi)){
-			printf("%s\t%s\n",dbi.row[0],dbi.row[1]);
-			if(!found){
-				if(!strcmp(argv,dbi.row[1])){ // Perfect matches take priority
-					id=(int)strtol(dbi.row[0],NULL,10);
-					found=id?1:0;
-				}
-				else if(!strcasecmp(argv,dbi.row[1])){  // Case-insensitive matches can be used
-					id=(int)strtol(dbi.row[0],NULL,10); // Continue to look for perfect matches
-				}
-			}
-		}
-		if(id)
-			printf("Using best match: %d\n",id);
-	}
+	else if(dbi.row_count>1)
+		id=getBestIDMatch(&dbi,argv);
 
 	dbiClean(&dbi);
 	return id;
@@ -403,10 +428,11 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 	int *group_ids=malloc(sizeof(int));
 	int song_idlen;
 	int group_idlen;
-	char query[200],*ptr;
+	char query[200],query_tail[100],*ptr;
 	char temp=0;
 	struct dbitem dbi;
 	dbiInit(&dbi);
+	query_tail[0]=0;
 
 	/* Default should be hit. Avoid selecting another option. */
 	if(args[x+1]!=' '){
@@ -418,16 +444,19 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 		case 'a':
 			arglist[ATYPE].subarg[0]='a';
 			sprintf(query,"SELECT SongID FROM Song INNER JOIN Album ON Album.AlbumID=Song.AlbumID WHERE Album.AlbumID=");
+			sprintf(query_tail,"ORDER BY Track");
 			ptr=&query[91];
 			break;
 		case 'r':
 			arglist[ATYPE].subarg[0]='r';
 			sprintf(query,"SELECT SongID FROM Song NATURAL JOIN AlbumArtist WHERE ArtistID=");
+			sprintf(query_tail,"ORDER BY Song.AlbumID,Track");
 			ptr=&query[64];
 			break;
 		case 'g':
 			arglist[ATYPE].subarg[0]='g';
 			sprintf(query,"SELECT SongID FROM Song NATURAL JOIN SongCategory WHERE CategoryID=");
+			sprintf(query_tail,"ORDER BY Song.AlbumID,Track");
 			ptr=&query[67];
 			break;
 		case 's':
@@ -455,7 +484,7 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 		return HARP_RET_ERR;
 	}
 	for(song_idlen=x=0;x<group_idlen;x++){
-		sprintf(ptr,"%d",group_ids[x]);
+		sprintf(ptr,"%d %s",group_ids[x],query_tail);
 		if(doQuery(query,&dbi)<1)continue;
 		y=song_idlen;
 		song_idlen+=dbi.row_count;

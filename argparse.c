@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -112,7 +112,7 @@ static void makeTempPlaylist(int *multilist, int multi){
 	switch(*arglist[ATYPE].subarg){
 		case 'p':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM PlaylistSong NATURAL JOIN Song WHERE Active=1 AND PlaylistID=%d",multilist[mx]);
+				sprintf(query,"SELECT Song.SongID FROM PlaylistSong NATURAL JOIN Song WHERE Active=1 AND PlaylistID=%d ORDER BY \"Order\"",multilist[mx]);
 				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
@@ -167,13 +167,9 @@ unsigned int doArgs(int argc,char *argv[]){
 	if(arglist[APLAY].active){
 		if(!(multilist=getMulti(arglist[APLAY].subarg,&multi)))return 1;
 		if(multi<1 || *multilist<1)return 1;
-		if(multi>0 || *arglist[ATYPE].subarg!='p'){ // Skip for single playlists
-			makeTempPlaylist(multilist,multi);
-			id=0;
-		}
-		else{
-			id=multilist[0];
-		}
+
+		makeTempPlaylist(multilist,multi);
+		id=0;
 
 		free(multilist);
 		if(arglist[ASHUFFLE].active || arglist[AZSHUFFLE].active){

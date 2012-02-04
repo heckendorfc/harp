@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -57,10 +57,13 @@ void new_format(struct playerHandles *ph){
 	int channels, enc,enc_bit=2;
 	unsigned int rate;
 	int guess=0;
+	char tail[OUTPUT_TAIL_SIZE];
+	struct mpg123_frameinfo	fi;
 	
 	mpg123_getformat(h.m, &ratel, &channels, &enc);
 	rate=(unsigned int)ratel;
-	fprintf(stderr,"New format: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
+	mpg123_info(h.m,&fi);
+	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit %dkbps %s",(int)ratel, channels, enc_bit*8,fi.vbr==MPG123_ABR?fi.abr_rate:fi.bitrate,fi.vbr!=MPG123_CBR?"VBR":"");
 
 	if(!rate)
 		guess=ratel=rate=44100;
@@ -69,8 +72,9 @@ void new_format(struct playerHandles *ph){
 	if(!enc)
 		guess=enc=16;
 	if(guess)
-		fprintf(stderr,"Format invalid. Guessing: %dHz %d channels %d encoding\n",(int)ratel, channels, enc_bit*8);
+		snprintf(tail,OUTPUT_TAIL_SIZE,"Guessing: %dHz %dch %dbit",(int)ratel, channels, enc_bit*8);
 
+	addStatusTail(tail,ph->outdetail);
 	snd_param_init(ph,&enc_bit,&channels,&rate);
 
 	ph->dec_rate=ratel;
@@ -133,7 +137,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	size_t len;
 	int mret=MPG123_NEED_MORE;
 	int retval=DEC_RET_SUCCESS;
-	struct outputdetail details;
+	struct outputdetail *details=ph->outdetail;
 	long ratel;
 	int channels, enc,enc_bit=2;
 	unsigned int rate;
@@ -145,8 +149,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	
 	if(mp3Init(ph)<0)return DEC_RET_ERROR;
 
-	details.totaltime=*totaltime>0?*totaltime:-1;
-	details.percent=-1;
+	details->totaltime=*totaltime>0?*totaltime:-1;
+	details->percent=-1;
 	ph->dechandle=&h;
 			
 	pthread_mutex_lock(&dechandle_lock);
@@ -190,9 +194,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		size=len;
 
 		pthread_mutex_lock(&dechandle_lock);
-		details.curtime=h.total/h.accuracy;
-		details.percent=(details.curtime*100)/details.totaltime;
-		crOutput(ph->pflag,&details);
+		details->curtime=h.total/h.accuracy;
+		details->percent=(details->curtime*100)/details->totaltime;
 		h.total+=(size*h.accuracy)/h.samptime;
 		pthread_mutex_unlock(&dechandle_lock);
 
@@ -227,6 +230,6 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	/* Done decoding, now just clean up and leave. */
 	plugin_exit(ph);
 	free(out);
-	*totaltime=details.curtime;
+	*totaltime=details->curtime;
 	return retval;
 }

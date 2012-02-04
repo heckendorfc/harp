@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "alsautil.h"
+#include "sndutil.h"
 
 int snd_init(struct playerHandles *ph){
 	if(!ph->device)ph->device=strdup("default");
@@ -49,6 +51,7 @@ void changeVolume(struct playerHandles *ph, int mod){
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_value_t *value;
 	int err,current;
+	char tail[OUTPUT_TAIL_SIZE];
 
 	if((err=snd_ctl_open(&ctl,ph->device,0))<0){
 		return;
@@ -72,8 +75,8 @@ void changeVolume(struct playerHandles *ph, int mod){
 		else if(current>100)current=100;
 		snd_ctl_elem_value_set_integer(value,err,current);
 	}
-	fprintf(stdout,"\r                               Volume: %d%%  ",current);
-	fflush(stdout);
+	sprintf(tail,"Volume: %d%%",current);
+	addStatusTail(tail,ph->outdetail);
 
 	snd_ctl_elem_write(ctl,value);
 
@@ -87,6 +90,7 @@ void toggleMute(struct playerHandles *ph, int *mute){
 	snd_ctl_elem_id_t *id;
 	snd_ctl_elem_value_t *value;
 	int current=*mute,err;
+	char tail[OUTPUT_TAIL_SIZE];
 
 	if((err=snd_ctl_open(&ctl,ph->device,0))<0){
 		return;
@@ -106,11 +110,12 @@ void toggleMute(struct playerHandles *ph, int *mute){
 
 	if(*mute>0){ // Unmute and perform volume change
 		*mute=0;
-		fprintf(stdout,"\r                               Volume: %d%%  ",current);
+		sprintf(tail,"Volume: %d%%",current);
+		addStatusTail(tail,ph->outdetail);
 	}
 	else{ // Mute 
 		*mute=snd_ctl_elem_value_get_integer(value,0);
-		fprintf(stdout,"\r                               Volume Muted  ");
+		addStatusTail("Volume Muted",ph->outdetail);
 	}
 	fflush(stdout);
 

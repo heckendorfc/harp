@@ -1,9 +1,9 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT(harp, 0.5.1)
+AC_INIT(harp, 0.5.2)
 AC_CONFIG_SRCDIR([harp.c],
-	[plugins/plugin.h],
+	[plugins/plugin.c],
 	[plugins/mp3/mp3.c],[plugins/aac/aac.c],[plugins/vorbis/vorbis.c],[plugins/flac/flac.c],[plugins/stream/stream.c])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
@@ -97,6 +97,10 @@ AS_IF([test "$with_jack" != no],
 	[LIBS="$LIBS -ljack" AC_DEFINE([WITH_JACK],[1],[jack define])],
 	[with_jack=no])])
 
+
+AM_CONDITIONAL([WITH_ALSA], [test "$with_alsa" != no])
+AM_CONDITIONAL([WITH_JACK], [test "$with_jack" != no])
+AM_CONDITIONAL([WITH_OSS], [test "$with_alsa" == no -a "$with_jack" == no])
 
 AM_CONDITIONAL([WITH_MP3], [test "$with_mp3" != no])
 AM_CONDITIONAL([WITH_AAC], [test "$with_aac" != no])

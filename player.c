@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -139,93 +139,27 @@ int play_song(void *data, int col_count, char **row, char **titles){
 	return 1;
 }
 
-int player(int list){//list - playlist number
-	int ret;
-	char *query; // Why aren't we using []?
-	char library[255];
-	
-	// Create playerControl thread
-	char key=KEY_NULL;
-	struct play_song_args psargs;
-	struct playercontrolarg pca;
-	struct playerHandles ph;
-	struct playerflag pflag={0,0,1,0,DEC_RET_SUCCESS,32,32};
-
-	if(!(query=malloc(sizeof(char)*320))){
-		debug(2,"Malloc failed (player query).");
-		return 1;
-	}
-	else{
-		if(initList(list,query))
-			return 0;
-		if(!(ph.plugin_head=openPlugins())){
-			fprintf(stderr,"No plugins found. Please add them with harp -a\n");
-			return 0;
-		}
-	}
-
-	ph.ffd=NULL;
-	ph.device=arglist[ADEVICE].subarg;
-	ph.dechandle=NULL;
-	ph.pflag=&pflag;
-	pca.ph=&ph;
-	tcgetattr(0,&pca.orig);
-	pca.key=&key;
-	psargs.ph=&ph;
-	psargs.pca=&pca;
-	
-
-	pthread_t threads;
-	pthread_mutex_init(&actkey,NULL);
-	pthread_create(&threads,NULL,(void *)&playerControl,(void*)&pca);
-	
-	// Play the list!
-	if(snd_init(&ph)){
-		fprintf(stderr,"snd_init failed");
-		closePluginList(ph.plugin_head);
-		free(query);
-		return 1;
-	}
-
-	// Run the song playing query. Loop for jumping.
-	while(harp_sqlite3_exec(conn,query,play_song,&psargs,NULL)==SQLITE_ABORT){
-		if((ret=play_handle_plugin(&psargs))<1){
-			if(ret<0) /* No plugins */
-				break;
-			else{ /* Error opening file */
-				if(play_handle_key(psargs.pca->key))
-					break;
-				play_next_song_query(query,&pca);
-				continue;
-			}
-		}
-
-		printf("\n");
-
-		psargs.ph->ffd=NULL;
-		psargs.ph->dechandle=NULL;
-		psargs.ph->pflag->exit=DEC_RET_SUCCESS;
-
-		play_update_stats(&psargs,ret);
-
-		if(play_handle_key(psargs.pca->key))
-			break;
-
-		play_next_song_query(query,&pca);
-	}
-
-	closePluginList(ph.plugin_head);
-	snd_close(&ph);
-	pthread_cancel(threads);
-	// Reset term settings
-	tcsetattr(0,TCSANOW,&pca.orig);
-	pthread_mutex_destroy(&actkey);
-	printf("Exiting.\n");
-	free(query);
-	return 0;
+static void setPause(int pause,struct playerflag *pflag){
+	pflag->pause=pause;
+	pflag->pausec=pause?'P':32;
 }
 
-void playerControl(void *arg){
+static void printStatus(struct playerstatusarg *psa){
+	fprintf(stdout,"\r [%c %c][%ds of %ds (%d%%)]%s", psa->pflag->pausec, psa->pflag->mutec, psa->outdetail->curtime, psa->outdetail->totaltime, psa->outdetail->percent<-1?-1:psa->outdetail->percent,psa->outdetail->tail);
+	fflush(stdout);
+}
+
+static void playerStatus(void *arg){
+	struct playerstatusarg *psa=(struct playerstatusarg*)arg;
+	while(1){
+		if(psa->pflag->update){
+			printStatus(psa);
+		}
+		usleep(STATUS_REFRESH_INTERVAL);
+	}
+}
+
+static void playerControl(void *arg){
 	char temp;
 	struct playercontrolarg *pca=(struct playercontrolarg*)arg;
 	
@@ -258,7 +192,105 @@ void playerControl(void *arg){
 	pthread_exit((void *) 0);
 }
 
-static void writelist(char *com, struct playercontrolarg *pca){
+int player(int list){//list - playlist number
+	int oldupdate;
+	int ret;
+	char *query; // Why aren't we using []?
+	char library[255];
+	
+	// Create playerControl thread
+	char key=KEY_NULL;
+	struct play_song_args psargs;
+	struct playercontrolarg pca;
+	struct playerstatusarg psa;
+	struct playerHandles ph;
+	struct playerflag pflag={0,0,1,0,DEC_RET_SUCCESS,32,32};
+	struct outputdetail outdetail;
+	bzero(&outdetail,sizeof(outdetail));
+
+	if(!(query=malloc(sizeof(char)*320))){
+		debug(2,"Malloc failed (player query).");
+		return 1;
+	}
+	else{
+		if(initList(list,query))
+			return 0;
+		if(!(ph.plugin_head=openPlugins())){
+			fprintf(stderr,"No plugins found. Please add them with harp -a\n");
+			return 0;
+		}
+	}
+
+	ph.ffd=NULL;
+	ph.device=arglist[ADEVICE].subarg;
+	ph.dechandle=NULL;
+	psa.pflag=ph.pflag=&pflag;
+	psa.outdetail=ph.outdetail=&outdetail;
+	pca.ph=&ph;
+	tcgetattr(0,&pca.orig);
+	pca.key=&key;
+	psargs.ph=&ph;
+	psargs.pca=&pca;
+	oldupdate=1;
+	
+	pthread_t control_thread,status_thread;
+	pthread_mutex_init(&actkey,NULL);
+	pthread_mutex_init(&outstatus,NULL);
+	pthread_create(&control_thread,NULL,(void *)&playerControl,(void*)&pca);
+	pthread_create(&status_thread,NULL,(void *)&playerStatus,(void*)&psa);
+	
+	// Play the list!
+	if(snd_init(&ph)){
+		fprintf(stderr,"snd_init failed");
+		closePluginList(ph.plugin_head);
+		free(query);
+		return 1;
+	}
+
+	// Run the song playing query. Loop for jumping.
+	while(harp_sqlite3_exec(conn,query,play_song,&psargs,NULL)==SQLITE_ABORT){
+		bzero(&outdetail,sizeof(outdetail));
+		psargs.ph->pflag->update=oldupdate;
+		if((ret=play_handle_plugin(&psargs))<1){
+			if(ret<0) /* No plugins */
+				break;
+			else{ /* Error opening file */
+				if(play_handle_key(psargs.pca->key))
+					break;
+				play_next_song_query(query,&pca);
+				continue;
+			}
+		}
+		oldupdate=psargs.ph->pflag->update;
+		psargs.ph->pflag->update=0;
+		printf("\n");
+
+		psargs.ph->ffd=NULL;
+		psargs.ph->dechandle=NULL;
+		psargs.ph->pflag->exit=DEC_RET_SUCCESS;
+
+		play_update_stats(&psargs,ret);
+
+		if(play_handle_key(psargs.pca->key))
+			break;
+
+		play_next_song_query(query,&pca);
+	}
+
+	closePluginList(ph.plugin_head);
+	snd_close(&ph);
+	pthread_cancel(status_thread);
+	pthread_cancel(control_thread);
+	// Reset term settings
+	tcsetattr(0,TCSANOW,&pca.orig);
+	pthread_mutex_destroy(&outstatus);
+	pthread_mutex_destroy(&actkey);
+	printf("\rExiting.\n");
+	free(query);
+	return 0;
+}
+
+static void writelist_file(char *com, struct playercontrolarg *pca){
 	int x,y,limit;
 	unsigned int order;
 	FILE *ffd;
@@ -295,6 +327,31 @@ static void writelist(char *com, struct playercontrolarg *pca){
 	fclose(ffd);
 }
 
+static void writelist_db(char *com, struct playercontrolarg *pca){
+	char query[200];
+	unsigned int pid=0;
+
+	sprintf(query,"SELECT PlaylistID FROM Playlist WHERE Title='"SAVED_PLAYLIST_NAME"' LIMIT 1");
+	harp_sqlite3_exec(conn,query,uint_return_cb,&pid,NULL);
+
+	if(!pid){
+		sprintf(query,SAVED_PLAYLIST_NAME);
+		pid=getPlaylist(query);
+	}
+
+	sprintf(query,"DELETE FROM PlaylistSong WHERE PlaylistID=%d",pid);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	sprintf(query,"INSERT INTO PlaylistSong (PlaylistID,SongID,\"Order\") SELECT %d,SongID,\"Order\" FROM TempPlaylistSong",pid);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+}
+
+static void writelist(char *com, struct playercontrolarg *pca){
+	if(com[1]=='f')
+		writelist_file(com,pca);
+	else
+		writelist_db(com,pca);
+}
+
 static void advseek(char *com, struct playercontrolarg *pca){
 	int x,y;
 	for(y=1;y<ADV_COM_ARG_LEN && com[y] && (com[y]<'0' || com[y]>'9');y++);
@@ -305,24 +362,27 @@ static void advseek(char *com, struct playercontrolarg *pca){
 		time*=-1;
 
 	if(!pca->decoder)return;
-	pca->ph->pflag->pause=0;
+	setPause(0,pca->ph->pflag);
 	pca->decoder->modseek(pca->ph,time);
 }
 
 static void jump(char *com, struct playercontrolarg *pca){
 	char query[200];
+	int x,y,dest,max_dest;
 
-	int x,y;
+	sprintf(query,"SELECT MAX(\"Order\") FROM TempPlaylistSong");
+	harp_sqlite3_exec(conn,query,uint_return_cb,&max_dest,NULL);
+
 	for(y=1;y<ADV_COM_ARG_LEN && com[y] && (com[y]<'0' || com[y]>'9');y++);
-	int dest=(int)strtol(&com[y],NULL,10);
-	if(dest<=0)return;
+	if((dest=(int)strtol(&com[y],NULL,10))<=0)return;
 
 	if(com[1]=='s'){ // Jump by SongID. Find the Order first,
 		sprintf(query,"SELECT \"Order\" FROM TempPlaylistSong WHERE SongID=%d",dest);
 		debug(3,query);
+		dest=0;
 		harp_sqlite3_exec(conn,query,uint_return_cb,&dest,NULL);
-		if(dest<=0)return;
 	}
+	if(dest<=0 || dest>max_dest)return;
 
 	pca->next_order=dest;
 
@@ -330,7 +390,7 @@ static void jump(char *com, struct playercontrolarg *pca){
 		*pca->key=(*com=='j')?KEY_NEXT:KEY_NEXT_NOUP;
 	pthread_mutex_unlock(&actkey);
 	pca->ph->pflag->exit=*pca->key;
-	pca->ph->pflag->pause=0;
+	setPause(0,pca->ph->pflag);
 }
 
 static void listtemp(char *com, struct playercontrolarg *pca){
@@ -388,6 +448,7 @@ static void remitem(char *com, struct playercontrolarg *pca){
 		}
 		sprintf(query,"DELETE FROM TempPlaylistSong WHERE \"Order\"=%d",order);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+		printf("Removed %d songs.\n",sqlite3_changes(conn));
 		sprintf(query,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"-1 WHERE \"Order\">%d",order);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 		if(pca->cur_order>order)pca->cur_order--;
@@ -404,6 +465,7 @@ static void remitem(char *com, struct playercontrolarg *pca){
 		sprintf(query,"DELETE FROM TempPlaylistSong WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",id_struct.tempselectid);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 
+		printf("Removed %d songs.\n",id_struct.length);
 		cleanTempSelect(id_struct.tempselectid);
 		free(id_struct.songid);
 	}
@@ -434,6 +496,7 @@ static void additem(char *com, struct playercontrolarg *pca){
 		dest=pca->next_order;
 
 	sprintf(query,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"+%d WHERE \"Order\">=%d",id_struct.length,dest);
+	printf("Added %d songs starting at order %d.\n",id_struct.length,dest);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	if(pca->cur_order>=dest)pca->cur_order+=id_struct.length;
 	if(pca->next_order>dest)pca->next_order+=id_struct.length;
@@ -467,14 +530,21 @@ static void getCommand(struct playercontrolarg *pca){
 	struct adv_list_item *list=adv_list;
 	struct termios old;
 	char *ptr,com[ADV_COM_ARG_LEN];
-	int oldupdate=pca->ph->pflag->update;
+	int x,oldupdate=pca->ph->pflag->update;
+	struct playerstatusarg psa={pca->ph->pflag,pca->ph->outdetail};
 
 	tcsetattr(0,TCSANOW,&pca->orig);
 	bzero(com,ADV_COM_ARG_LEN);
 	ptr=com;
-	pca->ph->pflag->update=0;
-	printf(":");
-	fflush(stdout);
+	psa.pflag->update=0;
+	pthread_mutex_lock(&outstatus);
+		for(x=0;psa.outdetail->tail[x];x++)psa.outdetail->tail[x]=' ';
+	pthread_mutex_unlock(&outstatus);
+	printStatus(&psa);
+	pthread_mutex_lock(&outstatus);
+		sprintf(psa.outdetail->tail,":");
+	pthread_mutex_unlock(&outstatus);
+	printStatus(&psa);
 
 	if(fgets(com,ADV_COM_ARG_LEN,stdin)){
 		int x;
@@ -494,12 +564,16 @@ static void getCommand(struct playercontrolarg *pca){
 	old.c_cc[VTIME]=0;
 	old.c_cc[VMIN]=1;
 	tcsetattr(0,TCSANOW,&old);
+	pthread_mutex_lock(&outstatus);
+		sprintf(psa.outdetail->tail,"\r");
+	pthread_mutex_unlock(&outstatus);
 	pca->ph->pflag->update=oldupdate;
 }
 
 int getSystemKey(char key, struct playercontrolarg *pca){
 	function_seek seek;
 	int oldrating;
+	char tail[OUTPUT_TAIL_SIZE];
 	switch(key){
 		case KEY_VOLUP:
 			changeVolume(pca->ph,5);
@@ -509,51 +583,56 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 			break;
 		case KEY_MUTE:
 			toggleMute(pca->ph,&pca->ph->pflag->mute);
+			pca->ph->pflag->mutec=pca->ph->pflag->mutec==32?'M':32;
 			break;
 		case KEY_PAUSE: 
-			pca->ph->pflag->pause=!pca->ph->pflag->pause;
+			setPause(!pca->ph->pflag->pause,pca->ph->pflag);
 			break;
 		case KEY_PREV:
 			if(!pca->decoder)break;
-			pca->ph->pflag->pause=0;
+			setPause(0,pca->ph->pflag);
 			pca->decoder->modseek(pca->ph,0);
 			break;
 		case KEY_SEEK_UP:
 			if(!pca->decoder)break;
-			pca->ph->pflag->pause=0;
+			setPause(0,pca->ph->pflag);
 			pca->decoder->modseek(pca->ph,20);
 			break;
 		case KEY_SEEK_DN:
 			if(!pca->decoder)break;
-			pca->ph->pflag->pause=0;
+			setPause(0,pca->ph->pflag);
 			pca->decoder->modseek(pca->ph,-20);
 			break;
 		case KEY_RATEUP:
 			oldrating=pca->ph->pflag->rating;
 			pca->ph->pflag->rating=pca->ph->pflag->rating==10?10:pca->ph->pflag->rating+1;
-			fprintf(stdout,"\r                               Rating: %d/10 -> %d/10  ",oldrating,pca->ph->pflag->rating);
-			fflush(stdout);
+			pthread_mutex_lock(&outstatus);
+				sprintf(tail,"Rating: %d/10 -> %d/10",oldrating,pca->ph->pflag->rating);
+			pthread_mutex_unlock(&outstatus);
+			addStatusTail(tail,pca->ph->outdetail);
 			break;
 		case KEY_RATEDN:
 			oldrating=pca->ph->pflag->rating;
 			pca->ph->pflag->rating=pca->ph->pflag->rating==0?0:pca->ph->pflag->rating-1;
-			fprintf(stdout,"\r                               Rating: %d/10 -> %d/10  ",oldrating,pca->ph->pflag->rating);
-			fflush(stdout);
+			pthread_mutex_lock(&outstatus);
+				sprintf(tail,"Rating: %d/10 -> %d/10",oldrating,pca->ph->pflag->rating);
+			pthread_mutex_unlock(&outstatus);
+			addStatusTail(tail,pca->ph->outdetail);
 			break;
 		case KEY_COMMAND:
 			getCommand(pca);
 			break;
 		case KEY_QUIT:
 			pca->ph->pflag->exit=DEC_RET_ERROR;
-			pca->ph->pflag->pause=0;
+			setPause(0,pca->ph->pflag);
 			return 0;
 		case KEY_NEXT:
 			pca->ph->pflag->exit=DEC_RET_NEXT;
-			pca->ph->pflag->pause=0;
+			setPause(0,pca->ph->pflag);
 			break;
 		case KEY_NEXT_NOUP:
 			pca->ph->pflag->exit=DEC_RET_NEXT_NOUP;
-			pca->ph->pflag->pause=0;
+			setPause(0,pca->ph->pflag);
 		default:break;
 	}	
 	return 1;

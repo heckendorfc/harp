@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,9 @@
 
 #include "defs.h"
 
+#define STATUS_REFRESH_INTERVAL (50000)
 #define ADV_COM_ARG_LEN (50)
+#define SAVED_PLAYLIST_NAME "Auto-Saved Playlist"
 
 struct playercontrolarg{
 	char *key;
@@ -31,8 +33,12 @@ struct playercontrolarg{
 	struct pluginitem *decoder;
 };
 
+struct playerstatusarg{
+	struct playerflag *pflag;
+	struct outputdetail *outdetail;
+};
+
 int player(int list);
-void playerControl(void *arg);
 int getSystemKey(char key,struct playercontrolarg *pca);
 
 #endif

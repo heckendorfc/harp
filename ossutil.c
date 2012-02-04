@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2010  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,20 +15,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* OSSv3 missing:
- * SNDCTL_DSP_SKIP
- * SNDCTL_DSP_SILENCE
- * SNDCTL_DSP_GETPLAYVOLUME
- * SNDCTL_DSP_SETPLAYVOLUME
- */
-
-#if SOUND_VERSION >= 0x040000
-#define OSSV4_DEFS
-#else
-#undef OSSV4_DEFS
-#endif
-
-#include <errno.h>
+#include "ossutil.h"
+#include "sndutil.h"
 
 int snd_init(struct playerHandles *ph){
 	if((ph->sndfd=open("/dev/dsp",O_WRONLY,777))==-1)return 1;
@@ -61,17 +49,26 @@ void changeVolume(struct playerHandles *ph, int mod){
 #ifdef OSSV4_DEFS
 	int current;
 	int ffd=ph->sndfd;
+	char tail[OUTPUT_TAIL_SIZE];
 
-	if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\nget vol errno:%d\n",errno);errno=0;close(ffd);return;}
+	if(ph->pflag->mute)
+		current=ph->pflag->mute;
+	else
+		if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\nget vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
 	current+=mod<<8;
 	current+=mod;
-	if((current&0xff)<0)current=0;
+	if((current&0xff)>150)current=0; // Unsigned integer overloaded through 0
 	if((current&0xff)>100)current=100+(100<<8);
-	if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
+	if(ph->pflag->mute){
+		if(!(ph->pflag->mute=current))
+			ph->pflag->mutec=32;
+	}
+	else
+		if(ioctl(ffd,SNDCTL_DSP_SETPLAYVOL,&current)==-1){fprintf(stderr,"\nset vol errno:%d\n",errno);errno=0;close(ffd);return;}
 
-	fprintf(stdout,"\r                               Volume: %d%%  ",(0xff&current));
-	fflush(stdout);
+	sprintf(tail,"Volume: %d%%",(0xff&current));
+	addStatusTail(tail,ph->outdetail);
 #endif
 }
 
@@ -81,15 +78,17 @@ void toggleMute(struct playerHandles *ph, int *mute){
 	int ffd=ph->sndfd;
 
 	if(*mute>0){ // Unmute and perform volume change
+		char tail[OUTPUT_TAIL_SIZE];
 		current=*mute;
 		*mute=0;
-		fprintf(stdout,"\r                               Volume: %d%%  ",(0xff&current));
+		sprintf(tail,"Volume: %d%%",(0xff&current));
+		addStatusTail(tail,ph->outdetail);
 	}
 	else{ // Mute 
 		if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\nget vol errno:%d\n",errno);errno=0;close(ffd);return;}
 		*mute=current;
 		current=0;
-		fprintf(stdout,"\r                               Volume Muted  ");
+		addStatusTail("Volume Muted",ph->outdetail);
 	}
 	fflush(stdout);
 
