@@ -65,13 +65,13 @@ static int open_pipe(){
 }
 
 static void close_pipe(){
-	if(h.rfd){
-		fclose(h.rfd);
-		h.rfd=NULL;
-	}
 	if(h.wfd){
 		fclose(h.wfd);
 		h.wfd=NULL;
+	}
+	if(h.rfd){
+		fclose(h.rfd);
+		h.rfd=NULL;
 	}
 }
 
@@ -515,7 +515,6 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	ret=plugin->modplay(ph,key,&temp);
 
 	pthread_cancel(threads);
-	h.wfd=NULL;
 
 	return ret;
 }

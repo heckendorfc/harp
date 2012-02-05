@@ -1,5 +1,5 @@
 noinst_LTLIBRARIES = libharpplugin.la
-libharpplugin_la_LDFLAGS = -module -avoid-version $(SOUND_OUT)
+libharpplugin_la_LDFLAGS = -module -avoid-version -lmpg123 $(SOUND_OUT)
 libharpplugin_la_CFLAGS = -D_HARP_PLUGIN $(CFLAGS)
 libharpplugin_la_SOURCES = plugin.c plugin.h ../defs.h ../message.c ../message.h ../sndutil.c ../sndutil.h
 INCLUDES = -I. -I..

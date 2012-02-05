@@ -15,30 +15,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#include "sndutil.h"
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	//(void) signal(SIGPIPE,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
+void crOutput(struct playerflag *pflag, struct outputdetail *details){
+	if(pflag->update && 0){
+		fprintf(stdout,"\r [%c %c][%ds of %ds (%d%%)]     %s", pflag->pausec, pflag->mutec, details->curtime, details->totaltime, details->percent<-1?-1:details->percent,details->tail);
+		fflush(stdout);
 	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
 }
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
-
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-	if(debugconf.playfilename)
-		unlink(debugconf.playfilename);
-	if(debugconf.msgfilename)
-		unlink(debugconf.msgfilename);
-}

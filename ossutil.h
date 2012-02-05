@@ -15,30 +15,23 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#ifndef _OSSUTIL_H
+#define _OSSUTIL_H
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	//(void) signal(SIGPIPE,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
-	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
-}
+#include "defs.h"
+#include <errno.h>
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
+/* OSSv3 missing:
+ * SNDCTL_DSP_SKIP
+ * SNDCTL_DSP_SILENCE
+ * SNDCTL_DSP_GETPLAYVOLUME
+ * SNDCTL_DSP_SETPLAYVOLUME
+ */
 
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-	if(debugconf.playfilename)
-		unlink(debugconf.playfilename);
-	if(debugconf.msgfilename)
-		unlink(debugconf.msgfilename);
-}
+#if SOUND_VERSION >= 0x040000
+#define OSSV4_DEFS
+#else
+#undef OSSV4_DEFS
+#endif
+
+#endif

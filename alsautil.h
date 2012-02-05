@@ -15,30 +15,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#ifndef _ALSAUTIL_H
+#define _ALSAUTIL_H
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	//(void) signal(SIGPIPE,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
-	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
-}
+#include "defs.h"
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
+#endif
 
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-	if(debugconf.playfilename)
-		unlink(debugconf.playfilename);
-	if(debugconf.msgfilename)
-		unlink(debugconf.msgfilename);
-}

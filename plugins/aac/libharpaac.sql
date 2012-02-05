@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO FileType(Name,ContentType) VALUES('AAC','aac;mp4');
+INSERT OR IGNORE INTO FileType(Name,ContentType) VALUES('AAC','aac;aacp;mp4');
 INSERT OR IGNORE INTO Plugin(Library) VALUES('libharpaac.so');
 INSERT INTO PluginType(TypeID,PluginID)
 SELECT TypeID,(SELECT PluginID FROM Plugin WHERE Library='libharpaac.so')

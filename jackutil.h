@@ -15,30 +15,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "harp.h"
+#ifndef _JACKUTIL_H
+#define _JACKUTIL_H
 
-int main(int argc, char *argv[]){
-	(void) signal(SIGINT,int_leave);
-	//(void) signal(SIGPIPE,int_leave);
-	if(!dbInit()){
-		fprintf(stderr,"db init error\n");
-		return 1;
-	}
-	doArgs(argc,argv);
-	cleanExit();
-	return 0;
-}
+#include "defs.h"
+#include <math.h>
 
-void int_leave(int sig){
-	cleanExit();
-	exit(sig);
-}
+#define NORMFACT (float)0x8000
+#define GAIN_MAX 10
+#define GAIN_MIN -40
 
-void cleanExit(){
-	sqlite3_close(conn);
-	debug(2,"done -- database connection closed");
-	if(debugconf.playfilename)
-		unlink(debugconf.playfilename);
-	if(debugconf.msgfilename)
-		unlink(debugconf.msgfilename);
-}
+#endif
+
+
