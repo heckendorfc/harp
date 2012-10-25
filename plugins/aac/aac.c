@@ -19,6 +19,8 @@
 #include <mp4ff.h>
 #include <neaacdec.h>
 
+#define AAC_MAX_CHANNELS (6)
+
 uint32_t read_callback(void *userdata, void *buffer, uint32_t length);
 uint32_t seek_callback(void *userdata, uint64_t position);
 int GetAACTrack(mp4ff_t *infile);
@@ -74,16 +76,20 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 }
 
 uint32_t read_callback(void *userdata, void *buffer, uint32_t length){
+	//fprintf(stderr,"Reading %d\n",length);
 	return fread(buffer,sizeof(unsigned char),length,(FILE*)userdata);
 }
 
 uint32_t seek_callback(void *userdata, uint64_t position){
+	//fprintf(stderr,"Seeking %d\n",position);
 	return fseek((FILE*)userdata,position,SEEK_SET);
 }
 
 int GetAACTrack(mp4ff_t *infile){
 	int i,ret;
 	int numtracks=mp4ff_total_tracks(infile);
+
+	fprintf(stderr,"\nNumtracks:%d\n",numtracks);
 
 	for(i=0;i<numtracks;i++){
 		unsigned char *buff=NULL;
@@ -104,7 +110,210 @@ int GetAACTrack(mp4ff_t *infile){
 	return -1;
 }
 
-int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
+/**
+ * Check whether the buffer head is an AAC frame, and return the frame
+ * length.  Returns 0 if it is not a frame.
+ */
+static size_t adts_check_frame(const unsigned char *data){
+	/* check syncword */
+	if (!((data[0] == 0xFF) && ((data[1] & 0xF6) == 0xF0)))
+		return 0;
+
+	return (((unsigned int)data[3] & 0x3) << 11) |
+		(((unsigned int)data[4]) << 3) |
+		(data[5] >> 5);
+}
+
+static size_t fill_buffer(FILE *ffd, char *buf, const int buf_len){
+	size_t length=fread(buf,1,buf_len,ffd);
+	//if(length>0)fprintf(stderr,"\nRead %d\n",length);
+	return length;
+}
+
+/**
+ * Find the next AAC frame in the buffer.  Returns 0 if no frame is
+ * found or if not enough data is available.
+ */
+static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int buf_len){
+	char *data, *p, *bp;
+	size_t bp_len, length, frame_length;
+
+	bp=buf;
+	bp_len=0;
+	length=0;
+
+	bp_len=start+fill_buffer(ffd,bp+start,buf_len-start);
+	while (1) {
+		if(bp_len<8){
+			//fprintf(stderr,"\nNeed more data\n");
+			if(bp_len>0)
+				memmove(buf,bp,bp_len);
+			usleep(100000);
+			bp_len+=fill_buffer(ffd,buf+bp_len,buf_len-bp_len);
+			bp=buf;
+			continue;
+		}
+
+		p = memchr(bp, 0xff, bp_len);
+		if (p == NULL){
+			/* No marker found. clear buffer */
+			bp=buf;
+			bp_len=0;
+			continue;
+		}
+
+		if(p>bp){
+			/* discard data before marker */
+			bp_len-=(p-bp);
+			bp=p;
+		}
+
+		/* is it a frame? */
+		frame_length = adts_check_frame(bp);
+		if (frame_length == 0) {
+			/* it's just some random 0xff byte; discard it
+			   and continue searching */
+			bp++;
+			bp_len--;
+			continue;
+		}
+
+		if(bp_len<frame_length){
+			/* we don't have a full frame in the buffer. */
+			if(buf_len<frame_length){
+				/* ... and we never will. Clear the buffer and look for the next frame. */
+					/* Should we give up at this point? */
+				fprintf(stderr,"Buffer too small\n");
+				bp=buf;
+				bp_len=0;
+				continue;
+			}
+			
+			memmove(buf,bp,bp_len);
+			while(bp_len<frame_length){
+				int i;
+				usleep(100000);
+				bp_len+=i=fill_buffer(ffd,buf+bp_len,buf_len-bp_len);
+			}
+		}
+		return frame_length;
+	}
+	return 0;
+}
+
+int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, const int buf_filled, const int bufsize){
+	char *out;
+	int track,fmt,ret,channels,retval=DEC_RET_SUCCESS;
+	unsigned int rate;
+	unsigned char channelchar;
+	unsigned long ratel;
+	char tail[OUTPUT_TAIL_SIZE];
+	NeAACDecFrameInfo hInfo;
+	unsigned int total=0;
+	struct outputdetail *details=ph->outdetail;
+	size_t frame_size;
+	int bufstart=0;
+
+	NeAACDecHandle hAac = NeAACDecOpen();
+	NeAACDecConfigurationPtr config = NeAACDecGetCurrentConfiguration(hAac);
+
+	config->useOldADTSFormat=0;
+	//config->defObjectType=LC;
+	config->outputFormat = FAAD_FMT_16BIT;
+#ifdef HAVE_FAACDECCONFIGURATION_DOWNMATRIX
+	config->downMatrix = 1;
+#endif
+#ifdef HAVE_FAACDECCONFIGURATION_DONTUPSAMPLEIMPLICITSBR
+	config->dontUpSampleImplicitSBR = 0;
+#endif
+
+	if(NeAACDecSetConfiguration(hAac,config)==0){
+		fprintf(stderr,"set conf failed");
+		return DEC_RET_ERROR;
+	}
+
+	frame_size=adts_find_frame(ph->ffd,buf,buf_filled,bufsize);
+	
+	if((ret=NeAACDecInit(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
+		channels=(int)channelchar;
+		fmt=(int)config->outputFormat;
+		rate=(unsigned int)ratel;
+	}
+	else{
+		fprintf(stderr,"NeAACDecInit error %d\n",ret);
+		channels=2;
+		rate=44100;
+	}
+	//fprintf(stderr,"Init returned %d\n",ret);
+
+	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch",rate, channels);
+	addStatusTail(tail,ph->outdetail);
+
+	snd_param_init(ph,&fmt,&channels,&rate);
+
+	details->totaltime=*totaltime;
+
+	h.total=&total;
+	//h.sample=&sample;
+	h.rate=&rate;
+	h.framesize=frame_size;
+	h.channels=channels;
+
+	ph->dechandle=&h;
+
+
+#if WITH_ALSA==1
+	#define OUTSIZE(x) (x)
+#else
+	#define OUTSIZE_AAC(x) (x*channels)
+#endif
+
+	do{
+		//((NeAACDecStruct)hAac).frameLength=frame_size;
+		//frame_size=fread(buf,1,2,ph->ffd);
+		//out=(char *)NeAACDecDecode(hAac,&hInfo,buf,bufsize);
+		//out=(char *)NeAACDecDecode(hAac,&hInfo,buf,frame_size);
+		out=(char *)NeAACDecDecode(hAac,&hInfo,buf,bufsize);
+
+		if(hInfo.error>0){
+			fprintf(stderr,"Error while decoding %d %s\n",hInfo.error,NeAACDecGetErrorMessage(hInfo.error));
+			//retval=DEC_RET_ERROR;
+			//break;
+		}
+		else if(hInfo.samples>0){
+			total+=hInfo.samples/channels; // framesize?
+			//if(writei_snd(ph,out,OUTSIZE(frame_size))<0)break;
+			if(writei_snd(ph,out,OUTSIZE_AAC(hInfo.samples))<0)break;
+
+			details->curtime=total/rate;
+			//details->percent=(sample*100)/numsamples;
+		}
+
+		if(ph->pflag->exit!=DEC_RET_SUCCESS){
+			retval=ph->pflag->exit;
+			break;	
+		}
+		//fprintf(stderr,"Used %d\n",hInfo.bytesconsumed);
+
+		memmove(buf,buf+frame_size,bufsize-frame_size);
+		bufstart=bufsize-frame_size;
+
+		frame_size=adts_find_frame(ph->ffd,buf,bufstart,bufsize);
+		if(frame_size==0){
+			fprintf(stderr,"\nframe_size==0\n");
+			retval=DEC_RET_ERROR;
+			break;
+		}
+	}while(1);
+
+	free(buf);
+	NeAACDecClose(hAac);
+	*totaltime=details->curtime;
+	return retval;
+
+}
+
+int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int buf_len){
 	unsigned char *buf=NULL;
 	char *out;
 	ssize_t len;
@@ -121,6 +330,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	mp4cb->seek=seek_callback;
 	mp4cb->user_data=ph->ffd;
 
+	fprintf(stderr,"\nOpening\n");
 	infile=mp4ff_open_read(mp4cb);
 	if(!infile){
 		fprintf(stderr,"mp4ffopenread failed");
@@ -128,6 +338,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		return DEC_RET_ERROR;
 	}
 
+	fprintf(stderr,"\nGetting track\n");
 	if((track=GetAACTrack(infile))<0){
 		fprintf(stderr,"getaactrack failed");
 		mp4ff_close(infile);
@@ -234,4 +445,23 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	NeAACDecClose(hAac);
 	*totaltime=details->curtime;
 	return retval;
+}
+
+int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
+	char *buf=NULL;
+	int bufsize=FAAD_MIN_STREAMSIZE * AAC_MAX_CHANNELS;
+	int frame_size;
+
+	if(!(buf=malloc(bufsize)))
+		return DEC_RET_ERROR;
+	
+	frame_size=fill_buffer(ph->ffd,buf,8);
+
+	if(buf[4]=='f' && buf[5]=='t' && buf[6]=='y' && buf[7]=='p'){
+		fseek(ph->ffd,0,SEEK_SET);
+		return decodeMP4(ph,key,totaltime,buf,frame_size,bufsize);
+	}
+	else{
+		return decodeAAC(ph,key,totaltime,buf,frame_size,bufsize);
+	}
 }
