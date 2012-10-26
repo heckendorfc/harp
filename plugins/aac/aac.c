@@ -196,6 +196,9 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 				bp_len+=i=fill_buffer(ffd,buf+bp_len,buf_len-bp_len);
 			}
 		}
+		else
+			memmove(buf,bp,bp_len);
+
 		return frame_length;
 	}
 	return 0;
