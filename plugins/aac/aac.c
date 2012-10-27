@@ -89,8 +89,6 @@ int GetAACTrack(mp4ff_t *infile){
 	int i,ret;
 	int numtracks=mp4ff_total_tracks(infile);
 
-	fprintf(stderr,"\nNumtracks:%d\n",numtracks);
-
 	for(i=0;i<numtracks;i++){
 		unsigned char *buff=NULL;
 		unsigned int buffsize=0;
@@ -136,7 +134,7 @@ static size_t fill_buffer(FILE *ffd, char *buf, const int buf_len){
  */
 static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int buf_len){
 	char *data, *p, *bp;
-	size_t bp_len, length, frame_length;
+	size_t bp_len, length, frame_length, next_frame;
 
 	bp=buf;
 	bp_len=0;
@@ -145,7 +143,6 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 	bp_len=start+fill_buffer(ffd,bp+start,buf_len-start);
 	while (1) {
 		if(bp_len<8){
-			//fprintf(stderr,"\nNeed more data\n");
 			if(bp_len>0)
 				memmove(buf,bp,bp_len);
 			usleep(100000);
@@ -170,7 +167,8 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 
 		/* is it a frame? */
 		frame_length = adts_check_frame(bp);
-		if (frame_length == 0) {
+		next_frame = adts_check_frame(bp+frame_length);
+		if (frame_length == 0 || next_frame == 0) {
 			/* it's just some random 0xff byte; discard it
 			   and continue searching */
 			bp++;
@@ -183,7 +181,7 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 			if(buf_len<frame_length){
 				/* ... and we never will. Clear the buffer and look for the next frame. */
 					/* Should we give up at this point? */
-				fprintf(stderr,"Buffer too small\n");
+				fprintf(stderr,"AAC | Buffer too small for this frame\n");
 				bp=buf;
 				bp_len=0;
 				continue;
@@ -216,6 +214,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 	struct outputdetail *details=ph->outdetail;
 	size_t frame_size;
 	int bufstart=0;
+	uint32_t adts_header=0;
 
 	NeAACDecHandle hAac = NeAACDecOpen();
 	NeAACDecConfigurationPtr config = NeAACDecGetCurrentConfiguration(hAac);
@@ -236,6 +235,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 	}
 
 	frame_size=adts_find_frame(ph->ffd,buf,buf_filled,bufsize);
+	adts_header=(((uint32_t*)buf)[0]) >> 6;
 	
 	if((ret=NeAACDecInit(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
 		channels=(int)channelchar;
@@ -272,20 +272,27 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 #endif
 
 	do{
-		//((NeAACDecStruct)hAac).frameLength=frame_size;
-		//frame_size=fread(buf,1,2,ph->ffd);
-		//out=(char *)NeAACDecDecode(hAac,&hInfo,buf,bufsize);
-		//out=(char *)NeAACDecDecode(hAac,&hInfo,buf,frame_size);
+		if(0 && adts_header != (((uint32_t*)buf)[0]) >> 6){
+			adts_header=(((uint32_t*)buf)[0]) >> 6;
+			NeAACDecClose(hAac);
+			if((ret=NeAACDecInit(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
+				channels=(int)channelchar;
+				fmt=(int)config->outputFormat;
+				rate=(unsigned int)ratel;
+			}
+			else{
+				fprintf(stderr,"New format init failed.\n");
+			}
+		}
 		out=(char *)NeAACDecDecode(hAac,&hInfo,buf,bufsize);
 
 		if(hInfo.error>0){
-			fprintf(stderr,"Error while decoding %d %s\n",hInfo.error,NeAACDecGetErrorMessage(hInfo.error));
+			fprintf(stderr,"AAC | Error while decoding - %d: %s\n",hInfo.error,NeAACDecGetErrorMessage(hInfo.error));
 			//retval=DEC_RET_ERROR;
 			//break;
 		}
 		else if(hInfo.samples>0){
 			total+=hInfo.samples/channels; // framesize?
-			//if(writei_snd(ph,out,OUTSIZE(frame_size))<0)break;
 			if(writei_snd(ph,out,OUTSIZE_AAC(hInfo.samples))<0)break;
 
 			details->curtime=total/rate;
@@ -296,11 +303,9 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 			retval=ph->pflag->exit;
 			break;	
 		}
-		//fprintf(stderr,"Used %d\n",hInfo.bytesconsumed);
 
 		memmove(buf,buf+frame_size,bufsize-frame_size);
 		bufstart=bufsize-frame_size;
-
 		frame_size=adts_find_frame(ph->ffd,buf,bufstart,bufsize);
 		if(frame_size==0){
 			fprintf(stderr,"\nframe_size==0\n");
@@ -333,7 +338,6 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	mp4cb->seek=seek_callback;
 	mp4cb->user_data=ph->ffd;
 
-	fprintf(stderr,"\nOpening\n");
 	infile=mp4ff_open_read(mp4cb);
 	if(!infile){
 		fprintf(stderr,"mp4ffopenread failed");
@@ -341,7 +345,6 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 		return DEC_RET_ERROR;
 	}
 
-	fprintf(stderr,"\nGetting track\n");
 	if((track=GetAACTrack(infile))<0){
 		fprintf(stderr,"getaactrack failed");
 		mp4ff_close(infile);
