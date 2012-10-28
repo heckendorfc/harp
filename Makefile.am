@@ -2,6 +2,7 @@ ACLOCAL_AMFLAGS = -I m4
 bin_PROGRAMS = harp
 harp_SOURCES = \
 harp.c \
+defs_h.c \
 argparse.c \
 harpconfig.c \
 dbact.c \

@@ -78,9 +78,6 @@
 
 #include "message.h"
 
-pthread_mutex_t outstatus;
-sqlite3 *conn;
-
 struct dbitem{
 	char **result;	  // All data
 	char **row;		  // A row of data (pointers to result strings)
@@ -98,6 +95,9 @@ struct musicInfo{
 	char *artist;
 	int length;
 };
+
+extern pthread_mutex_t outstatus;
+extern sqlite3 *conn;
 
 struct playerHandles;
 
