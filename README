@@ -24,9 +24,13 @@ Installing harp:
 			./configure --with-jack
 			or
 			./configure --with-alsa
+
+		MacPorts users may wish to use:
+			./configure --with-jack CFLAGS="-I/opt/local/include" LDFLAGS="-L/opt/local/lib -L/opt/local/lib/jack"
 	make
 	make install
 
+		see also: osx_install.sh
 
 Enable the plugins in harp:
 	harp -a

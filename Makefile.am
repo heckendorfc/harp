@@ -49,4 +49,4 @@ man1_MANS = share/harp.1
 AM_CFLAGS = -DSHARE_PATH="\"$(datadir)\"" -DLIB_PATH="\"$(libdir)\""
 SUBDIRS = . plugins
 
-EXTRA_DIST = $(pkgdata_DATA) $(man1_MANS)
+EXTRA_DIST = $(pkgdata_DATA) $(man1_MANS) osx_install.sh
