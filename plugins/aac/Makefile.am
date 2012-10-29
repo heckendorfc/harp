@@ -5,3 +5,5 @@ libharpaac_la_SOURCES = aac.c ../../defs_h.c
 libharpaac_la_LIBADD = ../libharpplugin.la
 INCLUDES = -I../.. -I..
 pkgdata_DATA = libharpaac.sql
+
+EXTRA_DIST = $(pkgdata_DATA) aacmeta.c

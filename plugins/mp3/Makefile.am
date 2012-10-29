@@ -5,3 +5,5 @@ libharpmp3_la_SOURCES = mp3.c ../../defs_h.c
 libharpmp3_la_LIBADD = ../libharpplugin.la
 INCLUDES = -I../.. -I..
 pkgdata_DATA = libharpmp3.sql
+
+EXTRA_DIST = $(pkgdata_DATA) mp3meta.c
