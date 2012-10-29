@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>
+#include <sys/select.h>
 
 #define S_DEF_PORT_STR "80"
 
@@ -31,6 +32,7 @@ struct streamHandles{
 	int metaint;
 	int bytecount;
 	int print_meta;
+	volatile char go;
 }h;
 
 #define S_BUFSIZE (1024)
@@ -431,6 +433,9 @@ static void streamIO(int parse(char*,int*,void*),void *data){
 	buf[S_BUFSIZE]=0;
 
 	while(1){
+		if(!h.go)
+			break;
+
 		len=ret=read(h.sfd,buf,S_BUFSIZE);
 		if(!parse(buf,&len,data))
 			break;
@@ -462,6 +467,7 @@ static struct pluginitem *selectPlugin(struct pluginitem *list, char *type){
 	struct pluginitem *ret=list;
 	char buf[S_BUFSIZE],*ptr;
 	int len,tlen,x;
+	if(type==NULL || *type==0)return NULL;
 	len=strlen(type);
 	
 	while(ret){
@@ -476,11 +482,13 @@ static struct pluginitem *selectPlugin(struct pluginitem *list, char *type){
 	return NULL;
 }
 
-void sio_thread(void *data){
+void* sio_thread(void *data){
 	if(h.print_meta && h.metaint)
 		streamIO(write_pipe_parse_meta,data);
 	else
 		streamIO(write_pipe,data);
+
+	return (void*)0;
 }
 
 int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
@@ -488,6 +496,10 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	struct pluginitem *plugin;
 	struct streamInfo si;
 	pthread_t threads;
+	char buf[S_BUFSIZE+1];
+	fd_set fdset;
+	struct timeval timeout;
+	int rfd;
 
 	if(!(si.name=malloc((SI_NAME_SIZE+1)*sizeof(char))) ||
 		!(si.description=malloc((SI_DESCRIPTION_SIZE+1)*sizeof(char))) ||
@@ -503,6 +515,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	si.bitrate=0;
 	
 	h.metaint=h.bytecount=0;
+	h.go=1;
 	streamIO(parse_meta_si,&si);
 	print_stream_meta(&si);
 	if(!(plugin=selectPlugin(ph->plugin_head,si.type))){
@@ -514,7 +527,27 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	pthread_create(&threads,NULL,(void *)&sio_thread,(void *)ph);
 	ret=plugin->modplay(ph,key,&temp);
 
-	pthread_cancel(threads);
+	//if(pthread_cancel(threads)!=0)fprintf(stderr,"Failed cancel.\n");
+	h.go=0;
+
+	rfd=fileno(h.rfd);
+	do{
+		timeout.tv_sec=0;
+		timeout.tv_usec=100000;
+		FD_ZERO(&fdset);
+		FD_SET(rfd,&fdset);
+		if(select(1,&fdset,NULL,NULL,&timeout)<1)
+			break;
+	}while((temp=fread(buf,1,S_BUFSIZE,h.rfd))==S_BUFSIZE);
+
+#ifdef __APPLE__
+	// OSX seems to block when closing the write end unless the read end is first closed
+	close(rfd);
+	h.rfd=NULL;
+#endif
+
+	//if(pthread_join(threads,NULL)!=0)fprintf(stderr,"Failed join\n");
+	//usleep(100000);
 
 	return ret;
 }
