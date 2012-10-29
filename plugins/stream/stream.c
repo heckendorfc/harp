@@ -527,9 +527,9 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	pthread_create(&threads,NULL,(void *)&sio_thread,(void *)ph);
 	ret=plugin->modplay(ph,key,&temp);
 
-	//if(pthread_cancel(threads)!=0)fprintf(stderr,"Failed cancel.\n");
 	h.go=0;
 
+#ifdef __APPLE__
 	rfd=fileno(h.rfd);
 	do{
 		timeout.tv_sec=0;
@@ -540,13 +540,14 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 			break;
 	}while((temp=fread(buf,1,S_BUFSIZE,h.rfd))==S_BUFSIZE);
 
-#ifdef __APPLE__
 	// OSX seems to block when closing the write end unless the read end is first closed
 	close(rfd);
 	h.rfd=NULL;
+#else
+	if(pthread_cancel(threads)!=0)fprintf(stderr,"Failed cancel.\n");
+	if(pthread_join(threads,NULL)!=0)fprintf(stderr,"Failed join\n");
 #endif
 
-	//if(pthread_join(threads,NULL)!=0)fprintf(stderr,"Failed join\n");
 	//usleep(100000);
 
 	return ret;
