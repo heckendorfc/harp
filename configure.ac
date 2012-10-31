@@ -42,6 +42,10 @@ AC_ARG_WITH([stream],
 [], [with_stream=yes])
 
 
+AC_ARG_WITH([oss],
+[AS_HELP_STRING(--without-oss, Disable oss support)],
+[], [with_oss=yes])
+
 AC_ARG_WITH([alsa],
 [AS_HELP_STRING(--with-alsa, Enable alsa support)],
 [], [with_alsa=no])
@@ -100,7 +104,7 @@ AS_IF([test "$with_jack" != no],
 
 AM_CONDITIONAL([WITH_ALSA], [test "$with_alsa" != no])
 AM_CONDITIONAL([WITH_JACK], [test "$with_jack" != no])
-AM_CONDITIONAL([WITH_OSS], [test "$with_alsa" == no -a "$with_jack" == no])
+AM_CONDITIONAL([WITH_OSS], [test "$with_oss" != no -a "$with_alsa" = no -a "$with_jack" = no])
 
 AM_CONDITIONAL([WITH_MP3], [test "$with_mp3" != no])
 AM_CONDITIONAL([WITH_AAC], [test "$with_aac" != no])

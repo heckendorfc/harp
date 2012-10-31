@@ -773,6 +773,7 @@ with_aac
 with_vorbis
 with_flac
 with_stream
+with_oss
 with_alsa
 with_jack
 '
@@ -1426,6 +1427,7 @@ Optional Packages:
   --without-vorbis        Disable vorbis support
   --without-flac          Disable flac support
   --without-stream        Disable stream support
+  --without-oss           Disable oss support
   --with-alsa             Enable alsa support
   --with-jack             Enable jack support
 
@@ -11496,6 +11498,15 @@ fi
 
 
 
+# Check whether --with-oss was given.
+if test "${with_oss+set}" = set; then :
+  withval=$with_oss;
+else
+  with_oss=yes
+fi
+
+
+
 # Check whether --with-alsa was given.
 if test "${with_alsa+set}" = set; then :
   withval=$with_alsa;
@@ -11911,7 +11922,7 @@ else
   WITH_JACK_FALSE=
 fi
 
- if test "$with_alsa" == no -a "$with_jack" == no; then
+ if test "$with_oss" != no -a "$with_alsa" = no -a "$with_jack" = no; then
   WITH_OSS_TRUE=
   WITH_OSS_FALSE='#'
 else
