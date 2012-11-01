@@ -446,6 +446,7 @@ static void streamIO(int parse(char*,int*,void*),void *data){
 }
 
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
+	h.go=1;
 	streamIO(parse_meta_mi,mi);
 
 	if(!(*mi->title))
@@ -529,7 +530,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	h.go=0;
 
-#ifdef __APPLE__
+//#if defined(__APPLE__) || defined(Linux)
 	rfd=fileno(h.rfd);
 	do{
 		timeout.tv_sec=0;
@@ -543,7 +544,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	// OSX seems to block when closing the write end unless the read end is first closed
 	close(rfd);
 	h.rfd=NULL;
-#else
+//#else
+#if 0
 	if(pthread_cancel(threads)!=0)fprintf(stderr,"Failed cancel.\n");
 	if(pthread_join(threads,NULL)!=0)fprintf(stderr,"Failed join\n");
 #endif
