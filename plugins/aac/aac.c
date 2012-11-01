@@ -266,7 +266,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 
 
 #if WITH_ALSA==1
-	#define OUTSIZE(x) (x)
+	#define OUTSIZE_AAC(x) (x)
 #else
 	#define OUTSIZE_AAC(x) (x*channels)
 #endif
