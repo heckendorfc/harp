@@ -46,10 +46,12 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 	if(ph->sndfd)
 		pa_simple_free(ph->sndfd);
 
+	/*
 	if(pa_simple_drain(ph->sndfd,&error)<0){
 		fprintf(stderr,"drain failed: %d\n",error);
 		return 1;
 	}
+	*/
 	ph->sndfd=pa_simple_new(NULL, "HARP", PA_STREAM_PLAYBACK, NULL, "music", &ph->ss, NULL, NULL, &error);
 	if(!ph->sndfd){
 		fprintf(stderr,"sndfd open failed: %d\n",error);
