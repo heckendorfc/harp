@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "alsautil.h"
+#include "pulseutil.h"
 #include "sndutil.h"
 
 int snd_init(struct playerHandles *ph){
@@ -30,7 +30,6 @@ int snd_init(struct playerHandles *ph){
 		fprintf(stderr,"sndfd open failed: %d\n",error);
 		return 1;
 	}
-
 	return 0;
 }
 

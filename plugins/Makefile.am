@@ -14,6 +14,9 @@ endif
 if WITH_JACK
 libharpplugin_la_SOURCES += ../jackutil.c ../jackutil.h
 endif
+if WITH_PULSE
+libharpplugin_la_SOURCES += ../pulseutil.c ../pulseutil.h
+endif
 
 if WITH_MP3
 SUBDIRS += mp3
