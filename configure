@@ -645,6 +645,8 @@ WITH_MP3_FALSE
 WITH_MP3_TRUE
 WITH_OSS_FALSE
 WITH_OSS_TRUE
+WITH_PULSE_FALSE
+WITH_PULSE_TRUE
 WITH_JACK_FALSE
 WITH_JACK_TRUE
 WITH_ALSA_FALSE
@@ -776,6 +778,7 @@ with_stream
 with_oss
 with_alsa
 with_jack
+with_pulse
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1430,6 +1433,7 @@ Optional Packages:
   --without-oss           Disable oss support
   --with-alsa             Enable alsa support
   --with-jack             Enable jack support
+  --with-pulse            Enable pulseaudio support
 
 Some influential environment variables:
   CC          C compiler command
@@ -11525,6 +11529,15 @@ fi
 
 
 
+# Check whether --with-pulse was given.
+if test "${with_pulse+set}" = set; then :
+  withval=$with_pulse;
+else
+  with_pulse=no
+fi
+
+
+
 #AS_IF([test "$with_mp3" != no],
 #[AC_CHECK_LIB([mpg123], [mpg123_open],
 	#AC_CONFIG_FILES([plugins/mp3/Makefile]),
@@ -11905,6 +11918,53 @@ fi
 
 fi
 
+if test "$with_pulse" != no; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pa_simple_new in -lpulse-simple" >&5
+$as_echo_n "checking for pa_simple_new in -lpulse-simple... " >&6; }
+if ${ac_cv_lib_pulse_simple_pa_simple_new+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpulse-simple  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pa_simple_new ();
+int
+main ()
+{
+return pa_simple_new ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pulse_simple_pa_simple_new=yes
+else
+  ac_cv_lib_pulse_simple_pa_simple_new=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pulse_simple_pa_simple_new" >&5
+$as_echo "$ac_cv_lib_pulse_simple_pa_simple_new" >&6; }
+if test "x$ac_cv_lib_pulse_simple_pa_simple_new" = xyes; then :
+  LIBS="$LIBS -lpulse-simple"
+$as_echo "#define WITH_PULSE 1" >>confdefs.h
+
+else
+  with_pulse=no
+fi
+
+fi
+
 
  if test "$with_alsa" != no; then
   WITH_ALSA_TRUE=
@@ -11922,7 +11982,15 @@ else
   WITH_JACK_FALSE=
 fi
 
- if test "$with_oss" != no -a "$with_alsa" = no -a "$with_jack" = no; then
+ if test "$with_pulse" != no; then
+  WITH_PULSE_TRUE=
+  WITH_PULSE_FALSE='#'
+else
+  WITH_PULSE_TRUE='#'
+  WITH_PULSE_FALSE=
+fi
+
+ if test "$with_oss" != no -a "$with_alsa" = no -a "$with_jack" = no -a "$with_pulse" = no; then
   WITH_OSS_TRUE=
   WITH_OSS_FALSE='#'
 else
@@ -12169,6 +12237,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${WITH_JACK_TRUE}" && test -z "${WITH_JACK_FALSE}"; then
   as_fn_error $? "conditional \"WITH_JACK\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${WITH_PULSE_TRUE}" && test -z "${WITH_PULSE_FALSE}"; then
+  as_fn_error $? "conditional \"WITH_PULSE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${WITH_OSS_TRUE}" && test -z "${WITH_OSS_FALSE}"; then

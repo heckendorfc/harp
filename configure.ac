@@ -54,6 +54,10 @@ AC_ARG_WITH([jack],
 [AS_HELP_STRING(--with-jack, Enable jack support)],
 [], [with_jack=no])
 
+AC_ARG_WITH([pulse],
+[AS_HELP_STRING(--with-pulse, Enable pulseaudio support)],
+[], [with_pulse=no])
+
 
 #AS_IF([test "$with_mp3" != no],
 #[AC_CHECK_LIB([mpg123], [mpg123_open],
@@ -101,10 +105,16 @@ AS_IF([test "$with_jack" != no],
 	[LIBS="$LIBS -ljack" AC_DEFINE([WITH_JACK],[1],[jack define])],
 	[with_jack=no])])
 
+AS_IF([test "$with_pulse" != no],
+[AC_CHECK_LIB([pulse-simple], [pa_simple_new],
+	[LIBS="$LIBS -lpulse-simple" AC_DEFINE([WITH_PULSE],[1],[pulse define])],
+	[with_pulse=no])])
+
 
 AM_CONDITIONAL([WITH_ALSA], [test "$with_alsa" != no])
 AM_CONDITIONAL([WITH_JACK], [test "$with_jack" != no])
-AM_CONDITIONAL([WITH_OSS], [test "$with_oss" != no -a "$with_alsa" = no -a "$with_jack" = no])
+AM_CONDITIONAL([WITH_PULSE], [test "$with_pulse" != no])
+AM_CONDITIONAL([WITH_OSS], [test "$with_oss" != no -a "$with_alsa" = no -a "$with_jack" = no -a "$with_pulse" = no])
 
 AM_CONDITIONAL([WITH_MP3], [test "$with_mp3" != no])
 AM_CONDITIONAL([WITH_AAC], [test "$with_aac" != no])

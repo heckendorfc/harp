@@ -42,6 +42,9 @@ endif
 if WITH_JACK
 harp_SOURCES += jackutil.c jackutil.h
 endif
+if WITH_PULSE
+harp_SOURCES += pulseutil.c pulseutil.h
+endif
 
 #harp_LDFLAGS = -Wl,-rpath,/usr/local/lib/
 pkgdata_DATA = share/create.sql share/defaults.conf

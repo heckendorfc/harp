@@ -52,6 +52,8 @@
 #elif WITH_JACK==1
 	#include <jack/jack.h>
 	#include <jack/ringbuffer.h>
+#elif WITH_PULSE==1
+	#include <pulse/simple.h>
 #else
 	#include <sys/soundcard.h>
 	#include <sys/fcntl.h>
@@ -273,6 +275,12 @@ struct playerHandles{
 	jack_ringbuffer_t **outbuf;
 	int maxsize;
 	int out_gain;
+#elif WITH_PULSE==1
+	pa_simple *sndfd;
+	pa_sample_spec ss;
+	//pa_context *sndfd;
+	//pa_stream *stream;
+	//pa_threaded_mainloop *mainloop;
 #else
 	int sndfd;
 	int *params;
