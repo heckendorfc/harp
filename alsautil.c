@@ -47,87 +47,138 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 }
 
 void changeVolume(struct playerHandles *ph, int mod){
-	snd_ctl_t *ctl;
-	snd_ctl_elem_id_t *id;
-	snd_ctl_elem_value_t *value;
-	int err,current;
+	long val;
+	int err;
+	float range_p;
+	long cur_vol,new_volume;
+	long vmin,vmax;
 	char tail[OUTPUT_TAIL_SIZE];
+	snd_mixer_t *handle;
+	snd_mixer_elem_t *elem;
+	snd_mixer_selem_id_t *sid;
 
-	if((err=snd_ctl_open(&ctl,ph->device,0))<0){
+	snd_mixer_selem_id_alloca(&sid);
+	snd_mixer_selem_id_set_index(sid,0);
+	snd_mixer_selem_id_set_name(sid,"PCM");
+
+	if(snd_mixer_open(&handle,0)<0)
+		return;
+
+	if(snd_mixer_attach(handle,"default")<0){
+		snd_mixer_close(handle);
 		return;
 	}
-	snd_ctl_elem_id_malloc(&id);
-	snd_ctl_elem_value_malloc(&value);
-	if(!id || !value){
-		fprintf(stderr,"Malloc failed");
+
+	if(snd_mixer_selem_register(handle,NULL,NULL)<0){
+		snd_mixer_close(handle);
 		return;
 	}
-	snd_ctl_elem_id_set_interface(id,SND_CTL_ELEM_IFACE_MIXER);
-	snd_ctl_elem_id_set_name(id,"PCM Playback Volume");
 
-	snd_ctl_elem_value_set_id(value,id);
-
-	snd_ctl_elem_read(ctl,value);
-
-	for(err=9;err>=0;err--){
-		current=mod+snd_ctl_elem_value_get_integer(value,err);
-		if(current<0)current=0;
-		else if(current>100)current=100;
-		snd_ctl_elem_value_set_integer(value,err,current);
+	if(snd_mixer_load(handle)<0){
+		snd_mixer_close(handle);
+		return;
 	}
-	sprintf(tail,"Volume: %d%%",current);
+
+	elem=snd_mixer_find_selem(handle,sid);
+	if(!elem){
+		snd_mixer_close(handle);
+		return;
+	}
+	
+	snd_mixer_selem_get_playback_volume_range(elem,&vmin,&vmax);
+	range_p = (100.0f/(float)(vmax-vmin));
+
+	snd_mixer_selem_get_playback_volume(elem,0,&cur_vol);
+	new_volume = cur_vol+vmin+mod/range_p;
+	if(new_volume==cur_vol && mod!=0)new_volume+=(mod<0?-1:1);
+	if(new_volume<vmin)new_volume=vmin;
+	if(new_volume>vmax)new_volume=vmax;
+	if(snd_mixer_selem_set_playback_volume(elem,0,new_volume)<0){
+		snd_mixer_close(handle);
+		return;
+	}
+
+	sprintf(tail,"Volume: %d%%",(int)((float)range_p*(float)new_volume));
 	addStatusTail(tail,ph->outdetail);
+	
+	snd_mixer_selem_get_playback_volume(elem,1,&cur_vol);
+	new_volume = cur_vol+vmin+mod/range_p;
+	if(new_volume==cur_vol && mod!=0)new_volume+=(mod<0?-1:1);
+	if(new_volume<vmin)new_volume=vmin;
+	if(new_volume>vmax)new_volume=vmax;
+	if(snd_mixer_selem_set_playback_volume(elem,1,new_volume)<0){
+		snd_mixer_close(handle);
+		return;
+	}
 
-	snd_ctl_elem_write(ctl,value);
-
-	snd_ctl_elem_id_free(id);
-	snd_ctl_elem_value_free(value);
-	snd_ctl_close(ctl);
+	snd_mixer_close(handle);
 }
 
 void toggleMute(struct playerHandles *ph, int *mute){
-	snd_ctl_t *ctl;
-	snd_ctl_elem_id_t *id;
-	snd_ctl_elem_value_t *value;
-	int current=*mute,err;
+	long val;
+	int err;
+	float range_p;
+	long current=*mute;
+	long vmin,vmax;
 	char tail[OUTPUT_TAIL_SIZE];
+	snd_mixer_t *handle;
+	snd_mixer_elem_t *elem;
+	snd_mixer_selem_id_t *sid;
 
-	if((err=snd_ctl_open(&ctl,ph->device,0))<0){
+	snd_mixer_selem_id_alloca(&sid);
+	snd_mixer_selem_id_set_index(sid,0);
+	snd_mixer_selem_id_set_name(sid,"PCM");
+
+	if(snd_mixer_open(&handle,0)<0)
+		return;
+
+	if(snd_mixer_attach(handle,"default")<0){
+		snd_mixer_close(handle);
 		return;
 	}
-	snd_ctl_elem_id_malloc(&id);
-	snd_ctl_elem_value_malloc(&value);
-	if(!id || !value){
-		fprintf(stderr,"Malloc failed");
+
+	if(snd_mixer_selem_register(handle,NULL,NULL)<0){
+		snd_mixer_close(handle);
 		return;
 	}
-	snd_ctl_elem_id_set_interface(id,SND_CTL_ELEM_IFACE_MIXER);
-	snd_ctl_elem_id_set_name(id,"PCM Playback Volume");
 
-	snd_ctl_elem_value_set_id(value,id);
+	if(snd_mixer_load(handle)<0){
+		snd_mixer_close(handle);
+		return;
+	}
 
-	snd_ctl_elem_read(ctl,value);
-
+	elem=snd_mixer_find_selem(handle,sid);
+	if(!elem){
+		snd_mixer_close(handle);
+		return;
+	}
+	
+	snd_mixer_selem_get_playback_volume_range(elem,&vmin,&vmax);
+	range_p = (100.0f/(float)(vmax-vmin));
 	if(*mute>0){ // Unmute and perform volume change
 		*mute=0;
 		sprintf(tail,"Volume: %d%%",current);
 		addStatusTail(tail,ph->outdetail);
+		current=current/range_p+vmin;
 	}
 	else{ // Mute 
-		*mute=snd_ctl_elem_value_get_integer(value,0);
+		snd_mixer_selem_get_playback_volume(elem,0,&current);
+		*mute=current*range_p+vmin;
+		current=0;
 		addStatusTail("Volume Muted",ph->outdetail);
 	}
 	fflush(stdout);
 
-	for(err=9;err>=0;err--){
-		snd_ctl_elem_value_set_integer(value,err,current);
+	if(snd_mixer_selem_set_playback_volume(elem,0,current)<0){
+		snd_mixer_close(handle);
+		return;
 	}
-
-
-	snd_ctl_elem_write(ctl,value);
-	snd_ctl_elem_id_free(id);
-	snd_ctl_elem_value_free(value);
-	snd_ctl_close(ctl);
+	if(snd_mixer_selem_set_playback_volume(elem,1,current)<0){
+		snd_mixer_close(handle);
+		return;
+	}
+	
+	snd_mixer_close(handle);
 }
 
 void snd_clear(struct playerHandles *ph){
