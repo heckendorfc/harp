@@ -85,7 +85,7 @@ static void insertConfig(char *buffer){
 	if(*setting && *(setting+1))argfound=1;
 	*(setting++)=0;
 
-	if(strcmp("usemetadata",buffer)==0 && *setting=='y'){
+	if(strcmp("usemetadata",buffer)==0){
 		if(*setting!='y'){
 			if(insertconf.second_cb==&metadataInsert)
 				insertconf.second_cb=NULL;
@@ -96,17 +96,18 @@ static void insertConfig(char *buffer){
 				insertconf.second_cb=NULL;
 			}
 		}
-
-		if(insertconf.first_cb && insertconf.second_cb){
-			insertconf.first_cb=insertconf.second_cb;
-			insertconf.second_cb=NULL;
+		else{
+			if(insertconf.first_cb && insertconf.second_cb){
+				insertconf.first_cb=insertconf.second_cb;
+				insertconf.second_cb=NULL;
+			}
+			if(!insertconf.first_cb)
+				insertconf.first_cb=&metadataInsert;
+			else
+				insertconf.second_cb=&metadataInsert;
 		}
-		if(!insertconf.first_cb)
-			insertconf.first_cb=&metadataInsert;
-		else
-			insertconf.second_cb=&metadataInsert;
 	}
-	else if(strcmp("usefilepath",buffer)==0 && *setting=='y'){
+	else if(strcmp("usefilepath",buffer)==0){
 		if(*setting!='y'){
 			if(insertconf.second_cb==&filepathInsert)
 				insertconf.second_cb=NULL;
@@ -117,15 +118,16 @@ static void insertConfig(char *buffer){
 				insertconf.second_cb=NULL;
 			}
 		}
-
-		if(insertconf.first_cb && insertconf.second_cb){
-			insertconf.first_cb=insertconf.second_cb;
-			insertconf.second_cb=NULL;
+		else{
+			if(insertconf.first_cb && insertconf.second_cb){
+				insertconf.first_cb=insertconf.second_cb;
+				insertconf.second_cb=NULL;
+			}
+			if(!insertconf.first_cb)
+				insertconf.first_cb=&filepathInsert;
+			else
+				insertconf.second_cb=&filepathInsert;
 		}
-		if(!insertconf.first_cb)
-			insertconf.first_cb=&filepathInsert;
-		else
-			insertconf.second_cb=&filepathInsert;
 	}
 	else if(strcmp("format",buffer)==0){
 		char *root=setting;
