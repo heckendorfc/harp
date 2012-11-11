@@ -135,7 +135,7 @@ void shuffle(int list){
 	data.count=items;
 	data.batch_count=0;
 	data.tail=items+1;
-	sprintf(query,"SELECT b.SongID,b.SongID FROM TempPlaylistSong a, TempPlaylistSong b WHERE a.SongID<b.SongID AND a.\"Order\"=b.\"Order\" GROUP BY b.SongID");
+	sprintf(query,"SELECT b.SongID,b.SongID FROM TempPlaylistSong a, TempPlaylistSong b WHERE a.SongID<b.SongID AND a.\"Order\"=b.\"Order\" GROUP BY b.SongID ORDER BY \"Order\"");
 	harp_sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	harp_sqlite3_exec(conn,query,clean_shuffle_cb,&data,NULL);
 	harp_sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
