@@ -193,6 +193,7 @@ static void playerControl(void *arg){
 }
 
 int player(int list){//list - playlist number
+	unsigned int max_list_order;
 	int oldupdate;
 	int ret;
 	char *query; // Why aren't we using []?
@@ -213,13 +214,20 @@ int player(int list){//list - playlist number
 		return 1;
 	}
 	else{
+		char small_query[128];
+
 		if(initList(list,query))
 			return 0;
+
+		sprintf(small_query,"SELECT MAX(\"Order\") FROM TempPlaylistSong");
+		harp_sqlite3_exec(conn,small_query,uint_return_cb,&max_list_order,NULL);
+
 		if(!(ph.plugin_head=openPlugins())){
 			fprintf(stderr,"No plugins found. Please add them with harp -a\n");
 			return 0;
 		}
 	}
+
 
 	ph.ffd=NULL;
 	ph.device=arglist[ADEVICE].subarg;
@@ -273,6 +281,14 @@ int player(int list){//list - playlist number
 
 		if(play_handle_key(psargs.pca->key))
 			break;
+
+		if(arglist[AREPEAT].active>0 &&
+		  pca.next_order==pca.cur_order+1 && // Not jumping back
+		  pca.next_order>max_list_order){
+			pca.next_order=1;
+			if(arglist[AREPEAT].subarg!=NULL)
+				arglist[AREPEAT].active--;
+		}
 
 		play_next_song_query(query,&pca);
 	}

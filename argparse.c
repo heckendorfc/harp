@@ -51,6 +51,7 @@ struct argument arglist[]={
 	{'z',NULL,0},	/*Shuffle*/
 	{'a',NULL,0},	/*Admin*/
 	{'D',NULL,0},	/*Device*/
+	{'r',NULL,0},	/*Repeat*/
 	{0,  NULL,0}	/*Placeholder*/
 };
 
@@ -63,6 +64,7 @@ struct option longopts[]={
 	{"verbose",0,NULL,'v'},
 	{"type",1,NULL,'t'},
 	{"zshuffle",0,NULL,'z'},
+	{"repeat",0,NULL,'r'},
 	{"admin",0,NULL,'a'},
 	{"device",2,NULL,'D'},
 	{"version",0,NULL,200},
@@ -84,6 +86,7 @@ static void printHelp(){
 	-p [name, ID]\tPlay (requires -t)\n\
 		-s [s,a,r]\tShuffle (requires -p)\n\
 		-z\tSmart shuffle (requires -p)\n\
+		-r [number of repeats]\tRepeat playlist (requires -p)\n\ 
 	-i [file path, directory]\tInsert song\n\
 	-e\tEdit\n\
 	-a\tAdmin\n\
@@ -172,6 +175,10 @@ unsigned int doArgs(int argc,char *argv[]){
 		id=0;
 
 		free(multilist);
+
+		if(arglist[AREPEAT].active && arglist[AREPEAT].subarg!=NULL)
+			arglist[AREPEAT].active=strtol(arglist[AREPEAT].subarg,NULL,10);
+
 		if(arglist[ASHUFFLE].active || arglist[AZSHUFFLE].active){
 			shuffle(id);
 			id=0;
@@ -200,7 +207,7 @@ unsigned int doArgs(int argc,char *argv[]){
 
 static unsigned int argSearch(int argc,char *argv[]){
 	int opt,optindex;
-	while((opt=getopt_long(argc,argv,"i::l::e::D::p:s::t:vza",longopts,&optindex))!=-1){
+	while((opt=getopt_long(argc,argv,"i::l::e::D::p:s::t:vzar::",longopts,&optindex))!=-1){
 		switch(opt){
 			//case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=optarg;break;
 			case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
@@ -213,6 +220,7 @@ static unsigned int argSearch(int argc,char *argv[]){
 			case 'v':arglist[AVERBOSE].active++;break;
 			case 'z':arglist[AZSHUFFLE].active=1;arglist[ASHUFFLE].active=0;break;
 			case 'a':arglist[AADMIN].active=1;break;
+			case 'r':arglist[AREPEAT].active=1;arglist[AREPEAT].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
 			case 200:printVersion();break;
 			case '?':
 			default: printHelp();break;

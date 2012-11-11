@@ -139,7 +139,8 @@ enum cmdarg{
 	ATYPE,
 	AZSHUFFLE,
 	AADMIN,
-	ADEVICE
+	ADEVICE,
+	AREPEAT
 };
 
 enum filetype{
