@@ -1,0 +1,6 @@
+add_definitions(-D_HARP_PLUGIN=1)
+find_package(FLAC REQUIRED)
+include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/plugins ${FLAC_INCLUDE_DIR})
+link_directories(${CMAKE_SOURCE_DIR}/plugins)
+add_library(libharpflac SHARED flac.c ../../defs_h.c)
+target_link_libraries (libharpflac libharpplugin ${FLAC_LIBRARY})
