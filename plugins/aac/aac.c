@@ -16,14 +16,15 @@
  */
 
 #include "plugin.h"
-#include <mp4ff.h>
+//#include "mp4ff.h"
+#include "mp4lib.h"
 #include <neaacdec.h>
 
 #define AAC_MAX_CHANNELS (6)
 
 uint32_t read_callback(void *userdata, void *buffer, uint32_t length);
 uint32_t seek_callback(void *userdata, uint64_t position);
-int GetAACTrack(mp4ff_t *infile);
+int GetAACTrack(mp4handle_t *infile);
 
 #include "aacmeta.c"
 
@@ -85,20 +86,21 @@ uint32_t seek_callback(void *userdata, uint64_t position){
 	return fseek((FILE*)userdata,position,SEEK_SET);
 }
 
-int GetAACTrack(mp4ff_t *infile){
+
+int GetAACTrack(mp4handle_t *infile){
 	int i,ret;
-	int numtracks=mp4ff_total_tracks(infile);
+	int numtracks=mp4lib_total_tracks(infile);
 
 	for(i=0;i<numtracks;i++){
 		unsigned char *buff=NULL;
 		unsigned int buffsize=0;
 
 		mp4AudioSpecificConfig mp4cfg;
-		mp4ff_get_decoder_config(infile,i,&buff,&buffsize);
+		mp4lib_get_decoder_config(infile,i,&buff,&buffsize);
 
 		if(buff){
 			ret=NeAACDecAudioSpecificConfig(buff,buffsize,&mp4cfg);
-			free(buff);
+			//free(buff);
 
 			if(ret<0)
 				continue;
@@ -186,7 +188,7 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 				bp_len=0;
 				continue;
 			}
-			
+
 			memmove(buf,bp,bp_len);
 			while(bp_len<frame_length){
 				int i;
@@ -236,7 +238,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 
 	frame_size=adts_find_frame(ph->ffd,buf,buf_filled,bufsize);
 	adts_header=(((uint32_t*)buf)[0]) >> 6;
-	
+
 	if((ret=NeAACDecInit(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
 		channels=(int)channelchar;
 		fmt=(int)config->outputFormat;
@@ -301,7 +303,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){
 			retval=ph->pflag->exit;
-			break;	
+			break;
 		}
 
 		memmove(buf,buf+frame_size,bufsize-frame_size);
@@ -327,47 +329,37 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	ssize_t len;
 	int track,fmt,ret,channels,retval=DEC_RET_SUCCESS;
 	unsigned int rate,bufsize;
-	mp4ff_t infile;
-	
-	mp4ff_callback_t *mp4cb;
-	if(!(mp4cb=malloc(sizeof(mp4ff_callback_t)))){
-		fprintf(stderr,"Malloc failed (mp4cb).");
-		return DEC_RET_ERROR;
-	}
-	mp4cb->read=read_callback;
-	mp4cb->seek=seek_callback;
-	mp4cb->user_data=ph->ffd;
+	//mp4ff_t infile;
+	mp4handle_t infile;
 
-	infile=mp4ff_open_read(mp4cb);
-	if(!infile){
-		fprintf(stderr,"mp4ffopenread failed");
-		free(mp4cb);
-		return DEC_RET_ERROR;
-	}
+	mp4lib_open(&infile);
 
-	if((track=GetAACTrack(infile))<0){
+	mp4lib_parse_meta(ph->ffd,&infile);
+
+	if((track=GetAACTrack(&infile))<0){
 		fprintf(stderr,"getaactrack failed");
-		mp4ff_close(infile);
-		free(mp4cb);
+		mp4lib_close(&infile);
 		return DEC_RET_ERROR;
 	}
+
 
 	NeAACDecFrameInfo hInfo;
 	//unsigned long ca = NeAACDecGetCapabilities();
 	//fprintf(stderr,"%x %x %x %x %x %x\n",ca&LC_DEC_CAP,ca&MAIN_DEC_CAP,ca&LTP_DEC_CAP,ca&LD_DEC_CAP,ca&ERROR_RESILIENCE_CAP,ca&FIXED_POINT_CAP);
 	NeAACDecHandle hAac = NeAACDecOpen();
 	NeAACDecConfigurationPtr conf = NeAACDecGetCurrentConfiguration(hAac);
-		/* TODO: Change values if needed. 
+		/* TODO: Change values if needed.
 	conf->defObjectType=LC;
 	conf->outputFormat=FAAD_FMT_16BIT;
 	conf->defSampleRate=44100;
 	conf->downMatrix=1;*/
 	if(NeAACDecSetConfiguration(hAac,conf)==0){
 		fprintf(stderr,"set conf failed");
+		mp4lib_close(&infile);
 		return DEC_RET_ERROR;
 	}
 
-	mp4ff_get_decoder_config(infile,track,&buf,&bufsize);
+	mp4lib_get_decoder_config(&infile,track,&buf,&bufsize);
 
 	unsigned char channelchar;
 	unsigned long ratel;
@@ -392,13 +384,12 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 			if(mp4cfg.frameLengthFlag==1)framesize=960;
 			if(mp4cfg.sbr_present_flag==1)framesize<<=1;
 		}
-		free(buf);
 	}
 	//fprintf(stderr,"framesize: %d\n",framesize);
 
 	snd_param_init(ph,&fmt,&channels,&rate);
 
-	unsigned int total=0,sample,numsamples=mp4ff_num_samples(infile,track);
+	unsigned int total=0,sample,numsamples=mp4lib_num_samples(&infile,track);
 	struct outputdetail *details=ph->outdetail;
 	details->totaltime=*totaltime;
 
@@ -417,9 +408,9 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 #endif
 
 	//fprintf(stderr,"numsamples: %d\n",numsamples);
-	for(sample=0;sample<numsamples;sample++){ 
-		ret=mp4ff_read_sample(infile,track,sample,&buf,&bufsize);
-		if(ret==0){
+	for(sample=0;sample<numsamples;sample++){
+		ret=mp4lib_read_sample(ph->ffd,&infile,sample,&buf,&bufsize);
+		if(ret!=0){
 			fprintf(stderr,"error reading sample\n");
 			retval=DEC_RET_ERROR;
 			break;
@@ -427,7 +418,7 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 		out=(char *)NeAACDecDecode(hAac,&hInfo,buf,bufsize);
 
 		total+=hInfo.samples/channels; // framesize?
-		if(hInfo.error>0){
+		if(hInfo.error!=0){
 			fprintf(stderr,"Error while decoding %d %s\n",hInfo.error,NeAACDecGetErrorMessage(hInfo.error));
 			retval=DEC_RET_ERROR;
 			break;
@@ -441,13 +432,12 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){
 			retval=ph->pflag->exit;
-			break;	
+			break;
 		}
 	}
 
 	/* Done decoding, now just clean up and leave. */
-	mp4ff_close(infile);
-	free(mp4cb);
+	mp4lib_close(&infile);
 	NeAACDecClose(hAac);
 	*totaltime=details->curtime;
 	return retval;
@@ -460,7 +450,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	if(!(buf=malloc(bufsize)))
 		return DEC_RET_ERROR;
-	
+
 	frame_size=fill_buffer(ph->ffd,buf,8);
 
 	if(buf[4]=='f' && buf[5]=='t' && buf[6]=='y' && buf[7]=='p'){

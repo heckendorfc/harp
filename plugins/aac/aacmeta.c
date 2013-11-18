@@ -16,6 +16,7 @@
  */
 
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
+#if 0
 	mp4ff_t infile;
 	mp4ff_callback_t *mp4cb;
 	if(!(mp4cb=malloc(sizeof(mp4ff_callback_t)))){
@@ -69,4 +70,5 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 		mi->length=-1;
 
 	free(mp4cb);
+#endif
 }
