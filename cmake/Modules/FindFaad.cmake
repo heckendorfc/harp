@@ -48,7 +48,11 @@ find_path(Faad_INCLUDE_DIR faad.h
 set(Faad_NAMES faad)
 find_library(Faad_LIBRARY
   NAMES ${Faad_NAMES}
-  PATHS /usr/lib /usr/local/lib /opt/local/lib
+  HINTS
+  PATHS
+  /usr/lib
+  /usr/local/lib
+  /opt/local/lib
 )
 
 if (Faad_INCLUDE_DIR AND Faad_LIBRARY)

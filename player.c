@@ -16,6 +16,7 @@
  */
 
 #include "player.h"
+#include "insert.h"
 #include "defs.h"
 #include "dbact.h"
 #include "util.h"
@@ -162,7 +163,7 @@ static void playerStatus(void *arg){
 static void playerControl(void *arg){
 	char temp;
 	struct playercontrolarg *pca=(struct playercontrolarg*)arg;
-	
+
 	// Set new term settings
 	struct termios orig,new;
 	new=pca->orig;
@@ -185,7 +186,7 @@ static void playerControl(void *arg){
 		}
 	}
 	debug(2,"playerControl quitting");
-	
+
 	// Reset term settings
 	tcsetattr(0,TCSANOW,&orig);
 
@@ -198,7 +199,7 @@ int player(int list){//list - playlist number
 	int ret;
 	char *query; // Why aren't we using []?
 	char library[255];
-	
+
 	// Create playerControl thread
 	char key=KEY_NULL;
 	struct play_song_args psargs;
@@ -240,16 +241,16 @@ int player(int list){//list - playlist number
 	psargs.ph=&ph;
 	psargs.pca=&pca;
 	oldupdate=1;
-	
+
 	pthread_t control_thread,status_thread;
 	pthread_mutex_init(&actkey,NULL);
 	pthread_mutex_init(&outstatus,NULL);
 	pthread_create(&control_thread,NULL,(void *)&playerControl,(void*)&pca);
 	pthread_create(&status_thread,NULL,(void *)&playerStatus,(void*)&psa);
-	
+
 	// Play the list!
 	if(snd_init(&ph)){
-		fprintf(stderr,"snd_init failed");
+		fprintf(stderr,"\nsnd_init failed\n");
 		closePluginList(ph.plugin_head);
 		free(query);
 		return 1;
@@ -373,7 +374,7 @@ static void advseek(char *com, struct playercontrolarg *pca){
 	for(y=1;y<ADV_COM_ARG_LEN && com[y] && (com[y]<'0' || com[y]>'9');y++);
 	int time=(int)strtol(&com[y],NULL,10);
 	if(time<=0)return;
-	
+
 	if(com[0]==KEY_SEEK_DN)
 		time*=-1;
 
@@ -601,7 +602,7 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 			toggleMute(pca->ph,&pca->ph->pflag->mute);
 			pca->ph->pflag->mutec=pca->ph->pflag->mutec==32?'M':32;
 			break;
-		case KEY_PAUSE: 
+		case KEY_PAUSE:
 			setPause(!pca->ph->pflag->pause,pca->ph->pflag);
 			break;
 		case KEY_PREV:
@@ -650,6 +651,6 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 			pca->ph->pflag->exit=DEC_RET_NEXT_NOUP;
 			setPause(0,pca->ph->pflag);
 		default:break;
-	}	
+	}
 	return 1;
 }
