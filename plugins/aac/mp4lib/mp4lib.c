@@ -329,10 +329,40 @@ int mp4lib_num_samples(mp4handle_t *h){
 	return h->num_samples;
 }
 
-int mp4lib_read_sample(FILE *in, mp4handle_t *h, int sample, unsigned char **buf, unsigned int *size){
-	if(sample!=h->next_sample)
-		return -1; // TODO: add seeking
+long sum_sample_sizes(mp4handle_t *h, int start, int len){
+	long size;
+	int i;
 
+	size=0;
+	for(i=0;i<len;i++){
+		size+=h->s_size[start+i];
+	}
+
+	return size;
+}
+
+void seek_to(FILE *in, long offset){
+	long pos=ftell(in);
+	fseek(in,pos+offset,SEEK_SET);
+}
+
+void seek_back(FILE *in, mp4handle_t *h, int skipto){
+	long size=sum_sample_sizes(h,skipto,h->next_sample-skipto);
+	seek_to(in,-size);
+	h->next_sample=skipto;
+}
+
+void seek_forward(FILE *in, mp4handle_t *h, int skipto){
+	long size=sum_sample_sizes(h,h->next_sample,skipto-h->next_sample);
+	seek_to(in,size);
+	h->next_sample=skipto;
+}
+
+int mp4lib_read_sample(FILE *in, mp4handle_t *h, int sample, unsigned char **buf, unsigned int *size){
+	if(sample<h->next_sample)
+		seek_back(in,h,sample);
+	else if(sample>h->next_sample)
+		seek_forward(in,h,sample);
 
 	*size=h->s_size[sample];
 	if(*size>h->s_buf.allocated){
