@@ -16,59 +16,31 @@
  */
 
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
-#if 0
-	mp4ff_t infile;
-	mp4ff_callback_t *mp4cb;
-	if(!(mp4cb=malloc(sizeof(mp4ff_callback_t)))){
-		fprintf(stderr,"Malloc failed (mp4cb).");
-		return;
-	}
-	mp4cb->read=read_callback;
-	mp4cb->seek=seek_callback;
-	mp4cb->user_data=ffd;
+	mp4handle_t handle;
+	mp4lib_open(&handle);
+	mp4lib_parse_meta(ffd,&handle);
 
-	infile=mp4ff_open_read(mp4cb);
-	if(!infile){
-		fprintf(stderr,"mp4ffopenread failed");
-		free(mp4cb);
-		return;
+	if(handle.meta.title){
+		strncpy(mi->title,handle.meta.title,60);
 	}
 
-	char *temp;
-	if(mp4ff_meta_get_title(infile,&temp)){
-		strncpy(mi->title,temp,60);
-		free(temp);
+	if(handle.meta.artist){
+		strncpy(mi->artist,handle.meta.artist,60);
 	}
 
-	if(mp4ff_meta_get_artist(infile,&temp)){
-		strncpy(mi->artist,temp,60);
-		free(temp);
+	if(handle.meta.album){
+		strncpy(mi->album,handle.meta.album,60);
 	}
 
-	if(mp4ff_meta_get_album(infile,&temp)){
-		strncpy(mi->album,temp,60);
-		free(temp);
+	if(handle.meta.track){
+		strncpy(mi->track,handle.meta.track,8);
 	}
 
-	if(mp4ff_meta_get_track(infile,&temp)){
-		strncpy(mi->track,temp,8);
-		free(temp);
+	if(handle,meta.year){
+		strncpy(mi->year,handle.meta.year,8);
 	}
 
-	if(mp4ff_meta_get_date(infile,&temp)){
-		strncpy(mi->year,temp,8);
-		free(temp);
-	}
+	mi->length=-1;
 
-	int track;
-	if((track=GetAACTrack(infile))>=0){
-		unsigned int rate=mp4ff_get_sample_rate(infile,track);
-		unsigned int numsamples=mp4ff_num_samples(infile,track);
-		mi->length=(rate && numsamples)?numsamples/(rate>>10):-1;
-	}
-	else
-		mi->length=-1;
-
-	free(mp4cb);
-#endif
+	mp4lib_close(&handle);
 }

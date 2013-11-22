@@ -35,6 +35,18 @@ typedef struct mp4handle_t{
 		int allocated;
 	}s_buf;
 
+	struct udta{
+		char *title;
+		char *album;
+		char *artist;
+		char *year;
+		char *track;
+	}meta;
+	int in_udta;
+	char *metaptr;
+
+	uint8_t metadone;
+
 	uint32_t next_sample;
 }mp4handle_t;
 
@@ -45,9 +57,9 @@ typedef struct mp4atom_t{
 	uint32_t allocated;
 }mp4atom_t;
 
-void mp4lib_open(mp4handle_t *h);
+int mp4lib_open(mp4handle_t *h);
 int init_atom(mp4atom_t *at);
-void mp4lib_parse_meta(FILE *in, mp4handle_t *h);
+int mp4lib_parse_meta(FILE *in, mp4handle_t *h);
 int mp4lib_get_decoder_config(mp4handle_t *h, int track, unsigned char **buf, unsigned int *size);
 int mp4lib_total_tracks(mp4handle_t *h);
 int mp4lib_read_sample(FILE *in, mp4handle_t *h, int sample, unsigned char **buf, unsigned int *size);
