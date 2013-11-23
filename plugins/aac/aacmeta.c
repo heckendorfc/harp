@@ -36,7 +36,7 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 		strncpy(mi->track,handle.meta.track,8);
 	}
 
-	if(handle,meta.year){
+	if(handle.meta.year){
 		strncpy(mi->year,handle.meta.year,8);
 	}
 

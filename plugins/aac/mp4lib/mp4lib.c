@@ -197,6 +197,28 @@ int atom_parse_mp4a(FILE *in, mp4atom_t *at, mp4handle_t *h){
 	return 0;
 }
 
+int atom_parse_stco(FILE *in, mp4atom_t *at, mp4handle_t *h){
+	uint32_t i;
+	uint32_t num;
+	mp4atom_t cur_at;
+
+	checked_fread(&i,4,1,in); // version and flags?
+	checked_fread(&num,4,1,in); // num chunk
+	num=swap_endianness(num);
+
+	h->num_chunk=num;
+
+	h->chunk_off=malloc(sizeof(*h->chunk_off)*num);
+	if(h->chunk_off==NULL)
+		return -1;
+	for(i=0;i<num;i++){
+		checked_fread(h->chunk_off+i,4,1,in);
+		h->chunk_off[i]=swap_endianness(h->chunk_off[i]);
+	}
+
+	return 0;
+}
+
 int atom_parse_stsd(FILE *in, mp4atom_t *at, mp4handle_t *h){
 	uint32_t i;
 	uint32_t num;
@@ -251,14 +273,14 @@ int atom_parse_stsc(FILE *in, mp4atom_t *at, mp4handle_t *h){
 	checked_fread(&i,4,1,in); // version and flags
 
 	/* TODO: Check if ~0 */
-	checked_fread(&h->num_chunk,4,1,in);
-	h->num_chunk=swap_endianness(h->num_chunk);
+	checked_fread(&h->num_map_chunk,4,1,in);
+	h->num_map_chunk=swap_endianness(h->num_map_chunk);
 
-	h->chunks=malloc(sizeof(*h->chunks)*h->num_chunk);
+	h->chunks=malloc(sizeof(*h->chunks)*h->num_map_chunk);
 	if(h->chunks==NULL)
 		return -1;
 
-	for(i=0;i<h->num_chunk;i++){
+	for(i=0;i<h->num_map_chunk;i++){
 		checked_fread(&h->chunks[i].start,4,1,in);
 		checked_fread(&h->chunks[i].num_sample,4,1,in);
 		checked_fread(&h->chunks[i].desc_index,4,1,in);
@@ -363,6 +385,7 @@ struct atom_list{
 	  {"mdia",atom_step_down},
 	   {"minf",atom_step_down},
 	    {"stbl",atom_step_down},
+	     {"stco",atom_parse_stco},
 	     {"stsc",atom_parse_stsc},
 	     {"stsz",atom_parse_stsz},
 	     {"stsd",atom_parse_stsd},
@@ -432,6 +455,8 @@ int mp4lib_open(mp4handle_t *h){
 int mp4lib_parse_meta(FILE *in, mp4handle_t *h){
 	mp4atom_t at;
 	while(parse_atom(in,&at,h)>0);
+	if(h->metadone && h->chunk_off)
+		return fseek(in,h->chunk_off[0],SEEK_SET);
 	return !h->metadone;
 }
 

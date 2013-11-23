@@ -10,12 +10,15 @@ typedef struct mp4handle_t{
 	uint32_t *s_size;
 	uint32_t num_samples;
 
+	uint32_t *chunk_off;
+	uint32_t num_chunk;
+
 	struct chunk_map{
 		uint32_t start;
 		uint32_t desc_index;
 		uint32_t num_sample;
 	}*chunks;
-	uint32_t num_chunk;
+	uint32_t num_map_chunk;
 
 	struct samp_desc{
 		uint16_t channels;
