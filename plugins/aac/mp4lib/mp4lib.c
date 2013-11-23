@@ -43,6 +43,10 @@ uint32_t swap_endianness(uint32_t in){
 		(in>>24);
 }
 
+uint16_t swap_endianness16(uint16_t in){
+	return (in<<8) | (in>>8);
+}
+
 int atom_step_down(FILE *in, mp4atom_t *at, mp4handle_t *h){
 	uint32_t cur_size;
 	mp4atom_t cur_at;
@@ -149,7 +153,16 @@ int atom_udta_parse_year(FILE *in, mp4atom_t *at, mp4handle_t *h){
 }
 
 int atom_udta_parse_track(FILE *in, mp4atom_t *at, mp4handle_t *h){
-	return atom_udta_parse_meta(in,at,h,&h->meta.track); // TODO: Binary track to string?
+	int ret;
+	uint16_t *t;
+	uint32_t size=at->len;
+	ret=atom_udta_parse_meta(in,at,h,&h->meta.track); // TODO: Binary track to string?
+	if(size>=8+4+4+4){
+		t=((uint16_t*)h->meta.track)+1; // Skip leader
+		*t=swap_endianness16(*t);
+		sprintf(h->meta.track,"%d",*t);
+	}
+	return ret;
 }
 
 int atom_udta_parse_data(FILE *in, mp4atom_t *at, mp4handle_t *h){
@@ -162,7 +175,7 @@ int atom_udta_parse_data(FILE *in, mp4atom_t *at, mp4handle_t *h){
 	checked_fread(&tmp,4,1,in); // version
 	checked_fread(&tmp,4,1,in); // null
 
-	checked_fread(h->metaptr,1,at->len,in);
+	checked_fread(h->metaptr,1,at->len-8,in);
 
 	return 0;
 }
