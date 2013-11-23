@@ -29,8 +29,8 @@ int GetAACTrack(mp4handle_t *infile);
 #include "aacmeta.c"
 
 struct aacHandles{
-	unsigned int *total;
-	unsigned int *sample;
+	volatile unsigned int *total;
+	volatile unsigned int *sample;
 	unsigned int *rate;
 	int framesize;
 	int channels;
@@ -334,7 +334,11 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 
 	mp4lib_open(&infile);
 
-	mp4lib_parse_meta(ph->ffd,&infile);
+	if(mp4lib_parse_meta(ph->ffd,&infile)){
+		fprintf(stderr,"Metadata parsing failed.\n:");
+		mp4lib_close(&infile);
+		return DEC_RET_ERROR;
+	}
 
 	if((track=GetAACTrack(&infile))<0){
 		fprintf(stderr,"getaactrack failed");
@@ -380,7 +384,7 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	mp4AudioSpecificConfig mp4cfg;
 	unsigned int framesize=1024;
 	if(buf){
-		if(NeAACDecAudioSpecificConfig(buf,len,&mp4cfg)>=0){
+		if(NeAACDecAudioSpecificConfig(buf,bufsize,&mp4cfg)>=0){
 			if(mp4cfg.frameLengthFlag==1)framesize=960;
 			if(mp4cfg.sbr_present_flag==1)framesize<<=1;
 		}
@@ -389,7 +393,8 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 
 	snd_param_init(ph,&fmt,&channels,&rate);
 
-	unsigned int total=0,sample,numsamples=mp4lib_num_samples(&infile,track);
+	volatile unsigned int total=0,sample;
+	unsigned int numsamples=mp4lib_num_samples(&infile,track);
 	struct outputdetail *details=ph->outdetail;
 	details->totaltime=*totaltime;
 
@@ -407,7 +412,6 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	const int outsize=framesize*channels*2;
 #endif
 
-	//fprintf(stderr,"numsamples: %d\n",numsamples);
 	for(sample=0;sample<numsamples;sample++){
 		ret=mp4lib_read_sample(ph->ffd,&infile,sample,&buf,&bufsize);
 		if(ret!=0){

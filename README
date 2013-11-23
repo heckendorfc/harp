@@ -15,22 +15,20 @@ Contents:
 I.	Installation and Setup
 
 Installing harp:
-	./configure
-		To build without certain plugins use --without-pluginname:
-			./configure --without-flac --without-vorbis
+	cmake .
+		To build without certain plugins use -DWITH_pluginname=OFF:
+			cmake -DWITH_MP3=OFF -DWITH_FLAC=OFF .
 		Currently available are mp3, aac, vorbis, flac and stream
 
 		To use a different sound output (OSS is the default), use:
-			./configure --with-jack
+			cmake -DWITH_JACK=ON .
 			or
-			./configure --with-alsa
+			cmake -DWITH_ALSA=ON .
+			or
+			cmake -DWITH_PULSE=ON .
 
-		MacPorts users may wish to use:
-			./configure --with-jack CFLAGS="-I/opt/local/include" LDFLAGS="-L/opt/local/lib -L/opt/local/lib/jack"
 	make
 	make install
-
-		see also: osx_install.sh
 
 Enable the plugins in harp:
 	harp -a
@@ -197,7 +195,7 @@ General format for this file:
 IV.  Requirements
 
 Sound output: 
-	ALSA, OSS, JACK
+	ALSA, OSS, JACK, PulseAudio
 Database: 
 	SQLite3
 Default Decoders: 

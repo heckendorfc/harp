@@ -1,3 +1,8 @@
+Changes in HARP-0.6.0:
+- Moved to GitHub
+- Replaced mp4ff with new MP4 parsing library for AAC
+- Replaced autotools with cmake
+
 Changes in HARP-0.5.3:
 - Changed shuffle function to avoid predictable results.
 - Added option to repeat playlist.

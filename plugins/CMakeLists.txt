@@ -3,7 +3,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 add_library(harpplugin SHARED plugin.c ../message.c ../sndutil.c ../${SOUND_SRC})
 
 option (WITH_MP3 "Enable MP3 support" ON)
-option (WITH_AAC "Enable AAC support" OFF)
+option (WITH_AAC "Enable AAC support" ON)
 option (WITH_VORBIS "Enable Vorbis support" ON)
 option (WITH_FLAC "Enable FLAC support" ON)
 option (WITH_STREAM "Enable stream support" ON)
