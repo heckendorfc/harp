@@ -1,3 +1,20 @@
+/*
+ *  Copyright (C) 2013  Christian Heckendorf <heckendorfc@gmail.com>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details->
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -525,10 +542,14 @@ int seek_forward(FILE *in, mp4handle_t *h, int skipto){
 
 int mp4lib_read_sample(FILE *in, mp4handle_t *h, int sample, unsigned char **buf, unsigned int *size){
 	if(sample<h->next_sample){
+		if(sample<0)
+			sample=0;
 		if(seek_back(in,h,sample))
 			return -1;
 	}
 	else if(sample>h->next_sample){
+		if(sample>h->num_samples)
+			return 0;
 		if(seek_forward(in,h,sample))
 			return -1;
 	}
