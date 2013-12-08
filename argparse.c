@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2013  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ struct option longopts[]={
 static unsigned int argSearch(int argc, char *argv[]);
 
 static void printVersion(){
-	printf("HARP %s  Copyright (C) 2009-2010 Christian Heckendorf\n",PACKAGE_VERSION);
+	printf("HARP %s  Copyright (C) 2009-2013 Christian Heckendorf\n",PACKAGE_VERSION);
 	cleanExit();
 	exit(1);
 }
@@ -86,7 +86,7 @@ static void printHelp(){
 	-p [name, ID]\tPlay (requires -t)\n\
 		-s [s,a,r]\tShuffle (requires -p)\n\
 		-z\tSmart shuffle (requires -p)\n\
-		-r [number of repeats]\tRepeat playlist (requires -p)\n\ 
+		-r [number of repeats]\tRepeat playlist (requires -p)\n\
 	-i [file path, directory]\tInsert song\n\
 	-e\tEdit\n\
 	-a\tAdmin\n\
@@ -152,7 +152,7 @@ unsigned int doArgs(int argc,char *argv[]){
 	if(argSearch(argc,argv)==0){
 		return 0;
 	}
-	
+
 	//list
 	if(arglist[ALIST].active){
 		if(!arglist[ALIST].subarg){

@@ -36,28 +36,39 @@ static struct shuffle_queries{
 	{	's',
 		"SELECT COUNT(SelectID) FROM TempSelect WHERE TempID=%d",
 		"SELECT SelectID,1 FROM TempSelect WHERE TempID=%d",
-		"SELECT SongID,\"Order\",%d FROM TempPlaylistSong WHERE \"Order\"<0 ORDER BY \"Order\" ASC"
+		"SELECT SongID,%d FROM TempPlaylistSong WHERE \"Order\"<0 ORDER BY \"Order\" ASC"
 		//"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"*-1"
 	},
 	{	'a',
 		"SELECT COUNT(SongID) FROM Song WHERE SongID IN (SELECT SelectID FROM TempSelect,Song WHERE SelectID=SongID AND TempID=%d GROUP BY AlbumID)",
 		"SELECT DISTINCT AlbumID,1 FROM Song WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",
-		"SELECT SelectID,\"Order\" FROM TempSelect INNER JOIN Song ON SelectID=Song.SongID INNER JOIN TempPlaylistSong ON TempPlaylistSong.SongID=Song.AlbumID WHERE TempID=%d AND \"Order\"<1 ORDER BY \"Order\" ASC,Track ASC"
+		"SELECT SelectID,1 FROM TempSelect INNER JOIN Song ON SelectID=Song.SongID INNER JOIN TempPlaylistSong ON TempPlaylistSong.SongID=Song.AlbumID WHERE TempID=%d AND \"Order\"<1 ORDER BY \"Order\" ASC,Track ASC"
 	},
 	{	'r',
 		"SELECT COUNT(SongID) FROM Song WHERE SongID IN (SELECT SelectID FROM TempSelect,Song,AlbumArtist WHERE SelectID=SongID AND Song.AlbumID=AlbumArtist.AlbumID AND TempID=%d GROUP BY ArtistID)",
 		"SELECT DISTINCT ArtistID,1 FROM AlbumArtist NATURAL JOIN Song WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",
-		"SELECT SelectID,\"Order\" FROM TempSelect INNER JOIN Song ON SelectID=Song.SongID NATURAL JOIN AlbumArtist INNER JOIN TempPlaylistSong ON TempPlaylistSong.SongID=ArtistID WHERE TempID=%d AND \"Order\"<1 ORDER BY \"Order\" ASC,AlbumID ASC,Track ASC"
+		"SELECT SelectID,1 FROM TempSelect INNER JOIN Song ON SelectID=Song.SongID NATURAL JOIN AlbumArtist INNER JOIN TempPlaylistSong ON TempPlaylistSong.SongID=ArtistID WHERE TempID=%d AND \"Order\"<1 ORDER BY \"Order\" ASC,AlbumID ASC,Track ASC"
 	},
 	{0,NULL,NULL,NULL}
 };
 
 static void fillTempPlaylistSong(int tempid,int group){
-	char query[350],cb_query[150];
+	char query[450],cb_query[450];
 	struct insert_tps_arg data={1,0,NULL};
+	int x;
 	data.query=cb_query;
-	sprintf(query,shuffle_q[group].fill,tempid);
-	harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
+
+	x=harp_sqlite3_exec(conn,"CREATE TEMPORARY TRIGGER ShuffleList AFTER INSERT ON TempPlaylistSong BEGIN "
+			"UPDATE TempPlaylistSong SET \"Order\"=(SELECT count(PlaylistSongID) FROM TempPlaylistSong WHERE \"Order\">0) WHERE PlaylistSongID=NEW.PlaylistSongID;"
+			"END",NULL,NULL,NULL);
+
+	sprintf(cb_query,shuffle_q[group].fill,tempid);
+	sprintf(query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") %s",cb_query);
+	debug(3,query);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	//harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
+
+	harp_sqlite3_exec(conn,"DROP TRIGGER ShuffleList",NULL,NULL,NULL);
 }
 
 static int rand_next(struct shuffle_data *data){
@@ -129,7 +140,7 @@ void shuffle(int list){
 	harp_sqlite3_exec(conn,"DELETE FROM TempPlaylistSong",NULL,NULL,NULL);
 
 	harp_sqlite3_exec(conn,"CREATE TEMPORARY TRIGGER ShuffleList AFTER INSERT ON TempPlaylistSong BEGIN "
-			"UPDATE TempPlaylistSong SET \"Order\"=(SELECT -count(SongID) FROM TempPlaylistSong) WHERE SongID=new.SongID;"
+			"UPDATE TempPlaylistSong SET \"Order\"=(SELECT -count(PlaylistSongID) FROM TempPlaylistSong) WHERE PlaylistSongID=NEW.PlaylistSongID;"
 			"END",NULL,NULL,NULL);
 
 	sprintf(cb_query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") %s ORDER BY random()",shuffle_q[group].primary_select);
@@ -138,6 +149,7 @@ void shuffle(int list){
 
 	harp_sqlite3_exec(conn,"DROP TRIGGER ShuffleList",NULL,NULL,NULL);
 
+	harp_sqlite3_exec(conn,"DELETE FROM TempPlaylistSong WHERE \"Order\">0",NULL,NULL,NULL); /* Just in case */
 	fillTempPlaylistSong(tempid,group);
 
 	harp_sqlite3_exec(conn,"DELETE FROM TempPlaylistSong WHERE \"Order\"<1",NULL,NULL,NULL); /* Just in case */
@@ -160,6 +172,20 @@ struct zs_arg{
 	char *query;
 };
 
+struct candidate_data{
+	int *list;
+	int num;
+};
+
+static int zs_candidate_cb(void *arg, int col_count, char **row, char **titles){
+	struct candidate_data *data = (struct candidate_data*)arg;
+
+	data->list[data->num++]=strtol(row[0],NULL,10);
+
+	return 0;
+}
+
+/*
 static int zs_skip_cb(void *arg, int col_count, char **row, char **titles){
 	struct zs_arg *data = (struct zs_arg*)arg;
 	int id=data->count;
@@ -202,14 +228,40 @@ static int zs_slide_cb(void *arg, int col_count, char **row, char **titles){
 	}
 	return 0;
 }
+*/
+
+static void update_order_zs(struct candidate_data *candlist, int slidemod){
+	char query[250];
+
+	//harp_sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
+	while(candlist->num>0){
+		sprintf(query,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"%+d WHERE PlaylistSongID=%d",slidemod,candlist->list[--candlist->num]);
+		debug(3,query);
+		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+	//harp_sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+}
+
+static void skip_order_zs(struct candidate_data *candlist, int slidemod){
+	char query[250];
+
+	//harp_sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
+	while(candlist->num>0){
+		candlist->num--;
+		sprintf(query,"UPDATE TempPlaylistSong SET \"Order\"=%d WHERE PlaylistSongID=%d",candlist->num+1,candlist->list[candlist->num]);
+		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+	//harp_sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+}
 
 void zshuffle(unsigned int items){
-	char query[250],cb_query[250];
-	int x;
+	char query[450],cb_query[250];
+	int x,i;
 	const int ten_percent=items*0.1;
 	const int alter_limit=100; // Max songs to alter
 	const int mod_count=ten_percent>alter_limit?alter_limit:ten_percent; // Songs to alter this round
 	const int group=(mod_count>>2)|1; // Number of songs to float each iter
+	struct candidate_data candlist;
 
 	srandom((unsigned int)time(NULL));
 	struct zs_arg data={items,group,(random()%2)+2,(random()%3)+2,0,1,cb_query};
@@ -217,29 +269,50 @@ void zshuffle(unsigned int items){
 	sprintf(query,"Mod count: %d\nGroup: %d\nIncrement: %d",mod_count,group,data.increment);
 	debug(2,query);
 
+	candlist.list=malloc(sizeof(*candlist.list)*mod_count);
+	if(candlist.list==NULL)
+		return;
+
 	// Skip Count
 	data.slidemod=data.slide*3;
 	data.count=0;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,\"Order\" FROM TempPlaylistSong NATURAL JOIN Song WHERE SkipCount>0 ORDER BY SkipCount DESC LIMIT %d",mod_count);
-	harp_sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-	harp_sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
-	harp_sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+	sprintf(query,"CREATE TEMPORARY TRIGGER SlideList AFTER UPDATE ON TempPlaylistSong BEGIN "
+			"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"-1  WHERE \"Order\"<=NEW.\"Order\" AND \"Order\">=OLD.\"Order\" AND PlaylistSongID!=OLD.PlaylistSongID; "
+			"END");
+	x=harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	sprintf(query,"SELECT PlaylistSongID FROM TempPlaylistSong NATURAL JOIN Song WHERE SkipCount>0 AND \"Order\"<(SELECT COUNT(PlaylistSongID)-%d FROM TempPlaylistSong) ORDER BY SkipCount DESC LIMIT %d",data.slidemod,mod_count);
+	candlist.num=0;
+	harp_sqlite3_exec(conn,query,zs_candidate_cb,&candlist,NULL);
+	sprintf(query,"Skip count mod count: %d",candlist.num);
+	debug(2,query);
+	update_order_zs(&candlist,data.slidemod);
+	harp_sqlite3_exec(conn,"DROP TRIGGER SlideList",NULL,NULL,NULL);
+
 
 	// Play Count
 	data.slidemod=data.slide*-2;
 	data.count=0;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,\"Order\" FROM TempPlaylistSong NATURAL JOIN Song WHERE PlayCount>0 ORDER BY SkipCount DESC LIMIT %d",mod_count);
-	harp_sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-	harp_sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
-	harp_sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+	sprintf(query,"CREATE TEMPORARY TRIGGER SlideList AFTER UPDATE ON TempPlaylistSong BEGIN "
+			"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"+1  WHERE \"Order\">=NEW.\"Order\" AND \"Order\"<=OLD.\"Order\" AND PlaylistSongID!=OLD.PlaylistSongID; "
+			"END");
+	x=harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	sprintf(query,"SELECT PlaylistSongID FROM TempPlaylistSong NATURAL JOIN Song WHERE PlayCount>0 AND \"Order\">%d ORDER BY SkipCount DESC LIMIT %d",-data.slidemod,mod_count);
+	candlist.num=0;
+	harp_sqlite3_exec(conn,query,zs_candidate_cb,&candlist,NULL);
+	sprintf(query,"Play count mod count: %d",candlist.num);
+	debug(2,query);
+	update_order_zs(&candlist,data.slidemod);
 
 	// Rating
 	data.slidemod=data.slide*-1;
 	data.count=0;
-	sprintf(query,"SELECT Song.SongID,PlaylistSongID,\"Order\",Rating FROM TempPlaylistSong NATURAL JOIN Song WHERE Rating>3 ORDER BY SkipCount DESC LIMIT %d",mod_count);
-	harp_sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-	harp_sqlite3_exec(conn,query,zs_slide_cb,&data,NULL);
-	harp_sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
+	sprintf(query,"SELECT PlaylistSongID FROM TempPlaylistSong NATURAL JOIN Song WHERE Rating>3 AND \"Order\">%d ORDER BY SkipCount DESC LIMIT %d",-data.slidemod,mod_count);
+	candlist.num=0;
+	harp_sqlite3_exec(conn,query,zs_candidate_cb,&candlist,NULL);
+	sprintf(query,"Rating mod count: %d",candlist.num);
+	debug(2,query);
+	update_order_zs(&candlist,data.slidemod);
+	harp_sqlite3_exec(conn,"DROP TRIGGER SlideList",NULL,NULL,NULL);
 
 	// Last Play
 	data.count=data.increment;
@@ -247,14 +320,19 @@ void zshuffle(unsigned int items){
 	harp_sqlite3_exec(conn,query,uint_return_cb,&x,NULL);
 	if(x>ten_percent){
 		debug(1,"ZSHUFFLE | Too many unplayed songs; skipping LastPlay modifier.");
+		free(candlist.list);
 		return;
 	}
-	for(x=0;x<mod_count;x+=group){
-		// What have I done...
-		sprintf(query,"SELECT SongID,PlaylistSongID,\"Order\" FROM TempPlaylistSong WHERE SongID IN (SELECT SongID FROM Song NATURAL JOIN TempPlaylistSong ORDER BY LastPlay ASC LIMIT %d,%d) ORDER BY \"Order\" ASC",x,group);
-		harp_sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
-		harp_sqlite3_exec(conn,query,zs_skip_cb,&data,NULL);
-		harp_sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
-	}
+	sprintf(query,"CREATE TEMPORARY TRIGGER SkipList BEFORE UPDATE ON TempPlaylistSong BEGIN "
+			"UPDATE TempPlaylistSong SET \"Order\"=OLD.\"Order\"  WHERE \"Order\"=NEW.\"Order\"; "
+			"END");
+	x=harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	sprintf(query,"SELECT PlaylistSongID FROM TempPlaylistSong WHERE SongID IN (SELECT SongID FROM Song NATURAL JOIN TempPlaylistSong ORDER BY LastPlay ASC LIMIT %d) ORDER BY \"Order\" ASC",mod_count);
+	candlist.num=0;
+	harp_sqlite3_exec(conn,query,zs_candidate_cb,&candlist,NULL);
+	skip_order_zs(&candlist,data.slidemod);
+	harp_sqlite3_exec(conn,"DROP TRIGGER SkipList",NULL,NULL,NULL);
+
+	free(candlist.list);
 }
 

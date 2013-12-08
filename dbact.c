@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2013  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ int db_exec_file(char *file){
 	int x=0,querysize=200,ret=0;
 	char *query=malloc(sizeof(char)*querysize);
 	char *err;
-	
+
 	if(!query){
 		debug(2,"Cannot malloc query");
 		return 1;

@@ -264,7 +264,7 @@ static int directoryInsert(const char *arg){
 int batchInsert(char *arg){
 	struct musicInfo mi;
 	struct pluginitem *plugin_head;
-	
+
 	if(!(plugin_head=openPlugins())){
 		fprintf(stderr,"No plugins found. Please add them with harp -a\n");
 		return 0;
@@ -423,7 +423,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 
 	db_safe(dbfilename,arg,250);
 	debug(1,arg);
-	
+
 	dbiInit(&dbi);
 	//chack for dupicate
 	sprintf(query,"SELECT SongID FROM Song WHERE Location='%s' LIMIT 1",dbfilename);
