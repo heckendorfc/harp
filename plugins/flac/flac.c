@@ -61,6 +61,12 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 */
 }
 
+#if WITH_ALSA==1
+#define FLAC_SIZE(x) (x)
+#else
+#define FLAC_SIZE(x) (x*2*data->channels)
+#endif
+
 FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame, const FLAC__int32 *const buffer[], void *client_data){
 	struct snd_data *data=(struct snd_data*)client_data;
 	//if(writen_snd(data->ph, (void**)bufs, frame->header.blocksize)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
@@ -80,7 +86,7 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 		//buffs[i*4+2]=buffer[1][i];
 		//buffs[i*4+3]=buffer[1][i]>>8;
 	}
-	writei_snd(data->ph, buffs, frame->header.blocksize); // TODO: This works for ALSA. Other sources need something else for size?
+	writei_snd(data->ph, buffs, FLAC_SIZE(frame->header.blocksize)); // TODO: This works for ALSA. Other sources need something else for size?
 	data->curtime+=frame->header.blocksize;
 	//fprintf(stderr,"%d ",frame->header.blocksize);
 	//writei_snd(data->ph, (void *)buffer[0], frame->header.blocksize);
