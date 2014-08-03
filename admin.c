@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 #include "util.h"
 #include "portal.h"
 
+#include <glob.h>
+
 static int addPlugin(char *args, void *data){
 	char lib[200];
 	int size,x;
@@ -37,6 +39,27 @@ static int addPlugin(char *args, void *data){
 		fprintf(stderr,"Error adding plugin from file:\n\t%s\n",lib);
 	}
 	return PORTAL_RET_PREV;
+}
+
+int autoAddPlugins(){
+	char *lib;
+	glob_t pglob;
+	int i;
+
+	if(glob(SHARE_PATH "/harp/libharp*.sql",0,experr,&pglob)){
+		return HARP_RET_ERR;
+	}
+
+	for(i=0;i<pglob.gl_pathc;i++){
+		lib=pglob.gl_pathv[i];
+		if(db_exec_file(lib)){
+			fprintf(stderr,"Error adding plugin from file:\n\t%s\n",lib);
+		}
+	}
+
+	globfree(&pglob);
+
+	return HARP_RET_OK;
 }
 
 static int listPlugins(char *args, void *data){

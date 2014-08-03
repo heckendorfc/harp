@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "defs.h"
 
+int experr(const char *epath, int eerrno);
 int isURL(const char *in);
 char *expand(char *in);
 int fileFormat(struct pluginitem *list, const char *argv);
