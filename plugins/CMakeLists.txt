@@ -1,6 +1,9 @@
 add_definitions(-D_HARP_PLUGIN=1)
 include_directories(${CMAKE_SOURCE_DIR})
-add_library(harpplugin SHARED plugin.c ../message.c ../sndutil.c ../${SOUND_SRC})
+
+SET(CMAKE_C_FLAGS "-fPIC -g -O0")
+
+add_library(harpplugin STATIC plugin.c ../message.c ../sndutil.c ../${SOUND_SRC})
 
 option (WITH_MP3 "Enable MP3 support" ON)
 option (WITH_AAC "Enable AAC support" ON)
@@ -24,4 +27,4 @@ if (WITH_STREAM)
 	add_subdirectory(stream)
 endif(WITH_STREAM)
 
-INSTALL(TARGETS harpplugin LIBRARY DESTINATION lib)
+#INSTALL(TARGETS harpplugin LIBRARY DESTINATION lib)

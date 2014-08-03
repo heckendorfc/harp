@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ void toggleMute(struct playerHandles *ph, int *mute){
 		sprintf(tail,"Volume: %d%%",(0xff&current));
 		addStatusTail(tail,ph->outdetail);
 	}
-	else{ // Mute 
+	else{ // Mute
 		if(ioctl(ffd,SNDCTL_DSP_GETPLAYVOL,&current)==-1){fprintf(stderr,"\nget vol errno:%d\n",errno);errno=0;close(ffd);return;}
 		*mute=current;
 		current=0;
@@ -115,6 +115,9 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 #ifdef OSSV4_DEFS
 		ioctl(ph->sndfd,SNDCTL_DSP_SKIP,NULL);
 #endif
+	}
+	if(size==0){
+		return 0;
 	}
 	if((write_size=write(ph->sndfd,out,size))!=size)
 		fprintf(stderr,"Write error %d %d\n",size,write_size);

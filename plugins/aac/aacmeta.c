@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2013  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,12 @@
 
 void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	mp4handle_t handle;
-	mp4lib_open(&handle);
+
+	mi->length=-1;
+
+	if(mp4lib_open(&handle))
+		return;
+
 	mp4lib_parse_meta(ffd,&handle);
 
 	if(handle.meta.title){
@@ -39,8 +44,6 @@ void plugin_meta(FILE *ffd, struct musicInfo *mi){
 	if(handle.meta.year){
 		strncpy(mi->year,handle.meta.year,8);
 	}
-
-	mi->length=-1;
 
 	mp4lib_close(&handle);
 }

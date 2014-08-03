@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2013  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2013-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -471,6 +471,7 @@ uint32_t parse_atom(FILE *in, mp4atom_t *at, mp4handle_t *h){
 }
 
 int mp4lib_open(mp4handle_t *h){
+	bzero(h,sizeof(*h));
 	h->next_sample=0;
 	h->s_buf.buf=malloc(1024);
 	if(h->s_buf.buf==NULL)
@@ -478,7 +479,7 @@ int mp4lib_open(mp4handle_t *h){
 	h->s_buf.allocated=1024;
 	h->in_udta=0;
 	h->metadone=0;
-	bzero(&h->meta,sizeof(h->meta));
+	//bzero(&h->meta,sizeof(h->meta));
 	return 0;
 }
 
@@ -570,10 +571,14 @@ int mp4lib_read_sample(FILE *in, mp4handle_t *h, int sample, unsigned char **buf
 }
 
 void mp4lib_close(mp4handle_t *h){
-	free(h->s_size);
-	free(h->chunks);
-	free(h->descs);
-	free(h->s_buf.buf);
+	if(h->s_size)
+		free(h->s_size);
+	if(h->chunks)
+		free(h->chunks);
+	if(h->descs)
+		free(h->descs);
+	if(h->s_buf.buf)
+		free(h->s_buf.buf);
 	if(h->meta.title)
 		free(h->meta.title);
 	if(h->meta.album)

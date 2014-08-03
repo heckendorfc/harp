@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2013  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 //#include "mp4ff.h"
 #include "mp4lib.h"
 #include <neaacdec.h>
+#include <stdio.h>
 
 #define AAC_MAX_CHANNELS (6)
 
@@ -136,19 +137,23 @@ static size_t fill_buffer(FILE *ffd, char *buf, const int buf_len){
  */
 static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int buf_len){
 	char *data, *p, *bp;
-	size_t bp_len, length, frame_length, next_frame;
+	size_t tmp, bp_len, length, frame_length, next_frame;
 
 	bp=buf;
 	bp_len=0;
 	length=0;
 
-	bp_len=start+fill_buffer(ffd,bp+start,buf_len-start);
+	tmp=fill_buffer(ffd,bp+start,buf_len-start);
+	bp_len=start+tmp;
 	while (1) {
 		if(bp_len<8){
 			if(bp_len>0)
 				memmove(buf,bp,bp_len);
 			usleep(100000);
-			bp_len+=fill_buffer(ffd,buf+bp_len,buf_len-bp_len);
+			tmp=fill_buffer(ffd,buf+bp_len,buf_len-bp_len);
+			if(tmp==0) // nothing left to get
+				break;
+			bp_len+=tmp;
 			bp=buf;
 			continue;
 		}
@@ -179,6 +184,7 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 		}
 
 		if(bp_len<frame_length){
+			int cnt=0;
 			/* we don't have a full frame in the buffer. */
 			if(buf_len<frame_length){
 				/* ... and we never will. Clear the buffer and look for the next frame. */
@@ -190,10 +196,12 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 			}
 
 			memmove(buf,bp,bp_len);
-			while(bp_len<frame_length){
+			while(cnt<2 && bp_len<frame_length){
 				int i;
 				usleep(100000);
 				bp_len+=i=fill_buffer(ffd,buf+bp_len,buf_len-bp_len);
+				if(i==0)
+					cnt++;
 			}
 		}
 		else
@@ -204,7 +212,8 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 	return 0;
 }
 
-int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, const int buf_filled, const int bufsize){
+int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int bufsize){
+	unsigned char *buf=o_buf;
 	char *out;
 	int track,fmt,ret,channels,retval=DEC_RET_SUCCESS;
 	unsigned int rate;
@@ -239,18 +248,24 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 	frame_size=adts_find_frame(ph->ffd,buf,buf_filled,bufsize);
 	adts_header=(((uint32_t*)buf)[0]) >> 6;
 
-	if((ret=NeAACDecInit(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
-		channels=(int)channelchar;
+	if((ret=NeAACDecInit(hAac,buf,frame_size,&ratel,&channelchar)) == 0){
+		channels=buf[3]>>6;
+		//fprintf(stderr,"%d %d %d\n\n",((buf[2]>>2)&0xf),channels,(int)channelchar);
+		if(channels==0)
+			channels=1;
 		fmt=(int)config->outputFormat;
 		rate=(unsigned int)ratel;
+
+		if(channelchar!=channels){
+			rate*=(int)channelchar;
+			rate/=channels;
+		}
 	}
 	else{
 		fprintf(stderr,"NeAACDecInit error %d\n",ret);
 		channels=2;
 		rate=44100;
 	}
-	//fprintf(stderr,"Init returned %d\n",ret);
-
 	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch",rate, channels);
 	addStatusTail(tail,ph->outdetail);
 
@@ -268,7 +283,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 
 
 #if WITH_ALSA==1
-	#define OUTSIZE_AAC(x) (x)
+	#define OUTSIZE_AAC(x) (x/channels)
 #else
 	#define OUTSIZE_AAC(x) (x*channels)
 #endif
@@ -310,8 +325,12 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *buf, co
 		bufstart=bufsize-frame_size;
 		frame_size=adts_find_frame(ph->ffd,buf,bufstart,bufsize);
 		if(frame_size==0){
-			fprintf(stderr,"\nframe_size==0\n");
-			retval=DEC_RET_ERROR;
+			//fprintf(stderr,"\nframe_size==0\n");
+			if(ferror(ph->ffd))
+				retval=DEC_RET_ERROR;
+			else
+				retval=DEC_RET_SUCCESS;
+			writei_snd(ph,out,0); // drain what's in the sound buffer
 			break;
 		}
 	}while(1);
@@ -378,6 +397,7 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 		channels=2;
 		rate=44100;
 	}
+fprintf(stderr,"mp4 %d %d %d\n\n",channels,fmt,rate);
 	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch",rate, channels);
 	addStatusTail(tail,ph->outdetail);
 

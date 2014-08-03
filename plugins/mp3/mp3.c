@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "plugin.h"
 #include <mpg123.h>
 #include "mp3meta.c"
+#include <stdint.h>
 
 pthread_mutex_t dechandle_lock;
 
@@ -38,17 +39,50 @@ void plugin_close(FILE *ffd){
 }
 
 int filetype_by_data(FILE *ffd){
+	int i;
+	uint32_t size;
 	unsigned char buf[10];
 	fseek(ffd,0,SEEK_SET);
 	if(fread(buf,sizeof(buf),1,ffd)<1)return 0;
-	if(buf[0]=='I' && buf[1]=='D' && buf[2]=='3'){
+
+	if(buf[0]==0xff && (buf[1]&0xfe)==0xfa)
 		return 1;
+
+	if(buf[0]=='I' && buf[1]=='D' && buf[2]=='3'){ /* ID3v2 */
+		size=10; /* header = 10 */
+		for(i=0;i<4;i++)
+			size+=((uint32_t)(buf[9-i])<<(i*7));
+
+		fseek(ffd,size,SEEK_SET);
+		if(fread(buf,sizeof(buf),1,ffd)<1)return 0;
+
+		if(buf[0]==0xff && (buf[1]&0xfe)==0xfa)
+			return 1;
 	}
+	else if(buf[0]=='T' && buf[1]=='A' && buf[2]=='G'){ /* ID3v1 */
+		if(buf[4]=='+'){
+			fseek(ffd,128,SEEK_SET);
+			if(fread(buf,sizeof(buf),1,ffd)<1)return 0;
+			if((buf[0]==0xff && (buf[1]&0xfe)==0xfa) ||
+				(buf[2]==0xff && (buf[3]&0xfe)==0xfa))
+				return 1;
+		}
+		else{
+			fseek(ffd,227,SEEK_SET);
+			if(fread(buf,sizeof(buf),1,ffd)<1)return 0;
+			if(buf[0]==0xff && (buf[1]&0xfe)==0xfa)
+				return 1;
+		}
+	}
+
+	/* This part doesn't indicate MP3, only ID3v1. Delete it? */
+#if 0
 	fseek(ffd,-(128*sizeof(buf[0])),SEEK_END);
 	if(fread(buf,sizeof(buf),1,ffd)<1)return 0;
 	if(buf[0]=='T' && buf[1]=='A' && buf[2]=='G'){
 		return 1;
 	}
+#endif
 	return 0;
 }
 
@@ -59,7 +93,7 @@ void new_format(struct playerHandles *ph){
 	int guess=0;
 	char tail[OUTPUT_TAIL_SIZE];
 	struct mpg123_frameinfo	fi;
-	
+
 	mpg123_getformat(h.m, &ratel, &channels, &enc);
 	rate=(unsigned int)ratel;
 	mpg123_info(h.m,&fi);
@@ -94,13 +128,13 @@ int mp3Init(struct playerHandles *ph){
 		fprintf(stderr,"Unable to create mpg123 handle\n");
 		return -1;
 	}
-	//mpg123_param(h.m, MPG123_VERBOSE, 0, 0); 
-	mpg123_param(h.m, MPG123_RESYNC_LIMIT, -1, 0); 
-	mpg123_param(h.m, MPG123_FLAGS, MPG123_QUIET, 0); 
+	//mpg123_param(h.m, MPG123_VERBOSE, 0, 0);
+	mpg123_param(h.m, MPG123_RESYNC_LIMIT, -1, 0);
+	mpg123_param(h.m, MPG123_FLAGS, MPG123_QUIET, 0);
 	//mpg123_open_feed(h.m);
 	mpg123_open_fd(h.m,fileno(ph->ffd));
 	if(h.m == NULL) return -1;
-	
+
 	return 0;
 }
 
@@ -146,13 +180,13 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	int metaret;
 	int metacount;
 	char *icymeta;
-	
+
 	if(mp3Init(ph)<0)return DEC_RET_ERROR;
 
 	details->totaltime=*totaltime>0?*totaltime:-1;
 	details->percent=-1;
 	ph->dechandle=&h;
-			
+
 	pthread_mutex_lock(&dechandle_lock);
 		new_format(ph);
 		outsize=mpg123_outblock(h.m);
@@ -218,14 +252,15 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		}*/
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){
 			retval=ph->pflag->exit;
-			break;	
+			break;
 		}
 	}while(mret != MPG123_ERR && mret!=MPG123_DONE);
 	if(mret == MPG123_ERR){
-		fprintf(stderr, "decoder error: %s", mpg123_strerror(h.m)); 
+		fprintf(stderr, "decoder error: %s", mpg123_strerror(h.m));
 		if(mpg123_errcode(h.m)!=28) // Common error. quick fix
 			retval=DEC_RET_ERROR;
 	}
+	writei_snd(ph,(char *)out,0); // drain sound buffer
 
 	/* Done decoding, now just clean up and leave. */
 	plugin_exit(ph);

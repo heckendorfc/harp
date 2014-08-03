@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -82,6 +82,9 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 			usleep(100000); // 0.1 seconds
 		}
 		while(ph->pflag->pause);
+	}
+	if(size==0){
+		return 0;
 	}
 	ret=pa_simple_write(ph->sndfd,out,(size_t)size,&error);
 	if(ret<0)

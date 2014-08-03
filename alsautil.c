@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ void changeVolume(struct playerHandles *ph, int mod){
 		snd_mixer_close(handle);
 		return;
 	}
-	
+
 	snd_mixer_selem_get_playback_volume_range(elem,&vmin,&vmax);
 	range_p = (100.0f/(float)(vmax-vmin));
 
@@ -100,7 +100,7 @@ void changeVolume(struct playerHandles *ph, int mod){
 
 	sprintf(tail,"Volume: %d%%",(int)((float)range_p*(float)new_volume));
 	addStatusTail(tail,ph->outdetail);
-	
+
 	snd_mixer_selem_get_playback_volume(elem,1,&cur_vol);
 	new_volume = cur_vol+vmin+mod/range_p;
 	if(new_volume==cur_vol && mod!=0)new_volume+=(mod<0?-1:1);
@@ -152,16 +152,16 @@ void toggleMute(struct playerHandles *ph, int *mute){
 		snd_mixer_close(handle);
 		return;
 	}
-	
+
 	snd_mixer_selem_get_playback_volume_range(elem,&vmin,&vmax);
 	range_p = (100.0f/(float)(vmax-vmin));
 	if(*mute>0){ // Unmute and perform volume change
 		*mute=0;
-		sprintf(tail,"Volume: %d%%",current);
+		sprintf(tail,"Volume: %ld%%",current);
 		addStatusTail(tail,ph->outdetail);
 		current=current/range_p+vmin;
 	}
-	else{ // Mute 
+	else{ // Mute
 		snd_mixer_selem_get_playback_volume(elem,0,&current);
 		*mute=current*range_p+vmin;
 		current=0;
@@ -177,7 +177,7 @@ void toggleMute(struct playerHandles *ph, int *mute){
 		snd_mixer_close(handle);
 		return;
 	}
-	
+
 	snd_mixer_close(handle);
 }
 
@@ -209,6 +209,10 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 		}
 		while(ph->pflag->pause);
 		snd_pcm_prepare(ph->sndfd);
+	}
+	if(size==0){
+		snd_pcm_drain(ph->sndfd);
+		return 0;
 	}
 	ret=snd_pcm_writei(ph->sndfd,out,size);
 	if(ret == -EAGAIN)return 0;

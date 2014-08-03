@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -140,7 +140,7 @@ int snd_init(struct playerHandles *ph){
 		fprintf(stderr,"Malloc failed (jack buf).");
 		return 1;
 	}
-	
+
 	pthread_mutex_init(&outbuf_lock,NULL);
 	ph->out_gain=0;
 	ph->vol_mod=1;
@@ -221,7 +221,7 @@ void toggleMute(struct playerHandles *ph, int *mute){
 		sprintf(tail,"Volume: %d%% (%dDb)",(int)((ph->out_gain-GAIN_MIN)*2),ph->out_gain);
 		addStatusTail(tail,ph->outdetail);
 	}
-	else{ // Mute 
+	else{ // Mute
 		*mute=1;
 		addStatusTail("Volume Muted",ph->outdetail);
 	}
@@ -270,6 +270,10 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 		ph->outbuf[1]->read_ptr=read[1];
 		ph->outbuf[0]->write_ptr=write[0];
 		ph->outbuf[1]->write_ptr=write[1];
+	}
+
+	if(size==0){
+		return 0;
 	}
 
 	tmpbufsize=samples*(ph->dec_rate/ph->out_rate);

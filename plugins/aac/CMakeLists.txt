@@ -3,7 +3,7 @@ find_package(Faad REQUIRED)
 #add_subdirectory(mp4lib)
 include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/plugins ${Faad_INCLUDE_DIR} mp4lib)
 link_directories(${CMAKE_SOURCE_DIR}/plugins)
-add_library(harpaac SHARED aac.c ../../defs_h.c mp4lib/mp4lib.c)
+add_library(harpaac MODULE aac.c ../../defs_h.c mp4lib/mp4lib.c)
 target_link_libraries (harpaac harpplugin ${Faad_LIBRARIES})
 
 INSTALL(FILES libharpaac.sql DESTINATION share/harp)

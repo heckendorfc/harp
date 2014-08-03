@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ FILE * plugin_open(const char *path, const char *mode){
 }
 
 void plugin_close(FILE *ffd){
-	plugin_std_fclose(ffd);
+	//plugin_std_fclose(ffd);
 }
 
 void plugin_seek(struct playerHandles *ph, int modtime){
@@ -66,18 +66,21 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 	//if(writen_snd(data->ph, (void**)bufs, frame->header.blocksize)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	//int x;for(x=0;x<frame->header.blocksize;x++)if(writei_snd(data->ph, (char *)&buffer[0][x], 1)<0 || writei_snd(data->ph, (char *)&buffer[1][x],1)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	char *buffs;
-	if(!(buffs=malloc(frame->header.blocksize*4))){
+	if(!(buffs=malloc(frame->header.blocksize*2*data->channels))){
 		fprintf(stderr,"Malloc failed (decoder buffer)");
 		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	}
-	int x;
-	for(x=0;x<frame->header.blocksize;x++){
-		buffs[x*4]=buffer[0][x];
-		buffs[x*4+1]=buffer[0][x]>>8;
-		buffs[x*4+2]=buffer[1][x];
-		buffs[x*4+3]=buffer[1][x]>>8;
+	int i,j,num;
+	num=frame->header.blocksize;
+	for(i=0;i<num;i++){
+		for(j=0;j<data->channels;j++){
+			buffs[i*2*data->channels+j*data->channels]=buffer[j][i];
+			buffs[i*2*data->channels+1+j*data->channels]=buffer[j][i]>>8;
+		}
+		//buffs[i*4+2]=buffer[1][i];
+		//buffs[i*4+3]=buffer[1][i]>>8;
 	}
-	writei_snd(data->ph, buffs, frame->header.blocksize*4);
+	writei_snd(data->ph, buffs, frame->header.blocksize); // TODO: This works for ALSA. Other sources need something else for size?
 	data->curtime+=frame->header.blocksize;
 	//fprintf(stderr,"%d ",frame->header.blocksize);
 	//writei_snd(data->ph, (void *)buffer[0], frame->header.blocksize);
@@ -116,7 +119,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	FLAC__stream_decoder_set_metadata_ignore_all(decoder);
 	FLAC__stream_decoder_set_metadata_respond(decoder,FLAC__METADATA_TYPE_STREAMINFO);
 	//FLAC__stream_decoder_set_metadata_respond(decoder,FLAC__METADATA_TYPE_SEEKTABLE); //when seeking is implemented
-	
+
 	if(FLAC__stream_decoder_init_FILE(decoder,ph->ffd,flac_write,flac_meta,flac_error,&data)!=FLAC__STREAM_DECODER_INIT_STATUS_OK){
 		fprintf(stderr,"flac init failed");
 		FLAC__stream_decoder_finish(decoder);
@@ -156,15 +159,16 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){
 			retval=ph->pflag->exit;
-			break;	
+			break;
 		}
 	}while(FLAC__stream_decoder_get_state(decoder)!=FLAC__STREAM_DECODER_END_OF_STREAM);
 	//fprintf(stderr,"total: %d\n",data.curtime);
+	writei_snd(ph,NULL,0); // drain sound buffer
 
 	/* Done decoding, now just clean up and leave. */
 	FLAC__stream_decoder_finish(decoder);
 	FLAC__stream_decoder_delete(decoder);
-	
+
 	return retval;
 }
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -70,14 +70,18 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 	snd_clear(ph);
 }
 
+#define DBGPRNT nullprint
+
+void nullprint(){
+}
+
 int vorbStatus(int ret){
-	fprintf(stderr,"\n");
 	switch(ret){
-		case 0:fprintf(stderr,"EOF - done\n");return DEC_RET_SUCCESS;
-		case OV_HOLE:fprintf(stderr,"OV_HOLE - data interruption\n");return VORB_CONTINUE;
-		case OV_EBADLINK:fprintf(stderr,"OV_EBADLINK - invalid stream\n");break;
-		case OV_EINVAL:fprintf(stderr,"OV_EINVAL - read or open error\n");break;
-		default:fprintf(stderr,"Unknown return value (%d)\n",ret);
+		case 0:DBGPRNT(stderr,"\nEOF - done\n");return DEC_RET_SUCCESS;
+		case OV_HOLE:DBGPRNT(stderr,"\nOV_HOLE - data interruption\n");return VORB_CONTINUE;
+		case OV_EBADLINK:DBGPRNT(stderr,"\nOV_EBADLINK - invalid stream\n");break;
+		case OV_EINVAL:DBGPRNT(stderr,"\nOV_EINVAL - read or open error\n");break;
+		default:DBGPRNT(stderr,"\nUnknown return value (%d)\n",ret);
 	}
 	return DEC_RET_ERROR;
 }
@@ -151,9 +155,10 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){
 			retval=ph->pflag->exit;
-			break;	
+			break;
 		}
 	}while(1);
+	writei_snd(ph,NULL,0); // drain sound buffer
 
 	/* Done decoding, now just clean up and leave. */
 	ov_clear(vf);

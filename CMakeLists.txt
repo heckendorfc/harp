@@ -5,6 +5,8 @@ add_definitions(-DPACKAGE_VERSION="0.6.0")
 add_definitions(-DSHARE_PATH="${CMAKE_INSTALL_PREFIX}/share" )
 add_definitions(-DLIB_PATH="${CMAKE_INSTALL_PREFIX}/lib" )
 
+#SET(CMAKE_C_FLAGS "-g -O0")
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 option (WITH_OSS "Use OSS for sound output.")
@@ -41,6 +43,7 @@ if (FTW_FOUND)
 	include_directories(${FTW_INCLUDE_DIR})
 endif (FTW_FOUND)
 
+find_package (Threads REQUIRED)
 find_package(Sqlite REQUIRED)
 include_directories(${SQLITE_INCLUDE_DIR})
 
@@ -79,7 +82,7 @@ portal.h
 tree.h
 sndutil.h)
 
-target_link_libraries (harp ${SOUND_LIB} ${SQLITE_LIBRARIES})
+target_link_libraries (harp ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS} ${SOUND_LIB} ${SQLITE_LIBRARIES})
 
 FILE(GLOB shared_files share/*)
 INSTALL(FILES README ${shared_files} DESTINATION share/harp)
