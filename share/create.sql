@@ -8,6 +8,15 @@ SongCatID integer primary key,
 CategoryID integer not null,
 SongID integer not null);
 
+CREATE TABLE Tag(
+TagID integer primary key,
+Value text);
+
+CREATE TABLE SongTag(
+SongTagID integer primary key,
+TagID integer,
+SongID integer);
+
 CREATE TABLE FileType(
 TypeID integer primary key,
 Name varchar(10) not null UNIQUE,

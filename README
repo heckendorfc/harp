@@ -30,7 +30,7 @@ Installing harp:
 	make
 	make install
 
-Enable the plugins in harp:
+Enable the plugins in harp (this may be done automatically):
 	harp -a
 		select plugin management:
 	Admin> p

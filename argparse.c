@@ -137,6 +137,12 @@ static void makeTempPlaylist(int *multilist, int multi){
 				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
+		case 't':
+			for(mx=0;mx<multi;mx++){
+				sprintf(query,"SELECT Song.SongID FROM SongTag NATURAL JOIN Song WHERE Active=1 AND TagID=%d ORDER BY TagID,Track",multilist[mx]);
+				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
+			}
+			break;
 		case 'g':
 			for(mx=0;mx<multi;mx++){
 				printGenreTree(multilist[mx],(void *)genreToPlaylistSong);

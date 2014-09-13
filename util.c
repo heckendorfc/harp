@@ -25,9 +25,7 @@ int experr(const char *epath, int eerrno){
 }
 
 int isURL(const char *in){
-	if(strncmp("http://",in,7)==0)
-		return 1;
-	return 0;
+	return strncmp("http://",in,7)==0;
 }
 
 char *expand(char *in){
@@ -89,7 +87,7 @@ int fileFormat(struct pluginitem *list, const char *arg){
 	struct dbitem dbi;
 	struct pluginitem *ret=list;
 	int type=0;
-	
+
 	// Find by magic numbers
 
 	while(!type && ret){
@@ -327,7 +325,7 @@ int strToID(const char *argv){ // TODO: add type param
 	char clean_str[200];
 	int id=0;
 	struct dbitem dbi;
-	
+
 	db_safe(clean_str,argv,200);
 
 	if(!arglist[ATYPE].subarg)return -1;
@@ -339,6 +337,7 @@ int strToID(const char *argv){ // TODO: add type param
 		case 'r':sprintf(query,"SELECT ArtistID,Name FROM Artist WHERE Name LIKE '%%%s%%'",clean_str);break;
 		case 'a':sprintf(query,"SELECT AlbumID,Title,Artist.Name FROM Album NATURAL JOIN AlbumArtist NATURAL JOIN Artist WHERE Title LIKE '%%%s%%'",clean_str);break;
 		case 'g':sprintf(query,"SELECT CategoryID,Name FROM Category WHERE Name LIKE '%%%s%%'",clean_str);break;
+		case 't':sprintf(query,"SELECT TagID,Value FROM Tag WHERE Value LIKE '%%%s%%'",clean_str);break;
 		default:return -1;
 	}
 
@@ -362,6 +361,7 @@ int verifyID(const int id){
 		case 'r':sprintf(query,"SELECT ArtistID FROM Artist WHERE ArtistID=%d",id);break;
 		case 'a':sprintf(query,"SELECT AlbumID FROM Album WHERE AlbumID=%d",id);break;
 		case 'g':sprintf(query,"SELECT CategoryID FROM Category WHERE CategoryID=%d",id);break;
+		case 't':sprintf(query,"SELECT TagID FROM Tag WHERE TagID=%d",id);break;
 		default:return 0;
 	}
 	if(doQuery(query,&dbi)==1){
@@ -453,6 +453,12 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 			sprintf(query_tail,"ORDER BY Song.AlbumID,Track");
 			ptr=&query[64];
 			break;
+		case 't':
+			arglist[ATYPE].subarg[0]='t';
+			sprintf(query,"SELECT Song.SongID FROM Song NATURAL JOIN SongTag WHERE TagID=");
+			sprintf(query_tail,"ORDER BY Song.AlbumID,Track");
+			ptr=&query[62];
+			break;
 		case 'g':
 			arglist[ATYPE].subarg[0]='g';
 			sprintf(query,"SELECT SongID FROM Song NATURAL JOIN SongCategory WHERE CategoryID=");
@@ -473,7 +479,7 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 			id_struct->length=song_idlen;
 			return HARP_RET_OK;
 	}
-	
+
 	debug(3,query);
 	// Get SongIDs from album, artist, or genre
 	for(++x;x<arglen && args[x] && args[x]==' ';x++);
@@ -573,7 +579,7 @@ int insertTempSelectQuery(const char *query){
 	debug(2,temp_q);
 
 	harp_sqlite3_exec(conn,temp_q,NULL,NULL,NULL);
-	
+
 	free(temp_q);
 	free(ptr);
 	return tempid;
