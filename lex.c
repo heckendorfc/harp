@@ -1,6 +1,6 @@
-#include <lex_dfa.h>
-#include <lex.h>
-#include <shell.h>
+#include "lex_dfa.h"
+#include "lex.h"
+#include "edit_shell.h"
 
 void free_tokens(TokenList *t){
 	TokenList *p;

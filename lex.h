@@ -14,7 +14,7 @@ enum SplitPlace{
 #include <string.h>
 #include <assert.h>
 
-#include <lex_dfa.h>
+#include "lex_dfa.h"
 
 
 typedef struct Token{

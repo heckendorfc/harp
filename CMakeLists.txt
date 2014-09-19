@@ -65,22 +65,11 @@ list.c
 admin.c
 portal.c
 tree.c
-sndutil.c
-harp.h
-argparse.h
-harpconfig.h
-dbact.h
-insert.h
-edit.h
-util.h
-message.h
-player.h
-shuffle.h
-list.h
-admin.h
-portal.h
-tree.h
-sndutil.h)
+y.tab.c
+build.c
+lex.c
+lex_dfa.c
+sndutil.c)
 
 target_link_libraries (harp ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS} ${SOUND_LIB} ${SQLITE_LIBRARIES})
 

@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
-#include <lex.h>
-#include <build.h>
+#include "lex.h"
+#include "build.h"
 int yylex();
 int yyerror();
 
@@ -19,8 +19,14 @@ int wp_flag=0;
 	char *word;
 	wordchain_t *wc;
 	wordlist_t *wl;
+	arglist_t *arg;
 	command_t *command;
 }
+
+%type<word> word_piece TOK_TEXT TOK_QUOTE_STR TOK_QUOTE
+%type<wc> word
+%type<command> cmd selector action cmdline
+%type<arg> onearg arglist
 
 %start cmdline
 
@@ -29,26 +35,26 @@ int wp_flag=0;
 word_piece:	TOK_TEXT
 			{
 				wp_flag=WORD_DEFAULT;
-				$$.word=$1.word;
+				$$=$1;
 			}
 	|	TOK_QUOTE TOK_QUOTE_STR TOK_QUOTE
 			{
-				wp_flag=(*($1.word)=='"'?WORD_DQUOT:WORD_SQUOT);
-				$$.word=$2.word;
+				wp_flag=(*($1)=='"'?WORD_DQUOT:WORD_SQUOT);
+				$$=$2;
 			}
 	;
 
 word:	word word_piece
-			{ $$.wc = make_word($1.wc,$2.word,wp_flag); }
+			{ $$ = make_word($1,$2,wp_flag); }
 	|	word_piece
-			{ $$.wc = make_word(NULL,$1.word,wp_flag); }
+			{ $$ = make_word(NULL,$1,wp_flag); }
 	;
 
 cmd:	word TOK_OPAR
-			{ $$.command = make_command(make_word_list($1)); }
+			{ $$ = make_command(make_word_list(NULL,$1)); }
 
 onearg:	word
-			{ $$ = make_com_arg(make_word_list($1),COM_ARG_LITERAL); }
+			{ $$ = make_com_arg(make_word_list(NULL,$1),COM_ARG_LITERAL); }
 	|	selector
 			{ $$ = make_com_arg($1,COM_ARG_SELECTOR); }
 	;
@@ -60,13 +66,13 @@ arglist:	onearg
 	;
 
 selector:	cmd arglist TOK_CPAR
-			{ $$.command = com_set_args($1,$2); $$.command->flags=COM_SEL; }
+			{ $$ = com_set_args($1,$2,COM_SEL); }
 
 action:	cmd arglist TOK_CPAR
-			{ $$.command = com_set_args($1,$2); $$.command->flags=COM_ACT; }
+			{ $$ = com_set_args($1,$2,COM_ACT); }
 	|	word
-			{ $$.command = make_command(make_word_list($1)); $$.command->flags=COM_ACT; }
+			{ $$ = make_command(make_word_list(NULL,$1)); $$->flags=COM_ACT; }
 	;
 
 cmdline:	selector action
-			{ fullcmd = $1.command; $$ = $1; }
+			{ fullcmd = $2; $$ = $1; fullcmd->tlid = $1.tlid }

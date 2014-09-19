@@ -40,6 +40,7 @@ struct pluginitem *closePlugin(struct pluginitem *head);
 void closePluginList(struct pluginitem *head);
 
 void cleanTempSelect(const int tempid);
+int mergeTempSelect(int ida, int idb);
 int insertTempSelect(const int *ids, const int idlen);
 int insertTempSelectQuery(const char *query);
 void db_clean(char *str, const char *data, const size_t size);

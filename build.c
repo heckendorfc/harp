@@ -1,5 +1,8 @@
-#include <build.h>
-#include <edit_shell.h>
+#include <stdlib.h>
+#include <string.h>
+#include "build.h"
+#include "edit_shell.h"
+#include "util.h"
 
 /* substitute vars if needed
  * escape words in quotes if needed
@@ -16,12 +19,13 @@ void free_wordchain(wordchain_t *w){
 	}
 }
 
-void free_redirection(redirect_t *r){
-	redirect_t *p;
-	if(!r)return;
-	for(p=r->next;r;){
-		free(r);
-		r=p;
+void free_arglist(arglist_t *a){
+	arglist_t *p;
+	if(!a)return;
+	for(p=a->next;a;){
+		free(a->args);
+		free(a);
+		a=p;
 		if(p)p=p->next;
 	}
 }
@@ -41,8 +45,7 @@ void free_commands(command_t *c){
 	command_t *p;
 	if(!c)return;
 	for(p=c->next;c;){
-		free_wordlist(c->args);
-		free_redirection(c->redirection);
+		free_arglist(c->args);
 		free(c);
 		c=p;
 		if(p)p=p->next;
@@ -197,126 +200,195 @@ wordlist_t* make_word_list(wordlist_t *wl, wordchain_t *word){
 	}
 
 	wl_ptr->word=merge_wordchain(word);
+	wl_ptr->flag=word->flags; // TODO: scan all words?
 
 	free_wordchain(word);
 
 	return wl;
 }
 
-redirect_t* make_redirect(int type, wordchain_t *fd, wordchain_t *dest){
-	redirect_t *ret;
-	char *word;
+static char *selectors[]={
+	"song",
+	"album",
+	"artist",
+	NULL
+};
+
+static char *selectfield[]={
+	"SongID",
+	"AlbumID",
+	"ArtistID"
+};
+
+static char *selecttable[]={
+	"Song",
+	"Album",
+	"Artist"
+};
+
+static char *selectcomp[]={
+	"Title",
+	"Title",
+	"Name"
+};
+
+static int get_select_type(command_t *c){
+	int ret;
+
+	for(ret=0;selectors[ret];ret++){
+		if(strcmp(selectors[ret],c->cmd->word)==0)
+			return ret;
+	}
+	return -1;
+}
+
+static int get_templist(arglist_t *a, int ctype){
+	if(a->args->flag==WORD_DEFAULT){ // ID
+		int id = strtol(a->args->word,NULL,10);
+		return insertTempSelect(&id,1);
+	}
+	else{ // Name
+		char query[300];
+		sprintf(query,"SELECT %s FROM %s WHERE %s LIKE '%%%s%%'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->args->word);
+		return insertTempSelectQuery(query);
+	}
+}
+
+static char *translatequery[]={
+	NULL,//ss
+	"SELECT %%d,AlbumID FROM Song WHERE SongID IN (%s)",//sa (song -> album)
+	"SELECT %%d,ArtistID from AlbumArtist NATURAL JOIN Song WHERE SongID IN (%s)",//sr
+
+	"SELECT %%d,SongID FROM Song WHERE AlbumID IN (%s)",//as
+	NULL,//aa
+	"SELECT %%d,ArtistID FROM AlbumArtist WHERE AlbumID IN (%s)",//ar
+
+	"SELECT %%d,SongID FROM Song NATURAL JOIN AlbumArtist WHERE ArtistID IN (%s)",//rs
+	"SELECT %%d,AlbumID FROM AlbumArtist WHERE ArtistID IN (%s)",//ra
+	NULL,//rr
+};
+static const int numtypes=3;
+
+static int translate_templist(int toid, int totype, int fromid, int fromtype, int cleanup){
+	char query[300];
+	char subquery[300];
+	int newid;
+	if(toid<0){ // new id
+		if(totype==fromtype)
+			return fromid;
+	}
+	else{
+		if(totype==fromtype){
+			mergeTempSelect(toid,fromid);
+			return toid;
+		}
+
+		sprintf(subquery,"SELECT SelectID FROM TempSelect WHERE TempID=%d",fromid);
+		sprintf(query,translatequery[fromtype*numtypes+totype],subquery);
+		newid=insertTempSelectQuery(query);
+		//mergeTempSelect(toid,newid);
+	}
+
+	if(cleanup)
+		cleanTempSelect(fromid);
+
+	return newid;
+}
+
+arglist_t* make_com_arg(void *data, int flag){
+	arglist_t *ret;
 
 	INIT_MEM(ret,1);
-	//ret->wc_fd=fd;
-	//ret->wc_dest=dest;
-	ret->flags=0;
+	ret->flags=flag;
 	ret->next=NULL;
 
+	if(flag==COM_ARG_SELECTOR){
+		command_t *c = (command_t*)data;
+		arglist_t *a = c->args;
+		int atid;
+		int cid=-1;
 
-	if(fd!=NULL){
-		word=merge_wordchain(fd);
-		if(*word>='0' && *word<='9')
-			ret->fd=strtol(word,NULL,10);
-		free(word);
+		ret->tltype=c->tltype;
+
+		while(a){
+			atid=get_templist(a,c->tltype);
+
+			if(cid==-1)
+				cid=atid;
+			else
+				mergeTempSelect(cid,atid);
+
+			a=a->next;
+		}
+
+		ret->tlid=cid;
 	}
+	else{
+		wordlist_t *wl = (wordlist_t*)data;
+		ret->args=wl;
+		ret->tlid=-1;
+		ret->tltype=-1;
+	}
+
+	//ret->args=wl;
+	//fprintf(stderr,"arg: %s\n",wl->word);
+
+	return ret;
+}
+
+arglist_t* append_com_arg(arglist_t *a, arglist_t *b){
+	if(b){
+		b->next=a;
+		return b;
+	}
+	return a;
+}
+
+void com_sel_set_args(command_t *c, arglist_t *a){
+	arglist_t *ta;
+	int cid;
+	ta=c->args=a;
+
+	while(ta){
+		if(ta->tltype<0) // single native
+			cid=ta->tlid=get_templist(ta,c->tltype);
+		else
+			cid=translate_templist(ta->tlid,ta->tltype,c->tlid,c->tltype,1);
+
+		if(c->tlid<0)
+			c->tlid=cid;
+		else
+			mergeTempSelect(c->tlid,cid);
+
+		ta=ta->next;
+	}
+}
+
+void com_act_set_args(command_t *c, arglist_t *a){
+	c->args=a;
+}
+
+command_t* com_set_args(command_t *c, arglist_t *a, int flag){
+	c->flags=flag;
+
+	if(flag==COM_SEL)
+		com_sel_set_args(c,a);
 	else
-		ret->fd=-1;
-	ret->dest=merge_wordchain(dest);
-	ret->d_flag=REDIR_DEST_STR;
+		com_act_set_args(c,a);
 
-	free_wordchain(fd);
-	free_wordchain(dest);
-
-	switch(type){
-		case TOK_LT:
-			ret->flags = O_RDONLY;
-			if(ret->fd<0)ret->fd=0;
-			break;
-
-		case TOK_GT:
-			ret->flags = O_TRUNC | O_WRONLY | O_CREAT;
-			if(ret->fd<0)ret->fd=1;
-			break;
-
-		case TOK_GTAMP:
-			ret->flags = O_WRONLY;
-			if(ret->fd<0 || ret->fd>9)ret->fd=1;
-			if(*ret->dest>='0' && *ret->dest<='9' && ret->dest[1]=='\0'){
-				char *temp = ret->dest;
-				INIT_MEM(ret->dest,10); /* /dev/fd/?\0 */
-				sprintf(ret->dest,"/dev/fd/%c",*temp);
-				free(temp);
-			}
-			else{
-				char *temp = ret->dest;
-				INIT_MEM(ret->dest,10); /* /dev/fd/?\0 */
-				sprintf(ret->dest,"/dev/fd/%d",ret->fd);
-				free(temp);
-			}
-			break;
-
-		case TOK_GTGT:
-			ret->flags = O_APPEND | O_WRONLY | O_CREAT;
-			if(ret->fd<0)ret->fd=1;
-			break;
-
-		default:
-			fprintf(stderr,"Warning: using default redirect flags\n"); break;
-	}
-
-	return ret;
+	return c;
 }
 
-command_t* make_command(wordlist_t *wl, redirect_t *redirect){
+command_t* make_command(wordlist_t *wl){
 	command_t *ret;
 
 	INIT_MEM(ret,1);
-	ret->args=wl;
-	ret->redirection=redirect;
+	ret->cmd=wl;
+	ret->args=NULL;
 	ret->flags=0;
-	ret->next=0;
-	ret->exec.infd=ret->exec.outfd=-1;
-	ret->exec.pid=0;
-
-	return ret;
-}
-
-command_t* make_for_command(wordlist_t *var, wordlist_t *list, command_t *c){
-	command_t *ret;
-
-	INIT_MEM(ret,1);
-
-	ret->args=var;
-	free_wordlist(var->next);
-	var->next=list;
-
-	ret->next=c;
-
-	ret->redirection=NULL;
-	ret->flags=0;
-	ret->exec.infd=ret->exec.outfd=-1;
-	ret->exec.pid=0;
-
-	return ret;
-}
-
-command_t* make_while_command(command_t *testc, command_t *runc){
-	command_t *ret;
-
-	INIT_MEM(ret,1);
-
-	/* blank -> {test} -> {run}|end */
-	ret->next=testc;
-	append_command_flags(ret->next,COM_SEMI);
-	append_command(ret->next,runc);
-	append_command(ret->next,make_command(NULL,NULL));
-	append_command_flags(ret->next,COM_ENDWHILE);
-
-	ret->redirection=NULL;
-	ret->flags=COM_SEMI|COM_WHILE;
-	ret->exec.infd=ret->exec.outfd=-1;
-	ret->exec.pid=0;
+	ret->next=NULL;
+	ret->tltype=get_select_type(ret);
+	ret->tlid=-1;
 
 	return ret;
 }

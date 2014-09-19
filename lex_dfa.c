@@ -1,6 +1,6 @@
-#include <lex.h>
-#include <lex_dfa.h>
-#include <edit_shell.h>
+#include "lex.h"
+#include "lex_dfa.h"
+#include "edit_shell.h"
 
 State *trap=NULL;
 
@@ -77,7 +77,7 @@ State* generate_quote_dfa(){
 
 	return dfa;
 }
-
+/*
 State* generate_reserved_dfa(){
 	int i;
 
@@ -134,3 +134,4 @@ State* generate_meta_dfa(){
 
 	return dfa;
 }
+*/

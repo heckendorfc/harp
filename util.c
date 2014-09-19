@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -534,6 +534,13 @@ static int getNextTempSelectID(){
 	if(harp_sqlite3_exec(conn,"SELECT TempID FROM TempSelect ORDER BY TempID DESC LIMIT 1",uint_return_cb,&tempid,NULL)==SQLITE_DONE)
 		return 1;
 	return ++tempid;
+}
+
+int mergeTempSelect(int ida, int idb){
+	char query[150];
+	sprintf(query,"UPDATE TempSelect SET TempID=%d where TempID=%d",ida,idb);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	return ida;
 }
 
 int insertTempSelect(const int *ids, const int idlen){

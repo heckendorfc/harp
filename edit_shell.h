@@ -1,9 +1,11 @@
 #ifndef EDIT_SHELL_H
 #define EDIT_SHELL_H
 
-#include <lex.h>
-#include <build.h>
-#include <y.tab.h>
+#include "lex.h"
+#include "build.h"
+#include "y.tab.h"
+
+#define INIT_MEM(array, size) if(!(array=malloc(sizeof(*(array))*(size))))exit(1);
 
 #define TOK_NULL 0
 #define TOK_REDIRECT	0x010000
@@ -11,7 +13,7 @@
 #define TOK_RESERVED	0x040000
 #define TOKEN_MASK		0x00FFFF
 
-//extern TokenList *tlist;
-//extern command_t *start_command;
+extern TokenList *tlist;
+extern command_t *start_command;
 
 #endif
