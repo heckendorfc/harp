@@ -15,7 +15,7 @@ static const char yysccsid[] = "@(#)yaccpar	1.9 (Berkeley) 02/21/93";
 
 #define YYPURE 0
 
-#line 2 "edit_parse.y"
+#line 18 "edit_parse.y"
 #include <stdio.h>
 #include "lex.h"
 #include "build.h"
@@ -25,7 +25,7 @@ int yyerror();
 commandline_t *fullcmd;
 int charsub=0;
 int wp_flag=0;
-#line 17 "edit_parse.y"
+#line 33 "edit_parse.y"
 #ifdef YYSTYPE
 #undef  YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1
@@ -42,7 +42,7 @@ typedef union{
 	commandline_t *commandline;
 } YYSTYPE;
 #endif /* !YYSTYPE_IS_DECLARED */
-#line 45 "y.tab.c"
+#line 45 "edit.tab.c"
 
 /* compatibility with bison */
 #ifdef YYPARSE_PARAM
@@ -450,76 +450,76 @@ yyreduce:
     switch (yyn)
     {
 case 1:
-#line 38 "edit_parse.y"
+#line 54 "edit_parse.y"
 	{
 				wp_flag=WORD_DEFAULT;
 				yyval.word=yystack.l_mark[0].word;
 			}
 break;
 case 2:
-#line 43 "edit_parse.y"
+#line 59 "edit_parse.y"
 	{
 				wp_flag=(*(yystack.l_mark[-2].word)=='"'?WORD_DQUOT:WORD_SQUOT);
 				yyval.word=yystack.l_mark[-1].word;
 			}
 break;
 case 3:
-#line 50 "edit_parse.y"
+#line 66 "edit_parse.y"
 	{ yyval.wc = make_word(NULL,yystack.l_mark[0].word,WORD_DEFAULT); }
 break;
 case 4:
-#line 53 "edit_parse.y"
+#line 69 "edit_parse.y"
 	{ yyval.wc = make_word(yystack.l_mark[-1].wc,yystack.l_mark[0].word,wp_flag); }
 break;
 case 5:
-#line 55 "edit_parse.y"
+#line 71 "edit_parse.y"
 	{ yyval.wc = make_word(NULL,yystack.l_mark[0].word,wp_flag); }
 break;
 case 6:
-#line 59 "edit_parse.y"
+#line 75 "edit_parse.y"
 	{ yyval.command = make_command(make_word_list(NULL,yystack.l_mark[-1].wc)); }
 break;
 case 7:
-#line 62 "edit_parse.y"
+#line 78 "edit_parse.y"
 	{ yyval.arg = make_com_arg(make_word_list(NULL,yystack.l_mark[0].wc),COM_ARG_LITERAL); }
 break;
 case 8:
-#line 64 "edit_parse.y"
+#line 80 "edit_parse.y"
 	{ yyval.arg = make_com_arg(yystack.l_mark[0].command,COM_ARG_SELECTOR); }
 break;
 case 9:
-#line 68 "edit_parse.y"
+#line 84 "edit_parse.y"
 	{ yyval.arg = yystack.l_mark[0].arg; }
 break;
 case 10:
-#line 70 "edit_parse.y"
+#line 86 "edit_parse.y"
 	{ yyval.arg = append_com_arg(yystack.l_mark[-2].arg,yystack.l_mark[0].arg); }
 break;
 case 11:
-#line 74 "edit_parse.y"
+#line 90 "edit_parse.y"
 	{ yyval.command = com_set_args(yystack.l_mark[-2].command,yystack.l_mark[-1].arg,COM_SEL); }
 break;
 case 12:
-#line 77 "edit_parse.y"
+#line 93 "edit_parse.y"
 	{ yyval.command = com_set_args(yystack.l_mark[-2].command,yystack.l_mark[-1].arg,COM_ACT); }
 break;
 case 13:
-#line 79 "edit_parse.y"
+#line 95 "edit_parse.y"
 	{ yyval.command = make_command(make_word_list(NULL,yystack.l_mark[0].wc)); yyval.command->flags=COM_ACT; }
 break;
 case 14:
-#line 83 "edit_parse.y"
+#line 99 "edit_parse.y"
 	{ yyval.command = yystack.l_mark[0].command; }
 break;
 case 15:
-#line 85 "edit_parse.y"
+#line 101 "edit_parse.y"
 	{ yyval.command = append_command(yystack.l_mark[-1].command,yystack.l_mark[0].command); }
 break;
 case 16:
-#line 89 "edit_parse.y"
+#line 105 "edit_parse.y"
 	{ fullcmd = make_commandline(yystack.l_mark[-1].command,yystack.l_mark[0].command); }
 break;
-#line 522 "y.tab.c"
+#line 522 "edit.tab.c"
     }
     yystack.s_mark -= yym;
     yystate = *yystack.s_mark;
