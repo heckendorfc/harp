@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "plugin.h"
+#include "../plugin.h"
 #include "flacmeta.c"
 #include <FLAC/all.h>
 
@@ -161,7 +161,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 		details->curtime=data.curtime/data.rate; // Not perfect, but close enough
 		details->percent=(details->curtime*100)/details->totaltime;
-		crOutput(ph->pflag,&details);
+		crOutput(ph->pflag,details);
 
 		if(ph->pflag->exit!=DEC_RET_SUCCESS){
 			retval=ph->pflag->exit;

@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "plugin.h"
+#include "../plugin.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>

@@ -110,7 +110,8 @@ int fileFormat(struct pluginitem *list, const char *arg){
 	dbiInit(&dbi);
 	doQuery("SELECT TypeID,Extension FROM FileExtension",&dbi);
 	int size=0,x=0;
-	for(x=0;arg[x];x++);size=x;
+	for(x=0;arg[x];x++);
+	//size=x;
 	for(;arg[x-1]!='.' && x>0;x--);
 	while(fetch_row(&dbi)){
 		if(strcmp(arg+x,dbi.row[1])==0){
@@ -538,8 +539,13 @@ static int getNextTempSelectID(){
 
 int mergeTempSelect(int ida, int idb){
 	char query[150];
+
+	if(ida==idb)
+		return ida;
+
 	sprintf(query,"UPDATE TempSelect SET TempID=%d where TempID=%d",ida,idb);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+
 	return ida;
 }
 

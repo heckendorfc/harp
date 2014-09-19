@@ -16,7 +16,6 @@
  */
 
 #include "edit.h"
-#include "edit_shell.h"
 #include "defs.h"
 #include "dbact.h"
 #include "util.h"
@@ -24,10 +23,6 @@
 #include "tree.h"
 #include "insert.h"
 #include "list.h"
-
-int yyparse();
-TokenList *tlist;
-command_t *start_command;
 
 static void cleanOrphans();
 
@@ -1031,14 +1026,6 @@ static int genrePortal(char *args, void *data){
 }
 
 void editPortal(){
-	char src[512];
-	TokenList *ptr;
-	fgets(src,512,stdin);
-	tlist = lex(src);
-	start_command=NULL;
-	yyparse();
-	return;
-
 	struct commandOption portalOptions[]={
 		{'s',songPortal,"Edit songs.\nsa\tEdit songs in an album (or albums)\nsr\tEdit songs in an artist (or artists)\nsg\tEdit songs in a genre (or genres)",NULL},
 		{'a',albumPortal,"Edit albums",NULL},

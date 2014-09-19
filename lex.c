@@ -213,7 +213,7 @@ TokenList* create_tokens(char *str){
 			continue;
 		}
 
-		if(!escape && quote==0 && (*ptr==' ' || *ptr=='\t')){
+		if(!escape && quote==0 && (*ptr==' ' || *ptr=='\t' || *ptr=='\n')){
 			*ptr=0;
 
 			if(*start){
@@ -228,7 +228,7 @@ TokenList* create_tokens(char *str){
 			INIT_MEM(t->next,1);
 			t=t->next;
 
-			while(ptr[1]==' ' || ptr[1]=='\t'){
+			while(ptr[1]==' ' || ptr[1]=='\t' || ptr[1]=='\n'){
 				ptr++;
 			}
 			start=ptr+1;
@@ -319,6 +319,9 @@ int yylex(){
 	for(;tlist->next && tlist->token.type==TOK_WHITESPACE && tlist->next->token.type==TOK_WHITESPACE;tlist=tlist->next);
 
 	tlist=tlist->next;
+
+	if(tlist->token.type==TOK_WHITESPACE && tlist->next==NULL)
+		return 0;
 
 	ret=TOKEN_MASK&tlist->token.type;
 	//printf("YYLEX|%d|%s\n",ret,tlist->token.word);

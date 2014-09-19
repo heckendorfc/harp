@@ -18,6 +18,7 @@
 #ifndef _ADMIN_H
 #define _ADMIN_H
 
+int autoAddPlugins();
 void adminPortal();
 int write_stats_cb(void *data, int col_count, char **row, char **titles);
 

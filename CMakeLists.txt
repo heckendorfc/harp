@@ -5,7 +5,7 @@ add_definitions(-DPACKAGE_VERSION="0.6.0")
 add_definitions(-DSHARE_PATH="${CMAKE_INSTALL_PREFIX}/share" )
 add_definitions(-DLIB_PATH="${CMAKE_INSTALL_PREFIX}/lib" )
 
-#SET(CMAKE_C_FLAGS "-g -O0")
+SET(CMAKE_C_FLAGS "-g -O0 -Wall")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
@@ -57,6 +57,7 @@ harpconfig.c
 dbact.c
 insert.c
 edit.c
+edit_shell.c
 util.c
 message.c
 player.c
@@ -65,7 +66,7 @@ list.c
 admin.c
 portal.c
 tree.c
-y.tab.c
+edit.tab.c
 build.c
 lex.c
 lex_dfa.c

@@ -27,7 +27,7 @@
 #include "util.h"
 #include "harp.h"
 #include "tree.h"
-#include "edit.h"
+#include "edit_shell.h"
 
 #if 0
 static char subarglist[]={
@@ -199,7 +199,7 @@ unsigned int doArgs(int argc,char *argv[]){
 	}
 	//edit
 	if(arglist[AEDIT].active){
-		editPortal();
+		editShell();
 		return 0;
 	}
 	//admin

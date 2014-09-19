@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "plugin.h"
+#include "../plugin.h"
 #include <mpg123.h>
 #include "mp3meta.c"
 #include <stdint.h>

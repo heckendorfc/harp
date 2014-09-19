@@ -55,7 +55,8 @@ struct musicInfo{
 	int length;
 };
 */
-#include "defs.h"
+#include "../defs.h"
+#include "../sndutil.h"
 
 FILE *plugin_std_fopen(const char *path, const char *mode);
 void plugin_std_fclose(FILE *fd);

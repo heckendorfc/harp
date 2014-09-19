@@ -23,7 +23,7 @@ void free_arglist(arglist_t *a){
 	arglist_t *p;
 	if(!a)return;
 	for(p=a->next;a;){
-		free(a->args);
+		free(a->words);
 		free(a);
 		a=p;
 		if(p)p=p->next;
@@ -69,7 +69,7 @@ wordchain_t* make_word(wordchain_t *word, char *piece, int flags){
 			INIT_MEM(ptr,1);
 			ptr->next=temp;
 		}
-		ptr->word=piece;
+		ptr->word=strdup(piece);
 		ptr->flags=flags;
 	}
 	return ptr;
@@ -243,13 +243,13 @@ static int get_select_type(command_t *c){
 }
 
 static int get_templist(arglist_t *a, int ctype){
-	if(a->args->flag==WORD_DEFAULT){ // ID
-		int id = strtol(a->args->word,NULL,10);
+	if(a->words->flag==WORD_DEFAULT){ // ID
+		int id = strtol(a->words->word,NULL,10);
 		return insertTempSelect(&id,1);
 	}
 	else{ // Name
 		char query[300];
-		sprintf(query,"SELECT %s FROM %s WHERE %s LIKE '%%%s%%'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->args->word);
+		sprintf(query,"SELECT %%d,%s FROM %s WHERE %s LIKE '%%%%%s%%%%'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
 		return insertTempSelectQuery(query);
 	}
 }
@@ -273,20 +273,19 @@ static int translate_templist(int toid, int totype, int fromid, int fromtype, in
 	char query[300];
 	char subquery[300];
 	int newid;
-	if(toid<0){ // new id
-		if(totype==fromtype)
-			return fromid;
-	}
+	if(toid<0 && totype==fromtype)
+		return fromid;
 	else{
 		if(totype==fromtype){
 			mergeTempSelect(toid,fromid);
-			return toid;
+			newid=toid;
 		}
-
-		sprintf(subquery,"SELECT SelectID FROM TempSelect WHERE TempID=%d",fromid);
-		sprintf(query,translatequery[fromtype*numtypes+totype],subquery);
-		newid=insertTempSelectQuery(query);
-		//mergeTempSelect(toid,newid);
+		else{
+			sprintf(subquery,"SELECT SelectID FROM TempSelect WHERE TempID=%d",fromid);
+			sprintf(query,translatequery[fromtype*numtypes+totype],subquery);
+			newid=insertTempSelectQuery(query);
+			//mergeTempSelect(toid,newid);
+		}
 	}
 
 	if(cleanup)
@@ -325,7 +324,7 @@ arglist_t* make_com_arg(void *data, int flag){
 	}
 	else{
 		wordlist_t *wl = (wordlist_t*)data;
-		ret->args=wl;
+		ret->words=wl;
 		ret->tlid=-1;
 		ret->tltype=-1;
 	}
@@ -353,7 +352,7 @@ void com_sel_set_args(command_t *c, arglist_t *a){
 		if(ta->tltype<0) // single native
 			cid=ta->tlid=get_templist(ta,c->tltype);
 		else
-			cid=translate_templist(ta->tlid,ta->tltype,c->tlid,c->tltype,1);
+			cid=translate_templist(c->tlid,c->tltype,ta->tlid,ta->tltype,1);
 
 		if(c->tlid<0)
 			c->tlid=cid;
@@ -405,4 +404,14 @@ command_t* append_command(command_t *a, command_t *b){
 void append_command_flags(command_t *a, const int flags){
 	while(a->next)a=a->next;
 	a->flags|=flags;
+}
+
+commandline_t* make_commandline(command_t *sel, command_t *act){
+	commandline_t *ret;
+
+	INIT_MEM(ret,1);
+	ret->selector=sel;
+	ret->actions=act;
+
+	return ret;
 }

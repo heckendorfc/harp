@@ -29,7 +29,7 @@ typedef struct wordlist_t{
 }wordlist_t;
 
 typedef struct arglist_t{
-	wordlist_t *args;
+	wordlist_t *words;
 	int flags;
 	int tlid;
 	int tltype;
@@ -45,6 +45,11 @@ typedef struct command_t{
 	struct command_t *next;
 }command_t;
 
+typedef struct commandline_t{
+	command_t *selector;
+	command_t *actions;
+}commandline_t;
+
 void free_wordchain(wordchain_t *w);
 void free_wordlist(wordlist_t *w);
 void free_arglist(arglist_t *a);
@@ -58,6 +63,7 @@ arglist_t* make_com_arg(void *data, int flag);
 arglist_t* append_com_arg(arglist_t *a, arglist_t *b);
 command_t* com_set_args(command_t *c, arglist_t *a, int flag);
 command_t* make_command(wordlist_t *wl);
+commandline_t* make_commandline(command_t *sel, command_t *act);
 command_t* append_command(command_t *a, command_t *b);
 void append_command_flags(command_t *a, const int flags);
 

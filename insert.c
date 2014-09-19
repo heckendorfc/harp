@@ -353,8 +353,9 @@ static void reverse_filepathInsert(char *orig_format, struct insert_data *data){
 		filepathinsert_flags(*(format+1),data,&limit,&dest); // % coefficient
 		if(dest && *(--format)!='%'){ // Char before %
 			tmp=ptr;
-			while((ptr--)>orig_ptr && *ptr!=*format); // Skip back to start of this str
-				x=(int)(tmp-ptr);
+			while((ptr--)>orig_ptr && *ptr!=*format) // Skip back to start of this str
+				;
+			x=(int)(tmp-ptr);
 			limit=x<limit?x:limit;
 			memcpy(dest,ptr+1,limit);
 			x=0;

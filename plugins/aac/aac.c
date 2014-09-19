@@ -15,9 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "plugin.h"
+#include "../plugin.h"
 //#include "mp4ff.h"
-#include "mp4lib.h"
+#include "mp4lib/mp4lib.h"
 #include <neaacdec.h>
 #include <stdio.h>
 
@@ -397,7 +397,7 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 		channels=2;
 		rate=44100;
 	}
-fprintf(stderr,"mp4 %d %d %d\n\n",channels,fmt,rate);
+//fprintf(stderr,"mp4 %d %d %d\n\n",channels,fmt,rate);
 	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch",rate, channels);
 	addStatusTail(tail,ph->outdetail);
 
@@ -414,7 +414,7 @@ fprintf(stderr,"mp4 %d %d %d\n\n",channels,fmt,rate);
 	snd_param_init(ph,&fmt,&channels,&rate);
 
 	volatile unsigned int total=0,sample;
-	unsigned int numsamples=mp4lib_num_samples(&infile,track);
+	unsigned int numsamples=mp4lib_num_samples(&infile);
 	struct outputdetail *details=ph->outdetail;
 	details->totaltime=*totaltime;
 

@@ -5,7 +5,7 @@
 int yylex();
 int yyerror();
 
-command_t *fullcmd;
+commandline_t *fullcmd;
 int charsub=0;
 int wp_flag=0;
 %}
@@ -21,11 +21,13 @@ int wp_flag=0;
 	wordlist_t *wl;
 	arglist_t *arg;
 	command_t *command;
+	commandline_t *commandline;
 }
 
 %type<word> word_piece TOK_TEXT TOK_QUOTE_STR TOK_QUOTE
-%type<wc> word
-%type<command> cmd selector action cmdline
+%type<wc> text_word word
+%type<command> cmd selector action actionlist
+%type<commandline> cmdline
 %type<arg> onearg arglist
 
 %start cmdline
@@ -44,13 +46,16 @@ word_piece:	TOK_TEXT
 			}
 	;
 
+text_word: TOK_TEXT
+			{ $$ = make_word(NULL,$1,WORD_DEFAULT); }
+
 word:	word word_piece
 			{ $$ = make_word($1,$2,wp_flag); }
 	|	word_piece
 			{ $$ = make_word(NULL,$1,wp_flag); }
 	;
 
-cmd:	word TOK_OPAR
+cmd:	text_word TOK_OPAR
 			{ $$ = make_command(make_word_list(NULL,$1)); }
 
 onearg:	word
@@ -70,9 +75,15 @@ selector:	cmd arglist TOK_CPAR
 
 action:	cmd arglist TOK_CPAR
 			{ $$ = com_set_args($1,$2,COM_ACT); }
-	|	word
+	|	text_word
 			{ $$ = make_command(make_word_list(NULL,$1)); $$->flags=COM_ACT; }
 	;
 
-cmdline:	selector action
-			{ fullcmd = $2; $$ = $1; fullcmd->tlid = $1.tlid }
+actionlist:	action
+			{ $$ = $1; }
+	|	actionlist action
+			{ $$ = append_command($1,$2); }
+	;
+
+cmdline:	selector actionlist
+			{ fullcmd = make_commandline($1,$2); }

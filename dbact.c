@@ -18,6 +18,7 @@
 #include "dbact.h"
 #include "defs.h"
 #include "util.h"
+#include "admin.h"
 
 
 int harp_sqlite3_exec(sqlite3 *connection, const char *sql, int (*callback)(void*,int,char**,char**), void *arg, char **errmsg){

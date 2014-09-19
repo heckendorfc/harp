@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "plugin.h"
+#include "../plugin.h"
 #include <vorbis/vorbisfile.h>
 #include "vorbismeta.c"
 
@@ -72,7 +72,7 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 
 #define DBGPRNT nullprint
 
-void nullprint(){
+void nullprint(void *a,void *b,...){
 }
 
 int vorbStatus(int ret){
@@ -144,7 +144,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		size=ret;
 		details->curtime=total/(rate*sizemod);
 		details->percent=(details->curtime*100)/details->totaltime;
-		crOutput(ph->pflag,&details);
+		crOutput(ph->pflag,details);
 
 #if WITH_ALSA==1
 		if(writei_snd(ph,buf,size/sizemod)<0)break;

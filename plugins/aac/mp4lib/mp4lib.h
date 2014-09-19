@@ -83,6 +83,7 @@ int mp4lib_parse_meta(FILE *in, mp4handle_t *h);
 int mp4lib_get_decoder_config(mp4handle_t *h, int track, unsigned char **buf, unsigned int *size);
 int mp4lib_total_tracks(mp4handle_t *h);
 int mp4lib_read_sample(FILE *in, mp4handle_t *h, int sample, unsigned char **buf, unsigned int *size);
+int mp4lib_num_samples(mp4handle_t *h);
 void mp4lib_close(mp4handle_t *h);
 
 #endif
