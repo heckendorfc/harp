@@ -42,6 +42,6 @@ enum edit_shell_select_types{
 extern TokenList *tlist;
 //extern command_t *start_command;
 
-void editShell();
+int editShell();
 
 #endif

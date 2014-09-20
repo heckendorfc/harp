@@ -476,7 +476,7 @@ static void cleanOrphans(){
 	harp_sqlite3_exec(conn,"DELETE FROM Artist WHERE ArtistID NOT IN (SELECT ArtistID FROM AlbumArtist)",NULL,NULL,NULL);
 }
 
-void editShell(){
+int editShell(){
 	char src[512];
 	int ret;
 
@@ -501,5 +501,5 @@ void editShell(){
 
 	cleanOrphans();
 
-	return;
+	return ret;
 }

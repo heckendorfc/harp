@@ -22,7 +22,7 @@
 
 int list(int *ids, int length){
 	char query[401];
-	int x,y,exception[10];
+	int x,exception[10];
 	for(x=1;x<10;x++)exception[x]=listconf.exception;
 	exception[0]=1;
 	switch(arglist[ATYPE].subarg[0]){
@@ -53,7 +53,7 @@ int list(int *ids, int length){
 				sprintf(query,"SELECT Artist.ArtistID, Artist.Name FROM Artist WHERE ArtistID=%d",ids[x]);
 				doTitleQuery(query,exception,listconf.maxwidth);
 				printf("\nContents:\n");
-				
+
 				sprintf(query,"SELECT Song.SongID, Song.Track, Song.Title, Album.Title AS Album, Artist.Name AS Artist FROM Artist NATURAL JOIN AlbumArtist NATURAL JOIN Album INNER JOIN Song USING(AlbumID) WHERE Artist.ArtistID=%d ORDER BY Artist.Name, Album.Date, Album.Title, Song.Track",ids[x]);
 				printf("------\nTotal:%d\n",doTitleQuery(query,exception,listconf.maxwidth));
 			}
@@ -82,7 +82,7 @@ int list(int *ids, int length){
 
 int listall(){
 	char query[401];
-	int x,*headpath,exception[10];
+	int x,exception[10];
 	for(x=1;x<10;x++)exception[x]=listconf.exception;
 	exception[0]=1;
 	switch(arglist[ATYPE].subarg[0]){

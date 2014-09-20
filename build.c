@@ -70,7 +70,6 @@ void free_commands(command_t *c){
 }
 
 wordchain_t* make_word(wordchain_t *word, char *piece, int flags){
-	int wordlen;
 	wordchain_t *ptr=word;
 	if(piece && *piece){
 		if(!word){
@@ -79,7 +78,6 @@ wordchain_t* make_word(wordchain_t *word, char *piece, int flags){
 			word->word=NULL;
 			word->flags=0;
 			word->next=NULL;
-			wordlen=0;
 		}
 		else{
 			wordchain_t *temp=ptr;

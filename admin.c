@@ -96,7 +96,7 @@ static int togglePlugin(char *args, void *data){
 static int removePlugin(char *args, void *data){
 	char lib[200];
 	char query[300];
-	int size,x,id;
+	int x,id;
 
 	printf("Library (e.g., libharpmp3): ");
 	if(!fgets(lib,sizeof(lib)-3,stdin))return PORTAL_RET_PREV;

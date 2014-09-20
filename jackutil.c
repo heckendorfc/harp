@@ -40,7 +40,7 @@ int interpolate(float *buf, int len, int L){
 }
 
 int resample(jack_default_audio_sample_t *buf, int len, int maxlen, int in_rate, int out_rate){
-	int x,y,L,M,newlen;
+	int L,M,newlen;
 	if(in_rate==out_rate)return len;
 	fprintf(stderr,"\nResampling\n");
 	if(in_rate<out_rate){
@@ -191,7 +191,6 @@ int snd_init(struct playerHandles *ph){
 }
 
 int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned int *rate){
-	int x=0;
 	ph->dec_rate=*rate;
 	ph->dec_chan=*channels;
 	ph->dec_enc=*enc;
@@ -199,7 +198,6 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 }
 
 void changeVolume(struct playerHandles *ph, int mod){
-	int current;
 	char tail[OUTPUT_TAIL_SIZE];
 	mod=mod>0?2:-2;
 	ph->out_gain+=mod; // 5 DB increment is too much
@@ -213,8 +211,6 @@ void changeVolume(struct playerHandles *ph, int mod){
 }
 
 void toggleMute(struct playerHandles *ph, int *mute){
-	int x;
-
 	if(*mute>0){ // Unmute and perform volume change
 		char tail[OUTPUT_TAIL_SIZE];
 		*mute=0;

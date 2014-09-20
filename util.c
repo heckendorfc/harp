@@ -32,7 +32,7 @@ char *expand(char *in){
 	char tmp[250];
 	char *in_ptr=in-1;
 	char *tmp_ptr=tmp;
-	int url=0,x,y,z=0;
+	int url=0,x;
 
 	if(isURL(in))url=1; /* Clean \n but do no globbing */
 
@@ -42,7 +42,6 @@ char *expand(char *in){
 	if(x>1 && in[x-2]=='\r')
 		in[x-2]=0;
 	in[x]=0;
-	y=x;
 
 	if(url)return in;
 
@@ -109,7 +108,7 @@ int fileFormat(struct pluginitem *list, const char *arg){
 	// Find by extension
 	dbiInit(&dbi);
 	doQuery("SELECT TypeID,Extension FROM FileExtension",&dbi);
-	int size=0,x=0;
+	int x=0;
 	for(x=0;arg[x];x++);
 	//size=x;
 	for(;arg[x-1]!='.' && x>0;x--);
@@ -181,8 +180,6 @@ int getPluginModule(void **module, char *lib){
 }
 
 int getPlugin(struct dbitem *dbi, const int index, void **module){
-	char library[250];
-
 	if(!fetch_row(dbi)){
 		if(dbi->current_row==dbi->column_count || dbi->row_count==0)
 			fprintf(stderr,"No plugins found.\n\tSee README for information about installing plugins.\n");
@@ -257,7 +254,6 @@ static int open_plugin_cb(void *arg, int col_count, char **row, char **titles){
 }
 
 struct pluginitem *openPlugins(){
-	int count;
 	struct pluginitem prehead,*ptr;
 
 	prehead.next=NULL;
@@ -575,7 +571,7 @@ int insertTempSelect(const int *ids, const int idlen){
 
 int insertTempSelectQuery(const char *query){
 	const char *ins_q="INSERT INTO TempSelect(TempID,SelectID) ";
-	unsigned int x,currentlimit,tempid;
+	unsigned int tempid;
 	char *temp_q,*ptr;
 
 	if(!(temp_q=malloc(strlen(ins_q)+strlen(query)+1))){
@@ -621,7 +617,7 @@ void miFree(struct musicInfo *mi){
 }
 
 void db_clean(char *str, const char *data, const size_t size){
-	int x,z;
+	int x;
 	for(x=0;*(data+x)==' ' && x<size;x++); // Strip starting spaces
 	while(*data>31 && *data<127 && x++<size){ // Strip multi space
 		if(*data==' ' && *(data+1)==' '){

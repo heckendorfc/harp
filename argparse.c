@@ -111,7 +111,7 @@ static void genreToPlaylistSong(struct dbnode *cur){
 }
 
 static void makeTempPlaylist(int *multilist, int multi){
-	int mx,x,order=1,currentlimit=0;
+	int mx;
 	char query[250],cb_query[150];
 	struct insert_tps_arg data={1,0,cb_query};
 

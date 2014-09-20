@@ -153,7 +153,7 @@ static int deleteSong(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	char query[100],*ptr;
+	char query[100];
 	int x;
 	printf("Delete?: ");
 	if(!fgets(args,PORTAL_ARG_LEN,stdin))return PORTAL_RET_PREV;
@@ -248,7 +248,7 @@ static int editAlbumTitle(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	char query[200],*ptr;
+	char query[200];
 	int x,albumid,artistid;
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -287,7 +287,7 @@ static int editAlbumDate(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	char query[200],*ptr;
+	char query[200];
 	int x,date;
 
 	if((x=getStdArgs(args,"Album date: "))<0)return PORTAL_RET_PREV;
@@ -308,7 +308,7 @@ static int editArtistName(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	char query[200],*ptr;
+	char query[200];
 	int x,artistid;
 	struct dbitem dbi;
 	dbiInit(&dbi);
@@ -494,7 +494,7 @@ static int editPlaylistSongOrder(char *args, void *data){
 		return PORTAL_RET_PREV;
 	}
 	char query[200];
-	int x,current_order,new_order;
+	int current_order,new_order;
 
 	if(ids->length>1 && !editWarn("This operation will alter only the first playlist in the list.")){
 			printf("Aborted\n");
@@ -528,7 +528,7 @@ static int editPlaylistSongOrder(char *args, void *data){
 }
 
 static int editPlaylistCreate(char *args, void *data){
-	char *ptr,query[200];
+	char *ptr;
 	int x,pid,sid;
 
 	if((x=getStdArgs(args,"Playlist name: "))<0)return PORTAL_RET_PREV;
@@ -552,7 +552,6 @@ static int editPlaylistCreate(char *args, void *data){
 }
 
 static int editGenreCreate(char *args, void *data){
-	char query[200];
 	int x,gid;
 
 	if((x=getStdArgs(args,"Genre name: "))<0)return PORTAL_RET_PREV;
@@ -573,7 +572,7 @@ static int editGenreName(char *args, void *data){
 		return PORTAL_RET_PREV;
 	}
 	char query[200];
-	int x,gid;
+	int x;
 
 	if((x=getStdArgs(args,"Genre name: "))<0)return PORTAL_RET_PREV;
 	args=&args[x];
@@ -706,8 +705,8 @@ static int listSongs(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	char query[200],*ptr;
-	int x=0,limit=songids->length;
+	char query[200];
+	int x=0;
 
 	int exception[10];
 	for(x=0;x<10;x++)exception[x]=x<5?1:listconf.exception;
@@ -722,7 +721,7 @@ static int listAlbums(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	char query[200],*ptr;
+	char query[200];
 	int x=0;
 
 	int exception[10];
@@ -738,7 +737,7 @@ static int listArtists(char *args, void *data){
 		fprintf(stderr,"no data\n");
 		return PORTAL_RET_PREV;
 	}
-	char query[200],*ptr;
+	char query[200];
 	int x=0;
 
 	int exception[10];
@@ -758,7 +757,7 @@ static int listPlaylists(char *args, void *data){
 	}
 	struct dbitem dbi;
 	dbiInit(&dbi);
-	char query[120],*ptr;
+	char query[120];
 	int x=0;
 
 	// List contents of playlist as well.
@@ -805,7 +804,7 @@ static int listSongGenre(char *args, void *data){
 		return PORTAL_RET_PREV;
 	}
 	char query[221];
-	int y,exception[10];
+	int exception[10];
 	for(x=2;x<10;x++)exception[x]=listconf.exception;
 	exception[0]=exception[1]=1;
 
@@ -847,11 +846,10 @@ static int songPortal(char *args, void *data){
 		{'g',songGenrePortal,"Manage genre",id_struct},
 		{0,NULL,NULL,NULL}
 	};
-	int x,y,*group_ids,*song_ids=malloc(sizeof(int)),song_idlen,group_idlen;
+	int x,*song_ids=malloc(sizeof(int));
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	char query[120],*ptr;
 
 	for(x=1;x<PORTAL_ARG_LEN && args[x] && args[x]<'0';x++);
 	if(!args[x]){

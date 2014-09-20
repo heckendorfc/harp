@@ -38,7 +38,7 @@ struct dbnode *dbnodeAdd(struct dbnode *node){
 		new->next=NULL;
 		new->depth=0;
 	}
-		
+
 	return new;
 }
 
@@ -122,9 +122,9 @@ void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnod
 		if(nextid)
 			printGenreChildren(child,nextid,action);
 		else
-			dbnodeClean(child); 
+			dbnodeClean(child);
 	}
-	dbnodeClean(cur); 
+	dbnodeClean(cur);
 }
 
 void tierChildPrint(struct dbnode *cur){
@@ -166,8 +166,7 @@ void tierCatPrint(struct dbnode *cur){
 }
 
 void printGenreTree(int head, void *action(struct dbnode *)){
-	int x,depth,parent,*headpath;
-	char query[150];
+	int x,depth,*headpath;
 	struct dbitem dbi;
 	dbiInit(&dbi);
 

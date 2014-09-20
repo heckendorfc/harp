@@ -126,7 +126,6 @@ void play_next_song_query(char *query, struct playercontrolarg *pca){
 
 int play_song(void *data, int col_count, char **row, char **titles){
 	struct play_song_args *psargs=(struct play_song_args *)data;
-	int ret;
 	char query[200];
 
 	psargs->songid=(int)strtol(row[0],NULL,10);
@@ -198,7 +197,6 @@ int player(int list){//list - playlist number
 	int oldupdate;
 	int ret;
 	char *query; // Why aren't we using []?
-	char library[255];
 
 	// Create playerControl thread
 	char key=KEY_NULL;
@@ -308,7 +306,7 @@ int player(int list){//list - playlist number
 }
 
 static void writelist_file(char *com, struct playercontrolarg *pca){
-	int x,y,limit;
+	int y,limit;
 	unsigned int order;
 	FILE *ffd;
 	struct dbitem dbi;
@@ -318,14 +316,12 @@ static void writelist_file(char *com, struct playercontrolarg *pca){
 	for(y=1;y<ADV_COM_ARG_LEN && com[y] && (com[y]<'0' || com[y]>'9');y++);
 	limit=(int)strtol(&com[y],NULL,10);
 	if(limit<=0)limit=50;
-	//for(x=1;x<y && com[x];y++);
 	switch(com[1]){
 		case 'h':
 			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 		case 't':
 			harp_sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
-			if(x<0)x=0;
 			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 		case 'r':
@@ -370,7 +366,7 @@ static void writelist(char *com, struct playercontrolarg *pca){
 }
 
 static void advseek(char *com, struct playercontrolarg *pca){
-	int x,y;
+	int y;
 	for(y=1;y<ADV_COM_ARG_LEN && com[y] && (com[y]<'0' || com[y]>'9');y++);
 	int time=(int)strtol(&com[y],NULL,10);
 	if(time<=0)return;
@@ -385,7 +381,7 @@ static void advseek(char *com, struct playercontrolarg *pca){
 
 static void jump(char *com, struct playercontrolarg *pca){
 	char query[200];
-	int x,y,dest,max_dest;
+	int y,dest,max_dest;
 
 	sprintf(query,"SELECT MAX(\"Order\") FROM TempPlaylistSong");
 	harp_sqlite3_exec(conn,query,uint_return_cb,&max_dest,NULL);
@@ -453,7 +449,7 @@ static int remitem_order_shift_cb(void *arg, int col_count, char **row, char **t
 }
 
 static void remitem(char *com, struct playercontrolarg *pca){
-	char query[250],cb_query[250];
+	char query[250];
 	int x,order=0;
 	struct IDList id_struct;
 
@@ -588,7 +584,6 @@ static void getCommand(struct playercontrolarg *pca){
 }
 
 int getSystemKey(char key, struct playercontrolarg *pca){
-	function_seek seek;
 	int oldrating;
 	char tail[OUTPUT_TAIL_SIZE];
 	switch(key){

@@ -54,11 +54,8 @@ static struct shuffle_queries{
 
 static void fillTempPlaylistSong(int tempid,int group){
 	char query[450],cb_query[450];
-	struct insert_tps_arg data={1,0,NULL};
-	int x;
-	data.query=cb_query;
 
-	x=harp_sqlite3_exec(conn,"CREATE TEMPORARY TRIGGER ShuffleList AFTER INSERT ON TempPlaylistSong BEGIN "
+	harp_sqlite3_exec(conn,"CREATE TEMPORARY TRIGGER ShuffleList AFTER INSERT ON TempPlaylistSong BEGIN "
 			"UPDATE TempPlaylistSong SET \"Order\"=(SELECT count(PlaylistSongID) FROM TempPlaylistSong WHERE \"Order\">0) WHERE PlaylistSongID=NEW.PlaylistSongID;"
 			"END",NULL,NULL,NULL);
 
@@ -71,12 +68,12 @@ static void fillTempPlaylistSong(int tempid,int group){
 	harp_sqlite3_exec(conn,"DROP TRIGGER ShuffleList",NULL,NULL,NULL);
 }
 
+/*
 static int rand_next(struct shuffle_data *data){
 	return random()%data->count;
 }
 
 static int clean_shuffle_cb(void *arg, int col_count, char **row, char **titles){
-	unsigned int order;
 	struct shuffle_data *data=(struct shuffle_data*)arg;
 	sprintf(data->query,"UPDATE TempPlaylistSong SET \"Order\"=%d WHERE SongID=%s",-(data->tail++),*row);
 	harp_sqlite3_exec(conn,data->query,NULL,NULL,NULL);
@@ -106,13 +103,12 @@ static int shuffle_cb(void *arg, int col_count, char **row, char **titles){
 	}
 	return 0;
 }
+*/
 
 void shuffle(int list){
 	char query[350],cb_query[350];
 	int tempid,group=0;
-	unsigned int i,items=0;
-	struct shuffle_data data;
-	int a,b;
+	unsigned int items=0;
 
 	srandom((unsigned int)time(NULL));
 
@@ -256,7 +252,7 @@ static void skip_order_zs(struct candidate_data *candlist, int slidemod){
 
 void zshuffle(unsigned int items){
 	char query[450],cb_query[250];
-	int x,i;
+	int x;
 	const int ten_percent=items*0.1;
 	const int alter_limit=100; // Max songs to alter
 	const int mod_count=ten_percent>alter_limit?alter_limit:ten_percent; // Songs to alter this round
@@ -264,7 +260,7 @@ void zshuffle(unsigned int items){
 	struct candidate_data candlist;
 
 	srandom((unsigned int)time(NULL));
-	struct zs_arg data={items,group,(random()%2)+2,(random()%3)+2,0,1,cb_query};
+	struct zs_arg data={.items=items,.group_items=group,.increment=(random()%2)+2,.skip=(random()%3)+2,.count=0,.slidemod=1,.query=cb_query};
 
 	sprintf(query,"Mod count: %d\nGroup: %d\nIncrement: %d",mod_count,group,data.increment);
 	debug(2,query);

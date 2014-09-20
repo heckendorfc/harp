@@ -57,7 +57,7 @@ static void argConfig(char *buffer){
 
 static void listConfig(char *buffer){
 	char *setting=buffer;
-	int x=0,argfound=0;
+	int argfound=0;
 	while(*setting!='=' && *setting)setting++;
 	if(*setting && *(setting+1))argfound=1;
 	*(setting++)=0;
@@ -80,9 +80,7 @@ static void insertConfig(char *buffer){
 	char *setting=buffer;
 	char *tmp;
 	static int formatsize=0;
-	int x=1,argfound=0;
 	while(*setting!='=' && *setting)setting++;
-	if(*setting && *(setting+1))argfound=1;
 	*(setting++)=0;
 
 	if(strcmp("usemetadata",buffer)==0){
@@ -130,7 +128,6 @@ static void insertConfig(char *buffer){
 		}
 	}
 	else if(strcmp("format",buffer)==0){
-		char *root=setting;
 		char *ptr=setting;
 		if(++formatsize==ICONF_MAX_FORMAT_SIZE){
 			fprintf(stderr,"Insert format buffer is full. Please check your config file.");
@@ -188,9 +185,7 @@ static void create_logfile(char *template, char *dir, char **dst_filename, FILE 
 
 static void debugConfig(char *buffer){
 	char *setting=buffer;
-	int x=0,argfound=0;
 	while(*setting!='=' && *setting)setting++;
-	if(*setting && *(setting+1))argfound=1;
 	*(setting++)=0;
 
 	if(strcmp("logging",buffer)==0 && *setting=='y'){
@@ -229,7 +224,6 @@ static void configInit(){
 static void parseConfig(FILE *ffd){
 	char *buffer=malloc(255*sizeof(char));
 	char *ptr=buffer;
-	int x=0;
 	void (*dest)(char *buffer) = NULL;
 
 	if(!buffer)return;

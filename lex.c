@@ -131,6 +131,7 @@ int identify(TokenList *token,State *q){
 	return 0;
 }
 
+#if 0
 STATIC
 int identify_full(TokenList *token, State *q){
 	State *test=q;
@@ -166,6 +167,7 @@ void strip_backslash(Token *token){
 		}
 	}
 }
+#endif
 
 STATIC
 TokenList* create_tokens(char *str){

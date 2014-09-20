@@ -20,7 +20,7 @@
 #include "dbact.h"
 #include "util.h"
 
-static int verifySong(const int sid);
+//static int verifySong(const int sid);
 static int insertSong(const char *arg, struct musicInfo *mi);
 
 static void db_insert_safe(char *str, char *data, const size_t size){
@@ -201,6 +201,7 @@ int getSongCategory(const int sid, const int cid){
 	return newid;
 }
 
+/*
 static int verifySong(const int sid){
 	char query[201];
 	char ans[4];
@@ -224,6 +225,7 @@ static int verifySong(const int sid){
 	dbiClean(&dbi);
 	return -1;
 }
+*/
 
 static struct musicInfo *getMusicInfo(struct musicInfo *mi){
 	static struct musicInfo *hold;
@@ -298,7 +300,6 @@ int batchInsert(char *arg){
 }
 
 int metadataInsert(struct insert_data *data){
-	int x;
 	FILE *ffd;
 	struct pluginitem *pi_ptr;
 
@@ -412,7 +413,6 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	char query[350];
 	char dbfilename[250];
 	char tempname[401];
-	FILE *ffd;
 	unsigned int x,songid=0,artistid,albumid;
 	int fmt;
 	struct insert_data data;
