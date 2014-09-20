@@ -4,8 +4,8 @@ Contents:
 	I.Installation and Setup
 	II.Manager Interface
 		1)Insert
-		2)Edit
-		3)List
+		2)List
+		3)Edit
 		4)Admin
 	III.Customization
 		1)Configuration File
@@ -51,7 +51,6 @@ Note: your paths may be different.
 
 
 
-
 II.	Manager Interface
 
 1.  Insert
@@ -68,26 +67,66 @@ Song
 	are listed.
 
 
-3.  Edit
-Global commands:
-	q	Quit
-	p	Previous menu
-	?	Print help
+3a.  Edit Shell
 
-Edit commands:
-		NOTE: These commands take an argument of the IDs(or names) separated by commas.
-	s	Edit song(s).
-	sa	Edit songs in specified album.
-	sr	Edit songs in specified artist.
-	sg	Edit songs in specified genre.
-	a	Edit album(s).
-	r	Edit artist(s).
-	p	Edit playlist(s).
-	g	Edit genre(s).
+Commands are accepted in the following pattern:
+	selector(...) action[(...)] [action[(...)] [ ... ]]
+
+	The name used for selector determines which class of items the actions are applied to. The selector's arguments (...) select items of that type and can be one or more numeric IDs, "names", or subselectors(...). Action changes those selected items in the database. If multiple actions are provided, they will be run one after the other as they were specified from left to right. If an action does not use arguments, no () are needed. Otherwise, the required number of arguments should be provided separated by commas.
+
+Selection commands:
+	song	Edit song(s).
+	album	Edit album(s).
+	artist	Edit artist(s).
+	playlist	Edit playlist(s).
+	tag	Edit tag(s).
+
+Selection filters:
+	Selection commands can be filtered by ID, name, or through subcommands.
+	For example, to select only the song with ID 12 and songs that are in either an album named foo or by an artist named bar:
+		song(12,album("foo"),artist("bar"))
+
+Song actions:
+	list	List the state of the selected songs.
+	title	Change the title of the songs (1 string arg - new title).
+	track	Change the track number of the songs (1 numeric arg - track number).
+	location	Change the location of the songs (1 string arg - absolute path).
+	albumArtist	Change the album and artist of the songs (2 args as either name string or id - album, artist)
+	delete	Delete the selected songs.
+	activate	Toggle the activation status of the songs.
+
+Album actions
+	list	List the state of the selected albums.
+	title	Change the title of the albums (1 string arg - new title).
+	artist	Change the artist of the selected albms (1 arg as either name string or id - artist).
+	date	Change the date of the selected albums (1 numeric arg - new date).
+
+Artist actions
+	list	List the state of the selected artists.
+	name	Change the name of the artists. (1 string arg - new name).
+
+Playlist actions
+	list	List the state of the selected playlists.
+	contents	List the songs in the selected playlists.
+	name	Change the name of the playlists (1 string arg - new name).
+	delete	Delete the playlists.
+	order	Change the order of a song in the playlist (2 numeric args - old order, new order).
+	add	Add a song to the playlist (2 args - song name string or ID, numeric order).
+	removeOrder	Remove a song from the playlists (1 numeric arg - order number of song to remove)
+	removeSong	Remove a song from the playlists (1 numeric arg - name string or ID of song to remove)
+
+Tag actions
+	list	List the state of the selected tags.
+	contents	List the songs in the selected tags.
+	name	Change the name of the Tags (1 string arg - new name).
+	delete	Delete the tags.
+	add	Add a song to the tags (2 args - song name string or ID, numeric order).
+	remove	Remove a song from the tags (1 numeric arg - name string or ID of song to remove)
+
+
+3b.  Edit Portal (deprecated)
 
 Song commands:
-		NOTE: Commands that require additional input can take it as an argument
-						(e.g., t NewTitle)
 	L	List the songs that will be affected.
 	t	Change the title of the song.
 	l	Change the location of the song.
@@ -195,7 +234,7 @@ General format for this file:
 IV.  Requirements
 
 Sound output: 
-	ALSA, OSS, JACK, PulseAudio
+	One of: ALSA, OSS, JACK, or PulseAudio
 Database: 
 	SQLite3
 Default Decoders: 

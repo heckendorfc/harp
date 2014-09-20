@@ -11,8 +11,14 @@ Specify the type of object to perform an action on. Required for insert, list, o
 \fB\-i\fP,\fB --insert=\fP{song path | directory}
 Insert song(s) into the database. By passing a directory as an argument, HARP will recursively scan the directory and insert all valid files. Use with no argument to enter information at a prompt.
 .TP
-\fB\-e\fP,\fB --edit\fP
+\fB\-E\fP,\fB --edit=\fP{edit commands}
 Edit information stored in the database.
+.TP
+\fB\-e\fP,\fB --edit-stdin\fP
+Edit information stored in the database. Commands will be accepted over stdin.
+.TP
+\fB\-E\fP,\fB --old-edit\fP
+Edit information stored in the database using the deprecated portal interface.
 .TP
 \fB\-l\fP,\fB --list=\fP{unique name | id}
 List information from the database. Use with no argument to display all entries.

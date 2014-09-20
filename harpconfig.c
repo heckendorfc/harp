@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -270,7 +270,7 @@ void setDefaultConfig(){
 	}
 	parseConfig(ffd);
 	fclose(ffd);
-	
+
 	strcpy(temp,"~/.harp/defaults.conf");
 	expand(temp);
 	if((ffd=fopen(temp,"r"))!=NULL){

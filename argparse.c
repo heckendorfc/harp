@@ -28,6 +28,7 @@
 #include "harp.h"
 #include "tree.h"
 #include "edit_shell.h"
+#include "edit.h"
 
 #if 0
 static char subarglist[]={
@@ -46,6 +47,8 @@ struct argument arglist[]={
 	{'s',NULL,0},	/*Shuffle*/
 	{'i',NULL,0},	/*Insert*/
 	{'e',NULL,0},	/*Merge*/
+	{'E',NULL,0},	/*Merge*/
+	{123,NULL,0},	/*Merge*/
 	{'v',NULL,0},	/*Debug (verbose)*/
 	{'t',NULL,0},	/*Type*/
 	{'z',NULL,0},	/*Shuffle*/
@@ -60,13 +63,15 @@ struct option longopts[]={
 	{"play",1,NULL,'p'},
 	{"shuffle",2,NULL,'s'},
 	{"insert",2,NULL,'i'},
-	{"edit",1,NULL,'e'},
+	{"edit-stdin",0,NULL,'e'},
+	{"edit",1,NULL,'E'},
+	{"old-edit",0,NULL,123},
 	{"verbose",0,NULL,'v'},
 	{"type",1,NULL,'t'},
 	{"zshuffle",0,NULL,'z'},
-	{"repeat",0,NULL,'r'},
 	{"admin",0,NULL,'a'},
 	{"device",2,NULL,'D'},
+	{"repeat",0,NULL,'r'},
 	{"version",0,NULL,200},
 	{0,0,0,0}
 };
@@ -74,7 +79,7 @@ struct option longopts[]={
 static unsigned int argSearch(int argc, char *argv[]);
 
 static void printVersion(){
-	printf("HARP %s  Copyright (C) 2009-2013 Christian Heckendorf\n",PACKAGE_VERSION);
+	printf("HARP %s  Copyright (C) 2009-2014 Christian Heckendorf\n",PACKAGE_VERSION);
 	cleanExit();
 	exit(1);
 }
@@ -127,7 +132,8 @@ static void makeTempPlaylist(int *multilist, int multi){
 			break;
 		case 'a':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM Album INNER JOIN Song USING(AlbumID) WHERE Active=1 AND Album.AlbumID=%d ORDER BY Track",multilist[mx]);
+				//sprintf(query,"SELECT Song.SongID FROM Album INNER JOIN Song USING(AlbumID) WHERE Active=1 AND Album.AlbumID=%d ORDER BY Track",multilist[mx]);
+				sprintf(query,"SELECT SongID FROM Song WHERE Active=1 AND AlbumID=%d ORDER BY Track",multilist[mx]);
 				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
@@ -199,7 +205,14 @@ unsigned int doArgs(int argc,char *argv[]){
 	}
 	//edit
 	if(arglist[AEDIT].active){
-		editShell();
+		switch(arglist[AEDIT].active){
+			case 1:
+				editShell();
+				break;
+			case 2:
+				editPortal();
+				break;
+		}
 		return 0;
 	}
 	//admin
@@ -213,10 +226,12 @@ unsigned int doArgs(int argc,char *argv[]){
 
 static unsigned int argSearch(int argc,char *argv[]){
 	int opt,optindex;
-	while((opt=getopt_long(argc,argv,"i::l::e::D::p:s::t:vzar::",longopts,&optindex))!=-1){
+	while((opt=getopt_long(argc,argv,"i::l::E:D::p:s::t:evzar::",longopts,&optindex))!=-1){
 		switch(opt){
 			//case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=optarg;break;
-			case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
+			case 123:arglist[AEDIT].active=2;break;
+			case 'e':arglist[AEDIT].active=1;arglist[AEDIT].subarg=NULL;break;
+			case 'E':arglist[AEDIT].active=1;arglist[AEDIT].subarg=optarg;break;
 			case 'i':arglist[AINSERT].active=1;arglist[AINSERT].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
 			case 'l':arglist[ALIST].active=1;arglist[ALIST].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;
 			case 'D':arglist[ADEVICE].active=1;arglist[ADEVICE].subarg=(argv[optind]&&argv[optind][0]!='-')?argv[optind]:optarg;break;

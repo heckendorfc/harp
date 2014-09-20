@@ -228,25 +228,33 @@ static char *selectors[]={
 	"song",
 	"album",
 	"artist",
+	"playlist",
+	"tag",
 	NULL
 };
 
 static char *selectfield[]={
 	"SongID",
 	"AlbumID",
-	"ArtistID"
+	"ArtistID",
+	"PlaylistID",
+	"TagID",
 };
 
 static char *selecttable[]={
 	"Song",
 	"Album",
-	"Artist"
+	"Artist",
+	"Playlist",
+	"Tag"
 };
 
 static char *selectcomp[]={
 	"Title",
 	"Title",
-	"Name"
+	"Name",
+	"Name",
+	"Name",
 };
 
 static int get_select_type(command_t *c){
@@ -274,17 +282,35 @@ static int get_templist(arglist_t *a, int ctype){
 static char *translatequery[]={
 	NULL,//ss
 	"SELECT %%d,AlbumID FROM Song WHERE SongID IN (%s)",//sa (song -> album)
-	"SELECT %%d,ArtistID from AlbumArtist NATURAL JOIN Song WHERE SongID IN (%s)",//sr
+	"SELECT %%d,ArtistID FROM AlbumArtist NATURAL JOIN Song WHERE SongID IN (%s)",//sr
+	"SELECT %%d,PlaylistID FROM PlaylistSong WHERE SongID IN (%s)",//sp
+	"SELECT %%d,TagID FROM SongTag WHERE SongID IN (%s)",//st
 
 	"SELECT %%d,SongID FROM Song WHERE AlbumID IN (%s)",//as
 	NULL,//aa
 	"SELECT %%d,ArtistID FROM AlbumArtist WHERE AlbumID IN (%s)",//ar
+	"SELECT %%d,PlaylistID FROM PlaylistSong NATURAL JOIN Song WHERE AlbumID IN (%s)",//ap
+	"SELECT %%d,TagID FROM SongTag NATURAL JOIN Song WHERE AlbumID IN (%s)",//at
 
 	"SELECT %%d,SongID FROM Song NATURAL JOIN AlbumArtist WHERE ArtistID IN (%s)",//rs
 	"SELECT %%d,AlbumID FROM AlbumArtist WHERE ArtistID IN (%s)",//ra
 	NULL,//rr
+	"SELECT %%d,PlaylistID FROM PlaylistSong NATURAL JOIN Song NATURAL JOIN AlbumArtist WHERE IN ArtistID(%s)",//rp
+	"SELECT %%d,TagID FROM SongTag NATURAL JOIN Song NATURAL JOIN AlbumArtist WHERE ArtistID IN (%s)",//rt
+
+	"SELECT %%d,SongID FROM PlaylistSong WHERE PlaylistID IN (%s)",//ps
+	"SELECT %%d,AlbumID FROM PlaylistSong NATURAL JOIN Song WHERE PlaylistID IN (%s)",//pa
+	"SELECT %%d,ArtistID FROM PlaylistSong NATURAL JOIN Song NATURAL JOIN AlbumArtist WHERE PlaylistID IN (%s)",//pr
+	NULL,//pp
+	"SELECT %%d,TagID FROM SongTag NATURAL JOIN PlaylistSong WHERE PlaylistID IN (%s)",//pt
+
+	"SELECT %%d,SongID FROM SongTag WHERE TagID IN (%s)",//ts
+	"SELECT %%d,AlbumID FROM SongTag NATURAL JOIN Song WHERE TagID IN (%s)",//ta
+	"SELECT %%d,ArtistID FROM SongTag NATURAL JOIN Song NATURAL JOIN AlbumArtist WHERE TagID IN (%s)",//tr
+	"SELECT %%d,PlaylistID FROM SongTag NATURAL JOIN PlaylistSong WHERE TagID IN (%s)",//tp
+	NULL,//tt
 };
-static const int numtypes=3;
+static const int numtypes=5;
 
 static int translate_templist(int toid, int totype, int fromid, int fromtype, int cleanup){
 	char query[300];

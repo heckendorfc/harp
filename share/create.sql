@@ -10,7 +10,7 @@ SongID integer not null);
 
 CREATE TABLE Tag(
 TagID integer primary key,
-Value text);
+Name text);
 
 CREATE TABLE SongTag(
 SongTagID integer primary key,

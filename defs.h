@@ -130,17 +130,20 @@ struct argument{
 } extern arglist[];
 
 enum cmdarg{
-	ALIST,
+	ALIST=0,
 	APLAY,
 	ASHUFFLE,
 	AINSERT,
 	AEDIT,
+	AEDITCMD,
+	AEDITOLD,
 	AVERBOSE,
 	ATYPE,
 	AZSHUFFLE,
 	AADMIN,
 	ADEVICE,
-	AREPEAT
+	AREPEAT,
+	ANULL,
 };
 
 enum filetype{

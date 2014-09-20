@@ -34,6 +34,8 @@ enum edit_shell_select_types{
 	SEL_SONG=0,
 	SEL_ALBUM,
 	SEL_ARTIST,
+	SEL_PLAYLIST,
+	SEL_TAG,
 	SEL_NULL
 };
 
