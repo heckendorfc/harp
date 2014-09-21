@@ -249,17 +249,19 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	adts_header=(((uint32_t*)buf)[0]) >> 6;
 
 	if((ret=NeAACDecInit(hAac,buf,frame_size,&ratel,&channelchar)) == 0){
-		channels=buf[3]>>6;
+		//channels=buf[3]>>6;
 		//fprintf(stderr,"%d %d %d\n\n",((buf[2]>>2)&0xf),channels,(int)channelchar);
-		if(channels==0)
-			channels=1;
+		//if(channels==0)
+			//channels=1;
 		fmt=(int)config->outputFormat;
 		rate=(unsigned int)ratel;
-
+		channels=(int)channelchar;
+		/*
 		if(channelchar!=channels){
 			rate*=(int)channelchar;
 			rate/=channels;
 		}
+		*/
 	}
 	else{
 		fprintf(stderr,"NeAACDecInit error %d\n",ret);
