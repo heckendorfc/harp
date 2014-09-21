@@ -199,12 +199,12 @@ static void debugConfig(char *buffer){
 		}
 	}
 	else if(strcmp("playlog",buffer)==0 && *setting=='y' && debugconf.dir){
-		create_logfile("%s/player.log.XXXXX",debugconf.dir,&debugconf.playfilename,&debugconf.playfd);
+		create_logfile("%s/player.log.XXXXXX",debugconf.dir,&debugconf.playfilename,&debugconf.playfd);
 	}
-	else if(strcmp("loglevel",buffer)==0 && *setting=='y'){
+	else if(strcmp("loglevel",buffer)==0){
 		debugconf.level=(int)strtol(setting,NULL,10);
 		if(debugconf.level>0 && debugconf.dir){
-			create_logfile("%s/debug.log.XXXXX",debugconf.dir,&debugconf.msgfilename,&debugconf.msgfd);
+			create_logfile("%s/debug.log.XXXXXX",debugconf.dir,&debugconf.msgfilename,&debugconf.msgfd);
 		}
 	}
 }
