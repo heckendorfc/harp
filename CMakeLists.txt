@@ -77,6 +77,11 @@ sndutil.c)
 
 target_link_libraries (harp ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS} ${SOUND_LIB} ${SQLITE_LIBRARIES})
 
-FILE(GLOB shared_files share/*)
-INSTALL(FILES README ${shared_files} DESTINATION share/harp)
+#FILE(GLOB shared_files share/*)
+SET(shared_files share/defaults.conf share/create.sql)
+SET(doc_files README)
+SET(man_files share/harp.1)
+INSTALL(FILES ${shared_files} DESTINATION share/harp)
+INSTALL(FILES ${man_files} DESTINATION man/man1)
+INSTALL(FILES ${doc_files} DESTINATION share/doc/harp)
 INSTALL(TARGETS harp RUNTIME DESTINATION bin)

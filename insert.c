@@ -413,8 +413,9 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	char query[350];
 	char dbfilename[250];
 	char tempname[401];
-	unsigned int x,songid=0,artistid,albumid;
+	unsigned int songid=0,artistid,albumid;
 	int fmt;
+	int x;
 	struct insert_data data;
 
 	data.plugin_head=getPluginList(NULL);
