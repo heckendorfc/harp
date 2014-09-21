@@ -76,6 +76,14 @@ int list(int *ids, int length){
 				printGenreTree(ids[x],(void *)tierChildPrint);
 			}
 			break;
+		case 't':
+			for(x=0;x<length;x++){
+				sprintf(query,"SELECT SongPubInfo.SongID as SongID,SongTitle,Location,AlbumTitle,ArtistName FROM SongPubInfo,SongTag WHERE SongTag.SongID=SongPubInfo.SongID AND TagID=%d ORDER BY ArtistName,AlbumTitle,SongTrack",ids[x]);
+				doTitleQuery(query,exception,listconf.maxwidth);
+				printf("\n");
+			}
+			break;
+
 	}
 	return 0;
 }
@@ -106,6 +114,11 @@ int listall(){
 		case 'g':
 			printGenreTree(0,(void *)tierCatPrint);
 			return 0;
+
+		case 't':
+			sprintf(query,"SELECT TagID,Name FROM Tag");
+			break;
+
 		default:return 1;
 	}
 	doTitleQuery(query,exception,listconf.maxwidth);

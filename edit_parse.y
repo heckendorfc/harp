@@ -83,7 +83,7 @@ onearg:	word
 arglist:	onearg
 			{ $$ = $1; }
 	|	arglist TOK_COMMA onearg
-			{ $$ = append_com_arg($1,$3); }
+			{ $$ = append_com_arg($3,$1); }
 	;
 
 selector:	cmd arglist TOK_CPAR
@@ -99,6 +99,8 @@ actionlist:	action
 			{ $$ = $1; }
 	|	actionlist action
 			{ $$ = append_command($1,$2); }
+	|	actionlist TOK_WHITESPACE action
+			{ $$ = append_command($1,$3); }
 	;
 
 cmdline:	selector actionlist

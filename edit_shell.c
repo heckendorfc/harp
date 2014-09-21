@@ -97,15 +97,20 @@ static int editSongAlbumArtist(command_t *sel, command_t *act){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	if(act->args->words->flag==WORD_DEFAULT)
-		artistid=strtol(act->args->words->word,NULL,10);
-	else
-		artistid=getArtist(act->args->words->word);
+	if(act->args->next==NULL){
+		fprintf(stderr,"albumartist: Two arguments required for this action.\n");
+		return HARP_RET_ERR;
+	}
 
 	if(act->args->next->words->flag==WORD_DEFAULT)
-		albumid=strtol(act->args->next->words->word,NULL,10);
+		artistid=strtol(act->args->next->words->word,NULL,10);
 	else
-		albumid=getAlbum(act->args->next->words->word,artistid);
+		artistid=getArtist(act->args->next->words->word);
+
+	if(act->args->words->flag==WORD_DEFAULT)
+		albumid=strtol(act->args->words->word,NULL,10);
+	else
+		albumid=getAlbum(act->args->words->word,artistid);
 
 	sprintf(query,"UPDATE Song SET AlbumID=%d WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",albumid,sel->tlid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
@@ -276,6 +281,8 @@ static int editPlaylistName(command_t *sel, command_t *act){
 static int deletePlaylist(command_t *sel, command_t *act){
 	char query[300];
 
+	sprintf(query,"DELETE FROM PlaylistSong WHERE PlaylistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",sel->tlid);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	sprintf(query,"DELETE FROM Playlist WHERE PlaylistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",sel->tlid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 
@@ -284,9 +291,29 @@ static int deletePlaylist(command_t *sel, command_t *act){
 
 static int editPlaylistOrder(command_t *sel, command_t *act){
 	char query[300];
+	int oldO,newO;
 
-	sprintf(query,"UPDATE PlaylistSong SET Order=%s WHERE Order=%s AND PlaylistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",act->args->words->word,act->args->next->words->word,sel->tlid);
+	if(act->args->next==NULL){
+		fprintf(stderr,"order: Two arguments required for this action.\n");
+		return HARP_RET_ERR;
+	}
+
+	oldO=strtol(act->args->words->word,NULL,10);
+	newO=strtol(act->args->next->words->word,NULL,10);
+
+	if(oldO<newO)
+		harp_sqlite3_exec(conn,"CREATE TEMPORARY TRIGGER PLIMv AFTER UPDATE ON PlaylistSong BEGIN "
+			"UPDATE PlaylistSong SET \"Order\"=\"Order\"-1 WHERE PlaylistID=OLD.PlaylistID AND \"Order\" BETWEEN OLD.\"Order\" AND NEW.\"Order\" AND PlaylistSongID!=OLD.PlaylistSongID;"
+			"END",NULL,NULL,NULL);
+	else
+		harp_sqlite3_exec(conn,"CREATE TEMPORARY TRIGGER PLIMv AFTER UPDATE ON PlaylistSong BEGIN "
+			"UPDATE PlaylistSong SET \"Order\"=\"Order\"+1 WHERE PlaylistID=OLD.PlaylistID AND \"Order\" BETWEEN NEW.\"Order\" AND OLD.\"Order\" AND PlaylistSongID!=OLD.PlaylistSongID;"
+			"END",NULL,NULL,NULL);
+
+	sprintf(query,"UPDATE PlaylistSong SET \"Order\"=%d WHERE \"Order\"=%d AND PlaylistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",newO,oldO,sel->tlid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+
+	harp_sqlite3_exec(conn,"DROP TRIGGER PLIMv",NULL,NULL,NULL);
 
 	return HARP_RET_OK;
 }
@@ -294,6 +321,11 @@ static int editPlaylistOrder(command_t *sel, command_t *act){
 static int editPlaylistAdd(command_t *sel, command_t *act){
 	char query[300];
 	char *songs_start,*songs_end;
+
+	if(act->args->next==NULL){
+		fprintf(stderr,"add: Two arguments required for this action.\n");
+		return HARP_RET_ERR;
+	}
 
 	if(act->args->words->flag==WORD_DEFAULT){
 		songs_start="SongID=";
@@ -333,10 +365,11 @@ static int editPlaylistRemove(command_t *sel, command_t *act){
 	}
 
 	harp_sqlite3_exec(conn,"CREATE TEMPORARY TRIGGER PLIDel AFTER DELETE ON PlaylistSong BEGIN "
-			"UPDATE PlaylistSong SET \"Order\"=\"Order\"-1 WHERE PlaylistID=OLD.PlaylistID AND \"Order\">OLD.\"Order\""
+			"UPDATE PlaylistSong SET \"Order\"=\"Order\"-1 WHERE PlaylistID=OLD.PlaylistID AND \"Order\">OLD.\"Order\";"
 			"END",NULL,NULL,NULL);
 
-	sprintf(query,"DELETE FROM PlaylistSong (SongID,PlaylistID,\"Order\") SELECT SongID,PlaylistID,%s FROM Song,Playlist WHERE %s%s%s PlaylistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",act->args->next->words->word,songs_start,act->args->words->word,songs_end,sel->tlid);
+	//sprintf(query,"DELETE FROM PlaylistSong (SongID,PlaylistID,\"Order\") SELECT SongID,PlaylistID,%s FROM Song,Playlist WHERE %s%s%s AND PlaylistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",act->args->next->words->word,songs_start,act->args->words->word,songs_end,sel->tlid);
+	sprintf(query,"DELETE FROM PlaylistSong WHERE PlaylistSongID IN (SELECT PlaylistSongID FROM PlaylistSong NATURAL JOIN Song WHERE %s%s%s AND PlaylistID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d))",songs_start,act->args->words->word,songs_end,sel->tlid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 
 	harp_sqlite3_exec(conn,"DROP TRIGGER PLIDel",NULL,NULL,NULL);
@@ -356,6 +389,9 @@ static struct selgroup selplaylistacts[]={
 	{NULL,NULL}
 };
 static int runPlaylistEditAction(commandline_t *cmd){
+	char query[200];
+	sprintf(query,"DELETE FROM TempSelect WHERE SelectID=1 AND TempID=%d",cmd->selector->tlid);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL); // Failsafe, disable editing of library directly
 	return runGenericEditAction(cmd,selplaylistacts);
 }
 
@@ -377,7 +413,7 @@ static int listTagContents(command_t *sel, command_t *act){
 	int i;
 
 	for(i=0;i<10;i++)exception[i]=i<5?1:listconf.exception;
-	sprintf(query,"SELECT TagID,Name SongID,SongTitle,AlbumTitle,ArtistName FROM SongTag NATURAL JOIN SongPubInfo WHERE TagID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d) ORDER BY TagID",sel->tlid);
+	sprintf(query,"SELECT TagID,SongID,SongTitle,AlbumTitle,ArtistName FROM SongTag NATURAL JOIN SongPubInfo WHERE TagID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d) ORDER BY TagID",sel->tlid);
 	doTitleQuery(query,exception,listconf.maxwidth);
 
 	return HARP_RET_OK;
@@ -395,6 +431,8 @@ static int editTagName(command_t *sel, command_t *act){
 static int deleteTag(command_t *sel, command_t *act){
 	char query[300];
 
+	sprintf(query,"DELETE FROM SongTag WHERE TagID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",sel->tlid);
+	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	sprintf(query,"DELETE FROM Tag WHERE TagID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",sel->tlid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 
@@ -485,18 +523,25 @@ int editShell(){
 		while(fgets(src,512,stdin)){
 			tlist = lex(src);
 			fullcmd=NULL;
-			yyparse();
+			ret=yyparse();
 
-			ret=runEditAction(fullcmd);
+			if(!ret)
+				ret=runEditAction(fullcmd);
+			else
+				ret=HARP_RET_ERR;
+
 			printf("Edit> ");
 		}
 	}
 	else{
 		tlist = lex(arglist[AEDIT].subarg);
 		fullcmd=NULL;
-		yyparse();
+		ret=yyparse();
 
-		ret=runEditAction(fullcmd);
+		if(!ret)
+			ret=runEditAction(fullcmd);
+		else
+			ret=HARP_RET_ERR;
 	}
 
 	cleanOrphans();

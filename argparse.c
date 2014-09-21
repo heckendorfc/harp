@@ -86,14 +86,17 @@ static void printVersion(){
 
 static void printHelp(){
 	printf("Valid options are:\n\
-	-t [s,p,r,a,g]\tType (song, playlist, artist, album, genre)\n\
+	-t [s,p,r,a,g,t]\tType (song, playlist, artist, album, genre, tag)\n\
 	-l [name, ID]\tList (requires -t)\n\
 	-p [name, ID]\tPlay (requires -t)\n\
 		-s [s,a,r]\tShuffle (requires -p)\n\
 		-z\tSmart shuffle (requires -p)\n\
 		-r [number of repeats]\tRepeat playlist (requires -p)\n\
-	-i [file path, directory]\tInsert song\n\
-	-e\tEdit\n\
+		-D {device name}\tOutput to specified device (requires -p)\n\
+	-i [file path, directory]\tInsert songs\n\
+	-e\tEdit via script using stdin\n\
+	-E {script}\tEdit via script using command line\n\
+	--old-edit\tEdit via deprecated portal interface\n\
 	-a\tAdmin\n\
 	-v\tVerbose\n\
 	--version\t Print version information\n");

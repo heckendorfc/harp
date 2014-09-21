@@ -594,6 +594,14 @@ int insertTempSelectQuery(const char *query){
 	return tempid;
 }
 
+int insertTempSelectQueryCount(const char *query,int *count){
+	int ret=insertTempSelectQuery(query);
+
+	*count=sqlite3_changes(conn);
+
+	return ret;
+}
+
 void miClean(struct musicInfo *mi){
 	memset(mi->title,0,MI_TITLE_SIZE);
 	memset(mi->album,0,MI_ALBUM_SIZE);

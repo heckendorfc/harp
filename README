@@ -72,7 +72,7 @@ Song
 Commands are accepted in the following pattern:
 	selector(...) action[(...)] [action[(...)] [ ... ]]
 
-	The name used for selector determines which class of items the actions are applied to. The selector's arguments (...) select items of that type and can be one or more numeric IDs, "names", or subselectors(...). Action changes those selected items in the database. If multiple actions are provided, they will be run one after the other as they were specified from left to right. If an action does not use arguments, no () are needed. Otherwise, the required number of arguments should be provided separated by commas.
+	The name used for selector determines which class of items the actions are applied to. The selector's arguments (...) select items of that type and can be one or more numeric IDs, "names", or subselectors(...). Names may be enclosed by double quotes(") to match similar names, or single quotes(') to match exact names. Action changes those selected items in the database. If multiple actions are provided, they will be run one after the other as they were specified from left to right. If an action does not use arguments, no () are needed. Otherwise, the required number of arguments should be provided separated by commas.
 
 Selection commands:
 	song	Edit song(s).
@@ -120,7 +120,7 @@ Tag actions
 	contents	List the songs in the selected tags.
 	name	Change the name of the Tags (1 string arg - new name).
 	delete	Delete the tags.
-	add	Add a song to the tags (2 args - song name string or ID, numeric order).
+	add	Add a song to the tags (1 arg - song name string or ID).
 	remove	Remove a song from the tags (1 numeric arg - name string or ID of song to remove)
 
 

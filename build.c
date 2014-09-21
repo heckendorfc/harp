@@ -20,6 +20,7 @@
 #include "build.h"
 #include "edit_shell.h"
 #include "util.h"
+#include "dbact.h"
 
 /* substitute vars if needed
  * escape words in quotes if needed
@@ -251,8 +252,16 @@ static char *selectcomp[]={
 	"Title",
 	"Title",
 	"Name",
+	"Title",
 	"Name",
-	"Name",
+};
+
+static char shouldmake[]={
+	0,
+	0,
+	0,
+	1,
+	1,
 };
 
 static int get_select_type(command_t *c){
@@ -272,8 +281,21 @@ static int get_templist(arglist_t *a, int ctype){
 	}
 	else{ // Name
 		char query[300];
-		sprintf(query,"SELECT %%d,%s FROM %s WHERE %s LIKE '%%%%%s%%%%'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
-		return insertTempSelectQuery(query);
+		int ret,num;
+		if(a->words->flag==WORD_DQUOT)
+			sprintf(query,"SELECT %%d,%s FROM %s WHERE %s LIKE '%%%%%s%%%%'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
+		else
+			sprintf(query,"SELECT %%d,%s FROM %s WHERE %s='%s'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
+		ret=insertTempSelectQueryCount(query,&num);
+		if(num==0 && shouldmake[ctype]){
+			sprintf(query,"INSERT INTO %s(%s) VALUES(\"%s\")",selecttable[ctype],selectcomp[ctype],a->words->word);
+			harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+			num=sqlite3_last_insert_rowid(conn);
+			return insertTempSelect(&num,1);
+			//sprintf(query,"SELECT %%d,%s FROM %s WHERE %s LIKE '%%%%%s%%%%'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
+			//return insertTempSelectQuery(query);
+		}
+		return ret;
 	}
 }
 
