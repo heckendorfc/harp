@@ -15,6 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <samplerate.h>
 #include "jackutil.h"
 #include "sndutil.h"
 
@@ -39,7 +40,31 @@ int interpolate(float *buf, int len, int L){
 	return len*L;
 }
 
-int resample(jack_default_audio_sample_t *buf, int len, int maxlen, int in_rate, int out_rate){
+int resample(struct playerHandles *ph, int chi, int len, int maxlen, int in_rate, int out_rate, int chan){
+	int err;
+	SRC_DATA data;
+
+	if(in_rate==out_rate){
+		memcpy(ph->tmpbuf_out,ph->tmpbuf,len*sizeof(*ph->tmpbuf));
+		return len;
+	}
+
+	data.data_in=ph->tmpbuf;
+	data.data_out=ph->tmpbuf_out;
+	data.input_frames=len;
+	data.output_frames=maxlen;
+	data.src_ratio=(double)out_rate/(double)in_rate;
+	data.end_of_input=0;
+
+	if((err=src_process(ph->rs_state[chi],&data))){
+		fprintf(stderr,"libresample process: %s",src_strerror(err));
+		return 0;
+	}
+
+	return data.output_frames_gen;
+}
+
+int homebrew_resample(jack_default_audio_sample_t *buf, int len, int maxlen, int in_rate, int out_rate){
 	int L,M,newlen;
 	if(in_rate==out_rate)return len;
 	fprintf(stderr,"\nResampling\n");
@@ -104,11 +129,13 @@ int jack_process(jack_nframes_t nframes, void *arg){
 		}
 		else{
 			read=jack_ringbuffer_read(ph->outbuf[0],out1,actual);
-			if(read<actual)
+			if(read<actual){
 				bzero(out1+read,actual-read);
+			}
 			read=jack_ringbuffer_read(ph->outbuf[1],out2,actual);
-			if(read<actual)
+			if(read<actual){
 				bzero(out2+read,actual-read);
+			}
 		}
 	}
 	else{ // Fill with silence
@@ -136,7 +163,9 @@ int snd_init(struct playerHandles *ph){
 	char client_name[255];
 	ph->maxsize=40960;
 	if(!(ph->outbuf=malloc(2*sizeof(*ph->outbuf)))
-		|| !(ph->tmpbuf=malloc(sizeof(*ph->tmpbuf)))){
+		|| !(ph->tmpbuf=malloc(sizeof(*ph->tmpbuf)))
+		|| !(ph->tmpbuf_out=malloc(sizeof(*ph->tmpbuf_out)))
+		){
 		fprintf(stderr,"Malloc failed (jack buf).");
 		return 1;
 	}
@@ -187,13 +216,33 @@ int snd_init(struct playerHandles *ph){
 		fprintf (stderr, "JACK | Can't connect output ports 0\n");
 	}
 
+	ph->rs_state=NULL;
+
 	return 0;
 }
 
 int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned int *rate){
+	int i,err;
+
+	if(ph->rs_state){
+		if(ph->rs_state[0]){
+			for(i=0;i<ph->dec_chan;i++)
+				ph->rs_state[i]=src_delete(ph->rs_state[i]);
+		}
+		free(ph->rs_state);
+	}
+	if((ph->rs_state=malloc(sizeof(*ph->rs_state)*(*channels)))==NULL)
+		return 1;
+
 	ph->dec_rate=*rate;
 	ph->dec_chan=*channels;
 	ph->dec_enc=*enc;
+	for(i=0;i<ph->dec_chan;i++)
+		if((ph->rs_state[i]=src_new(RESAMPLE_QUALITY,1,&err))==NULL){
+			fprintf(stderr,"libresample src_new returned %d\n",err);
+			return 1;
+		}
+	//src_set_ratio(ph->rs_state,(double)ph->out_rate/(double)ph->dec_rate);
 	return 0;
 }
 
@@ -272,25 +321,34 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 		return 0;
 	}
 
-	tmpbufsize=samples*(ph->dec_rate/ph->out_rate);
-	if(!(ph->tmpbuf=realloc(ph->tmpbuf,tmpbufsize*sizeof(*ph->tmpbuf)))){
-		fprintf(stderr,"JACK | temp buffer failed reallocation\n");
+	tmpbufsize=samples*((double)ph->out_rate/(double)ph->dec_rate);
+	if(!(ph->tmpbuf=realloc(ph->tmpbuf,samples*sizeof(*ph->tmpbuf)))){
+		fprintf(stderr,"JACK | temp buffer failed reallocation to %d\n",samples);
+		return 0;
+	}
+	if(!(ph->tmpbuf_out=realloc(ph->tmpbuf_out,tmpbufsize*sizeof(*ph->tmpbuf_out)))){
+		fprintf(stderr,"JACK | temp out buffer failed reallocation to %d\n",tmpbufsize);
 		return 0;
 	}
 
 	i=tmpbufsize*sizeof(*ph->tmpbuf);
 	while(jack_ringbuffer_write_space(ph->outbuf[0])<i){
-		usleep(100000);
+		//fprintf(stderr,"buffer full\n");
+		usleep(10000);
 	}
 
 	short *s_in = (short*)out;
 	for(c=0;c<ph->dec_chan;c++){
 		for (i=0; i<samples; i++)
 			ph->tmpbuf[i] = (s_in[(i<<chan_shift)+c]/NORMFACT)*ph->vol_mod;
-		if((ret=resample(ph->tmpbuf, samples, tmpbufsize, ph->dec_rate, ph->out_rate))!=tmpbufsize)
-			fprintf(stderr,"\nResample size mismatch: ret %d | buf %d\n", ret, tmpbufsize);
-		i=tmpbufsize*sizeof(*ph->tmpbuf);
-		if((ret=jack_ringbuffer_write(ph->outbuf[c],(char*)ph->tmpbuf,i))<i)
+tryresample:
+		if((ret=resample(ph, c, samples, tmpbufsize, ph->dec_rate, ph->out_rate, ph->dec_chan))!=tmpbufsize){
+			//fprintf(stderr,"\nResample size mismatch: samples %d %d->%d | ret %d | buf %d\n", samples, ph->dec_rate, ph->out_rate, ret, tmpbufsize);
+			goto tryresample;
+		}
+		i=ret*sizeof(*ph->tmpbuf_out);
+		//i=tmpbufsize*sizeof(*ph->tmpbuf_out);
+		if((ret=jack_ringbuffer_write(ph->outbuf[c],(char*)ph->tmpbuf_out,i))<i)
 			fprintf(stderr,"JACK | ringbuffer failed write. expected: %d ; got: %d\n",i,ret);
 	}
 
@@ -298,9 +356,17 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 }
 
 void snd_close(struct playerHandles *ph){
+	int i;
+
+	for(i=0;i<ph->dec_chan;i++)
+		ph->rs_state[i]=src_delete(ph->rs_state[i]);
+	free(ph->rs_state);
+
 	jack_client_close(ph->sndfd);
 	jack_ringbuffer_free(ph->outbuf[0]);
 	jack_ringbuffer_free(ph->outbuf[1]);
 	free(ph->outbuf);
 	free(ph->jack_ports);
+	free(ph->tmpbuf);
+	free(ph->tmpbuf_out);
 }

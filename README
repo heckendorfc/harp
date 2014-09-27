@@ -235,6 +235,7 @@ IV.  Requirements
 
 Sound output: 
 	One of: ALSA, OSS, JACK, or PulseAudio
+	JACK also requires libsamplerate
 Database: 
 	SQLite3
 Default Decoders: 

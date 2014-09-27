@@ -28,6 +28,8 @@ struct snd_data{
 	unsigned int rate;
 	unsigned int curtime;
 	int *totaltime;
+	volatile unsigned int nextpos;
+	volatile char seeking;
 };
 
 FILE * plugin_open(const char *path, const char *mode){
@@ -39,11 +41,15 @@ void plugin_close(FILE *ffd){
 }
 
 void plugin_seek(struct playerHandles *ph, int modtime){
-	return;
+	int modshift;
 	if(ph->dechandle==NULL)return;
 	struct snd_data *data=(struct snd_data*)ph->dechandle;
-	unsigned int pos=data->curtime+=(modtime*data->rate);
-	FLAC__stream_decoder_seek_absolute(data->decoder,pos);
+	modshift=-(modtime*data->rate);
+	if(modshift>0 && data->curtime<modshift)
+		data->nextpos=0;
+	else
+		data->nextpos=data->curtime-modshift;
+	data->seeking=1;
 /*
 	struct vorbisHandles *h=(struct vorbisHandles *)ph->dechandle;
 
@@ -87,7 +93,8 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 		//buffs[i*4+3]=buffer[1][i]>>8;
 	}
 	writei_snd(data->ph, buffs, FLAC_SIZE(frame->header.blocksize)); // TODO: This works for ALSA. Other sources need something else for size?
-	data->curtime+=frame->header.blocksize;
+	//data->curtime+=frame->header.blocksize;
+	data->curtime=frame->header.number.sample_number;
 	//fprintf(stderr,"%d ",frame->header.blocksize);
 	//writei_snd(data->ph, (void *)buffer[0], frame->header.blocksize);
 	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
@@ -111,6 +118,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	data.ph=ph;
 	data.totaltime=totaltime;
 	data.curtime=0;
+	data.nextpos=0;
+	data.seeking=0;
 
 	FLAC__StreamDecoder *decoder=NULL;
 	ph->dechandle=&data;
@@ -154,6 +163,14 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	details->percent=-1;
 
 	do{ /* Read and write until everything is through. */
+		if(data.seeking){
+			if(!FLAC__stream_decoder_seek_absolute(decoder,data.nextpos))
+				if(data.nextpos>=FLAC__stream_decoder_get_total_samples(decoder))
+					break;
+				else
+					fprintf(stderr,"\nSeek to %d failed\n",data.nextpos);
+			data.seeking=0;
+		}
 		if(FLAC__stream_decoder_process_single(decoder)==(FLAC__bool)false){fprintf(stderr,"Early abort\n");break;}
 		//if((size=ov_read(vf,buf,len,0,2,1,&vf->current_link))<1){fprintf(stderruh oh");break;}
 

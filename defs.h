@@ -52,6 +52,7 @@
 #elif WITH_JACK==1
 	#include <jack/jack.h>
 	#include <jack/ringbuffer.h>
+	#include <samplerate.h>
 #elif WITH_PULSE==1
 	#include <pulse/simple.h>
 #else
@@ -276,7 +277,9 @@ struct playerHandles{
 	const char **jack_ports;
 	float vol_mod;
 	jack_default_audio_sample_t *tmpbuf;
+	jack_default_audio_sample_t *tmpbuf_out;
 	jack_ringbuffer_t **outbuf;
+	SRC_STATE **rs_state;
 	int maxsize;
 	int out_gain;
 #elif WITH_PULSE==1
