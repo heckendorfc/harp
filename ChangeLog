@@ -5,6 +5,8 @@ Changes in HARP-0.6.0:
 - Plugins are automatically added when a new database is created.
 - Adding generic tags to database.
 - Add scripted/scriptable managment interface.
+- Improved FLAC playback.
+- Allowing resampling for JACK.
 
 Changes in HARP-0.5.3:
 - Changed shuffle function to avoid predictable results.

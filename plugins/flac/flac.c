@@ -45,7 +45,7 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 	if(ph->dechandle==NULL)return;
 	struct snd_data *data=(struct snd_data*)ph->dechandle;
 	modshift=-(modtime*data->rate);
-	if(modshift>0 && data->curtime<modshift)
+	if(modtime==0 || (modshift>0 && data->curtime<modshift))
 		data->nextpos=0;
 	else
 		data->nextpos=data->curtime-modshift;
