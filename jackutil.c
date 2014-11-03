@@ -101,7 +101,7 @@ int char_to_float(float *f, const char *c, int len){
 	short *in = (short*)c;
 	len>>=1;
 	for (i=0; i<len; i++) {
-		f[i] = in[i]/NORMFACT;
+		f[i] = in[i]/NORMFACT16;
 	}
 	return len;
 }
@@ -278,6 +278,44 @@ void snd_clear(struct playerHandles *ph){
 	jack_ringbuffer_reset(ph->outbuf[1]);
 }
 
+void fill_buff_16(jack_default_audio_sample_t *tmpbuf, const char *out, const int c, const int dec_enc, const int samples, const int dec_chan, const int chan_shift, float vol_mod){
+	int i;
+	short *s_in = (short*)out;
+	for (i=0; i<samples; i++)
+		tmpbuf[i] = (s_in[(i<<chan_shift)+c]/NORMFACT16)*vol_mod;
+}
+
+int get_bytes_24(unsigned char *o_t){
+	return (((uint32_t)o_t[0])<<8)|(((uint32_t)o_t[1])<<16)|(((uint32_t)o_t[2])<<24);
+}
+
+int get_bytes_32(unsigned char *o_t){
+	return (((uint32_t)o_t[0]))|(((uint32_t)o_t[1])<<8)|(((uint32_t)o_t[2])<<16)|(((uint32_t)o_t[3])<<24);
+}
+
+void fill_buff_32(jack_default_audio_sample_t *tmpbuf, const char *out, const int c, const int dec_enc, const int samples, const int dec_chan, const int chan_shift, float vol_mod){
+	int i;
+	const int by=dec_enc/8;
+	const int off=(4-by);
+	const uint32_t norm = (uint32_t)INT32_MAX;
+	int *s_in;
+	int st;
+	unsigned char *o_t;
+	int (*gb)(unsigned char *);
+
+	if(by==3)
+		gb=get_bytes_24;
+	else
+		gb=get_bytes_32;
+
+	for (i=0; i<samples; i++){
+		s_in = (int*)(out+i*by*dec_chan+c*by);
+		o_t=(unsigned char*)(out+i*by*dec_chan+c*by);
+		st=gb(o_t);
+		tmpbuf[i] = ((st)/((jack_default_audio_sample_t)norm+(st<=0)))*vol_mod;
+	}
+}
+
 int buf_convert(jack_default_audio_sample_t *out, const char *in, int len, const float mod){
 	int i;
 
@@ -288,16 +326,17 @@ int buf_convert(jack_default_audio_sample_t *out, const char *in, int len, const
 	short *s_in = (short*)in;
 	len>>=1;
 	for (i=0; i<len; i++) {
-		out[i] = (s_in[i]/NORMFACT)*mod;
+		out[i] = (s_in[i]/NORMFACT16)*mod;
 	}
 	return len;
 }
 
 int writei_snd(struct playerHandles *ph, const char *out, const unsigned int size){
 	int c,i,ret,tmpbufsize;
+	const int by=ph->dec_enc?ph->dec_enc/8:1;
 	const int chan_shift=ph->dec_chan>>1;
 	const int chan_size=size>>chan_shift;
-	const int samples=chan_size>>1; /* for short -> float conversion */
+	const int samples=chan_size/(by); /* for short -> float conversion */
 
 	if(ph->pflag->pause){ // Move this into process?
 		size_t write[2],read[2];
@@ -337,10 +376,14 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 		usleep(10000);
 	}
 
-	short *s_in = (short*)out;
 	for(c=0;c<ph->dec_chan;c++){
-		for (i=0; i<samples; i++)
-			ph->tmpbuf[i] = (s_in[(i<<chan_shift)+c]/NORMFACT)*ph->vol_mod;
+		if(ph->dec_enc>16){
+			fill_buff_32(ph->tmpbuf,out,c,ph->dec_enc,samples,ph->dec_chan,chan_shift,ph->vol_mod);
+		}
+		else{
+			fill_buff_16(ph->tmpbuf,out,c,ph->dec_enc,samples,ph->dec_chan,chan_shift,ph->vol_mod);
+		}
+
 tryresample:
 		if((ret=resample(ph, c, samples, tmpbufsize, ph->dec_rate, ph->out_rate, ph->dec_chan))!=tmpbufsize){
 			//fprintf(stderr,"\nResample size mismatch: samples %d %d->%d | ret %d | buf %d\n", samples, ph->dec_rate, ph->out_rate, ret, tmpbufsize);

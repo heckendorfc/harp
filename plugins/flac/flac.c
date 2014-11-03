@@ -70,7 +70,7 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 #if WITH_ALSA==1
 #define FLAC_SIZE(x) (x)
 #else
-#define FLAC_SIZE(x) (x*2*data->channels)
+#define FLAC_SIZE(x) (x*by*data->channels)
 #endif
 
 FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame, const FLAC__int32 *const buffer[], void *client_data){
@@ -78,16 +78,19 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 	//if(writen_snd(data->ph, (void**)bufs, frame->header.blocksize)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	//int x;for(x=0;x<frame->header.blocksize;x++)if(writei_snd(data->ph, (char *)&buffer[0][x], 1)<0 || writei_snd(data->ph, (char *)&buffer[1][x],1)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	char *buffs;
-	if(!(buffs=malloc(frame->header.blocksize*2*data->channels))){
+	const int by=data->size/8;
+	int *bt;
+	//const int by=2;
+	if(!(buffs=malloc(frame->header.blocksize*by*data->channels))){
 		fprintf(stderr,"Malloc failed (decoder buffer)");
 		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	}
-	int i,j,num;
+	int i,j,k,num;
 	num=frame->header.blocksize;
 	for(i=0;i<num;i++){
 		for(j=0;j<data->channels;j++){
-			buffs[i*2*data->channels+j*data->channels]=buffer[j][i];
-			buffs[i*2*data->channels+1+j*data->channels]=buffer[j][i]>>8;
+			bt=(int*)(buffs+i*by*data->channels+j*by);
+			*bt=buffer[j][i];
 		}
 		//buffs[i*4+2]=buffer[1][i];
 		//buffs[i*4+3]=buffer[1][i]>>8;
@@ -155,8 +158,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	char tail[OUTPUT_TAIL_SIZE];
 	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit",data.rate, data.channels, data.size);
 	addStatusTail(tail,ph->outdetail);
-
-	snd_param_init(ph,&data.enc,&data.channels,&data.rate);
+	snd_param_init(ph,&data.size,&data.channels,&data.rate);
 
 	if((details->totaltime=*data.totaltime)==0)
 		details->totaltime=-1;;

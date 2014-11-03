@@ -21,7 +21,8 @@
 #include "defs.h"
 #include <math.h>
 
-#define NORMFACT (float)0x8000
+#define NORMFACT16 (float)0x8000
+#define NORMFACT24 (float)0x80000000
 #define GAIN_MAX 10
 #define GAIN_MIN -40
 

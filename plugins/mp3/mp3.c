@@ -97,7 +97,8 @@ void new_format(struct playerHandles *ph){
 	mpg123_getformat(h.m, &ratel, &channels, &enc);
 	rate=(unsigned int)ratel;
 	mpg123_info(h.m,&fi);
-	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit %dkbps %s",(int)ratel, channels, enc_bit*8,fi.vbr==MPG123_ABR?fi.abr_rate:fi.bitrate,fi.vbr!=MPG123_CBR?"VBR":"");
+	enc_bit*=8;
+	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit %dkbps %s",(int)ratel, channels, enc_bit,fi.vbr==MPG123_ABR?fi.abr_rate:fi.bitrate,fi.vbr!=MPG123_CBR?"VBR":"");
 
 	if(!rate)
 		guess=ratel=rate=44100;
@@ -106,7 +107,7 @@ void new_format(struct playerHandles *ph){
 	if(!enc)
 		guess=enc=16;
 	if(guess)
-		snprintf(tail,OUTPUT_TAIL_SIZE,"Guessing: %dHz %dch %dbit",(int)ratel, channels, enc_bit*8);
+		snprintf(tail,OUTPUT_TAIL_SIZE,"Guessing: %dHz %dch %dbit",(int)ratel, channels, enc_bit);
 
 	addStatusTail(tail,ph->outdetail);
 	snd_param_init(ph,&enc_bit,&channels,&rate);
