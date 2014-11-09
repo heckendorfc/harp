@@ -16,18 +16,19 @@ I.	Installation and Setup
 
 Installing harp:
 	mkdir build && cd build
-	cmake ..
-		To build without certain plugins use -DWITH_pluginname=OFF:
-			cmake -DWITH_MP3=OFF -DWITH_FLAC=OFF ..
-		Currently available are mp3, aac, vorbis, flac and stream
-
-		To use a different sound output (OSS is the default), use:
+	cmake {options} ..
+		To select a sound output (REQUIRED) use one of:
+			cmake -DWITH_OSS=ON ..
+			or
 			cmake -DWITH_JACK=ON ..
 			or
 			cmake -DWITH_ALSA=ON ..
 			or
 			cmake -DWITH_PULSE=ON ..
 
+		To build without certain plugins use -DWITH_pluginname=OFF:
+			cmake -DWITH_MP3=OFF -DWITH_FLAC=OFF ..
+		Currently available are mp3, aac, vorbis, flac and stream
 	make
 	sudo make install
 
