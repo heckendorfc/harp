@@ -82,19 +82,22 @@ void plugin_close(FILE *ffd){
 	close(h.sfd);
 }
 
-static void parse_url(const char *path, char **orig_url, char **orig_port, char **orig_filename){
+static int parse_url(const char *path, char **orig_url, char **orig_port, char **orig_filename){
 	int x;
 	char *url=*orig_url;
 	char *port=*orig_port;
 	char *ptr;
 
-	if(strncmp("http://",path,7)!=0)
-		url=strdup(path);
+	if(strncmp("http://",path,7)!=0){
+		//url=strdup(path);
+		debug(1,"Unknown protocol.");
+		return 1;
+	}
 	else
 		url=strdup(path+7);
 	if(!(port=malloc(10))){
 		fprintf(stderr,"Malloc failed.");
-		return;
+		return 1;
 	}
 	*orig_port=port;
 	*orig_url=url;
@@ -116,10 +119,12 @@ static void parse_url(const char *path, char **orig_url, char **orig_port, char 
 def_filename:
 		if(!(*orig_filename=malloc(1))){
 			fprintf(stderr,"Malloc failed.");
-			return;
+			return 1;
 		}
 		**orig_filename=0;
 	}
+
+	return 0;
 }
 
 static int stream_hello(char *filename){
@@ -149,7 +154,9 @@ FILE *plugin_open(const char *path, const char *mode){
 	if(open_pipe())
 		return NULL;
 
-	parse_url(path,&url,&port,&filename);
+	if(parse_url(path,&url,&port,&filename)){
+		return NULL;
+	}
 
 	memset(&hints,0,sizeof(struct addrinfo));
 	hints.ai_family=AF_INET;
@@ -380,7 +387,7 @@ static int write_pipe_parse_meta(char *buf, int *len, void *data){
 	}
 	if(h.bytecount+*len>h.metaint){
 		volatile int *up=&(((struct playerHandles *)data)->pflag->update);
-		
+
 		temp=h.metaint-h.bytecount;
 		if((ret=fwrite(ptr,1,temp,h.wfd))<temp)
 			fprintf(stderr,"Short write to pipe\n");
@@ -470,7 +477,7 @@ static struct pluginitem *selectPlugin(struct pluginitem *list, char *type){
 	int len,tlen,x;
 	if(type==NULL || *type==0)return NULL;
 	len=strlen(type);
-	
+
 	while(ret){
 		ptr=ret->contenttype;
 		while(ptr){
@@ -514,7 +521,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	memset(si.description,0,SI_DESCRIPTION_SIZE);
 	memset(si.type,0,SI_TYPE_SIZE);
 	si.bitrate=0;
-	
+
 	h.metaint=h.bytecount=0;
 	h.go=1;
 	streamIO(parse_meta_si,&si);
