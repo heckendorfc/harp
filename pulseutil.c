@@ -25,7 +25,7 @@ int snd_init(struct playerHandles *ph){
 	ph->ss.channels=2;
 	ph->ss.rate=44100;
 
-	ph->sndfd=pa_simple_new(NULL, "HARP", PA_STREAM_PLAYBACK, NULL, "music", &ph->ss, NULL, NULL, &error);
+	ph->sndfd=pa_simple_new(NULL, "HARP", PA_STREAM_PLAYBACK, ph->device?ph->device:NULL, "music", &ph->ss, NULL, NULL, &error);
 	if(!ph->sndfd){
 		fprintf(stderr,"sndfd open failed: %d\n",error);
 		return 1;

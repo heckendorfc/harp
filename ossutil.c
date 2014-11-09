@@ -19,7 +19,7 @@
 #include "sndutil.h"
 
 int snd_init(struct playerHandles *ph){
-	if((ph->sndfd=open("/dev/dsp",O_WRONLY,777))==-1)return 1;
+	if((ph->sndfd=open(ph->device?ph->device:"/dev/dsp",O_WRONLY,777))==-1)return 1;
 	return 0;
 }
 
