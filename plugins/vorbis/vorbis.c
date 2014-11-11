@@ -121,11 +121,12 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	vi=ov_info(vf,-1);
 	rate=(unsigned int)vi->rate;
 	channels=(unsigned int)vi->channels;
+	enc=16;
 
 	const int sizemod=2*channels;
 	char tail[OUTPUT_TAIL_SIZE];
 
-	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit",rate, channels, (int)vi->bitrate_nominal);
+	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbps",rate, channels, (int)vi->bitrate_nominal);
 	addStatusTail(tail,ph->outdetail);
 	snd_param_init(ph,&enc,&channels,&rate);
 
@@ -135,6 +136,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	h.sizemod=sizemod;
 	ph->dechandle=&h;
 
+	details->percent=-1;
+
 	do{ /* Read and write until everything is through. */
 		if((ret=ov_read(vf,buf,len,0,2,1,&vf->current_link))<1){
 			if((retval=vorbStatus(ret))==VORB_CONTINUE)
@@ -143,7 +146,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		}
 		size=ret;
 		details->curtime=total/(rate*sizemod);
-		details->percent=(details->curtime*100)/details->totaltime;
+		if(details->totaltime>0)
+			details->percent=(details->curtime*100)/details->totaltime;
 		crOutput(ph->pflag,details);
 
 #if WITH_ALSA==1

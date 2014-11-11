@@ -245,6 +245,16 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 		return DEC_RET_ERROR;
 	}
 
+	fmt=(int)config->outputFormat;
+	if(fmt==FAAD_FMT_16BIT)
+		fmt=16;
+	else if(fmt==FAAD_FMT_24BIT)
+		fmt=24;
+	else if(fmt==FAAD_FMT_32BIT || fmt==FAAD_FMT_FLOAT || fmt==FAAD_FMT_FIXED)
+		fmt=32;
+	else if(fmt==FAAD_FMT_DOUBLE)
+		fmt=64;
+
 	frame_size=adts_find_frame(ph->ffd,buf,buf_filled,bufsize);
 	adts_header=(((uint32_t*)buf)[0]) >> 6;
 
@@ -253,7 +263,6 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 		//fprintf(stderr,"%d %d %d\n\n",((buf[2]>>2)&0xf),channels,(int)channelchar);
 		//if(channels==0)
 			//channels=1;
-		fmt=(int)config->outputFormat;
 		rate=(unsigned int)ratel;
 		channels=(int)channelchar;
 		/*
@@ -384,6 +393,16 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 		return DEC_RET_ERROR;
 	}
 
+	fmt=(int)conf->outputFormat;
+	if(fmt==FAAD_FMT_16BIT)
+		fmt=16;
+	else if(fmt==FAAD_FMT_24BIT)
+		fmt=24;
+	else if(fmt==FAAD_FMT_32BIT || fmt==FAAD_FMT_FLOAT || fmt==FAAD_FMT_FIXED)
+		fmt=32;
+	else if(fmt==FAAD_FMT_DOUBLE)
+		fmt=64;
+
 	mp4lib_get_decoder_config(&infile,track,&buf,&bufsize);
 
 	unsigned char channelchar;
@@ -391,7 +410,6 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	char tail[OUTPUT_TAIL_SIZE];
 	if((ret=NeAACDecInit2(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
 		channels=(int)channelchar;
-		fmt=(int)conf->outputFormat;
 		rate=(unsigned int)ratel;
 	}
 	else{
