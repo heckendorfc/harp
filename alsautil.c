@@ -28,6 +28,7 @@ int snd_init(struct playerHandles *ph){
 }
 
 int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned int *rate){
+	snd_pcm_uframes_t bufsize=*rate/4;
 	int x=0;
 	*enc=SND_PCM_FORMAT_S16_LE;
 	snd_pcm_drop(ph->sndfd);
@@ -41,6 +42,7 @@ int snd_param_init(struct playerHandles *ph, int *enc, int *channels, unsigned i
 	if(snd_pcm_hw_params_set_format(ph->sndfd,ph->params,*enc)<0)fprintf(stderr,"can't set fmt\n");
 	if(snd_pcm_hw_params_set_channels(ph->sndfd,ph->params,*channels)<0)fprintf(stderr,"can't set channels\n");
 	if(snd_pcm_hw_params_set_rate_near(ph->sndfd,ph->params,rate,0)<0)fprintf(stderr,"can't set rate\n");
+	if(snd_pcm_hw_params_set_buffer_size_near(ph->sndfd,ph->params,&bufsize)<0)fprintf(stderr,"can't set buffer size\n");
 	if((x=snd_pcm_hw_params(ph->sndfd,ph->params))<0)fprintf(stderr,"can't set parms: %s\n",snd_strerror(x));
 	snd_pcm_hw_params_free(ph->params);
 	return 0;
