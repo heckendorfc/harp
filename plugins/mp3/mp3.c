@@ -25,6 +25,7 @@ pthread_mutex_t dechandle_lock;
 struct mp3Handles{
 	mpg123_handle *m;
 	long total;
+	long tcarry;
 	int accuracy;
 	int framesize;
 	int samptime;
@@ -95,9 +96,21 @@ void new_format(struct playerHandles *ph){
 	struct mpg123_frameinfo	fi;
 
 	mpg123_getformat(h.m, &ratel, &channels, &enc);
+	if(enc&MPG123_ENC_8)
+		enc=1;
+	else if(enc&MPG123_ENC_16)
+		enc=2;
+	else if(enc&MPG123_ENC_24)
+		enc=3;
+	else if(enc&(MPG123_ENC_32|MPG123_ENC_FLOAT_32))
+		enc=4;
+	else if(enc&MPG123_ENC_FLOAT_64)
+		enc=8;
+	else
+		enc=0;
 	rate=(unsigned int)ratel;
 	mpg123_info(h.m,&fi);
-	enc_bit*=8;
+	enc_bit=enc*8;
 	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit %dkbps %s",(int)ratel, channels, enc_bit,fi.vbr==MPG123_ABR?fi.abr_rate:fi.bitrate,fi.vbr!=MPG123_CBR?"VBR":"");
 
 	if(!rate)
@@ -115,7 +128,7 @@ void new_format(struct playerHandles *ph){
 	ph->dec_rate=ratel;
 	ph->dec_enc=enc_bit;
 	ph->dec_chan=channels;
-	h.framesize=enc_bit*channels;
+	h.framesize=enc*channels;
 	h.samptime=ratel*h.framesize;
 }
 
@@ -193,6 +206,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		outsize=mpg123_outblock(h.m);
 	pthread_mutex_unlock(&dechandle_lock);
 
+	h.tcarry=0;
 	h.total=0;
 	h.accuracy=1000;
 
@@ -229,9 +243,13 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		size=len;
 
 		pthread_mutex_lock(&dechandle_lock);
-		details->curtime=h.total/h.accuracy;
+		details->curtime=h.total;
 		details->percent=(details->curtime*100)/details->totaltime;
-		h.total+=(size*h.accuracy)/h.samptime;
+		h.tcarry+=size;
+		if(h.tcarry>=h.samptime){
+			h.total+=h.tcarry/h.samptime;
+			h.tcarry%=h.samptime;
+		}
 		pthread_mutex_unlock(&dechandle_lock);
 
 #if WITH_ALSA==1
