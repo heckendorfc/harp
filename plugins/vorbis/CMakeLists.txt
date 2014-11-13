@@ -3,7 +3,7 @@ find_package(Vorbis REQUIRED)
 include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/plugins ${VORBIS_INCLUDE_DIR})
 link_directories(${CMAKE_SOURCE_DIR}/plugins)
 add_library(harpvorbis MODULE vorbis.c ../../defs_h.c)
-target_link_libraries (harpvorbis harpplugin ${VORBIS_LIBRARIES})
+target_link_libraries (harpvorbis harpplugin ${VORBIS_LIBRARIES} ${SOUND_LIB})
 
 INSTALL(FILES libharpvorbis.sql DESTINATION share/harp)
 INSTALL(TARGETS harpvorbis LIBRARY DESTINATION ${INSTALL_LIBDIR})
