@@ -66,27 +66,27 @@ include_directories(${SQLITE_INCLUDE_DIR})
 add_subdirectory (plugins)
 
 add_executable (harp ${SOUND_SRC}
-harp.c
-defs_h.c
-argparse.c
-harpconfig.c
-dbact.c
-insert.c
-edit.c
-edit_shell.c
-util.c
-message.c
-player.c
-shuffle.c
-list.c
-admin.c
-portal.c
-tree.c
-edit.tab.c
-build.c
-lex.c
-lex_dfa.c
-sndutil.c)
+src/harp.c
+src/defs_h.c
+src/argparse.c
+src/harpconfig.c
+src/dbact.c
+src/insert.c
+src/edit.c
+src/edit_shell.c
+src/util.c
+src/message.c
+src/player.c
+src/shuffle.c
+src/list.c
+src/admin.c
+src/portal.c
+src/tree.c
+src/edit.tab.c
+src/build.c
+src/lex.c
+src/lex_dfa.c
+src/sndutil.c)
 
 target_link_libraries (harp ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS} ${SOUND_LIB} ${SQLITE_LIBRARIES})
 
