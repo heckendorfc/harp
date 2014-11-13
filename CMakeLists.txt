@@ -48,6 +48,12 @@ if (FTW_FOUND)
 	include_directories(${FTW_INCLUDE_DIR})
 endif (FTW_FOUND)
 
+
+if (NOT DEFINED INSTALL_MANPREFIX)
+	set(INSTALL_MANPREFIX ${CMAKE_INSTALL_PREFIX})
+endif ()
+
+
 find_package (Threads REQUIRED)
 find_package(Sqlite REQUIRED)
 include_directories(${SQLITE_INCLUDE_DIR})
@@ -84,6 +90,6 @@ SET(shared_files share/defaults.conf share/create.sql)
 SET(doc_files README)
 SET(man_files share/harp.1)
 INSTALL(FILES ${shared_files} DESTINATION share/harp)
-INSTALL(FILES ${man_files} DESTINATION man/man1)
+INSTALL(FILES ${man_files} DESTINATION ${INSTALL_MANPREFIX}/man/man1)
 INSTALL(FILES ${doc_files} DESTINATION share/doc/harp)
 INSTALL(TARGETS harp RUNTIME DESTINATION bin)
