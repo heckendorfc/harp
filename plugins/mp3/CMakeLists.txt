@@ -6,4 +6,4 @@ add_library(harpmp3 MODULE mp3.c ../../defs_h.c)
 target_link_libraries (harpmp3 harpplugin ${MPG123_LIBRARY})
 
 INSTALL(FILES libharpmp3.sql DESTINATION share/harp)
-INSTALL(TARGETS harpmp3 LIBRARY DESTINATION lib)
+INSTALL(TARGETS harpmp3 LIBRARY DESTINATION ${INSTALL_LIBDIR})

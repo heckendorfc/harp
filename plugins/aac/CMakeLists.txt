@@ -7,4 +7,4 @@ add_library(harpaac MODULE aac.c ../../defs_h.c mp4lib/mp4lib.c)
 target_link_libraries (harpaac harpplugin ${Faad_LIBRARIES})
 
 INSTALL(FILES libharpaac.sql DESTINATION share/harp)
-INSTALL(TARGETS harpaac LIBRARY DESTINATION lib)
+INSTALL(TARGETS harpaac LIBRARY DESTINATION ${INSTALL_LIBDIR})

@@ -1,10 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (harp)
 
-add_definitions(-DPACKAGE_VERSION="0.6.0")
-add_definitions(-DSHARE_PATH="${CMAKE_INSTALL_PREFIX}/share" )
-add_definitions(-DLIB_PATH="${CMAKE_INSTALL_PREFIX}/lib" )
-
 #SET(CMAKE_C_FLAGS "-g -O0 -Wall")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -52,6 +48,14 @@ endif (FTW_FOUND)
 if (NOT DEFINED INSTALL_MANPREFIX)
 	set(INSTALL_MANPREFIX ${CMAKE_INSTALL_PREFIX})
 endif ()
+
+if (NOT DEFINED INSTALL_LIBDIR)
+	set(INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib)
+endif ()
+
+add_definitions(-DPACKAGE_VERSION="0.6.0")
+add_definitions(-DSHARE_PATH="${CMAKE_INSTALL_PREFIX}/share" )
+add_definitions(-DLIB_PATH="${INSTALL_LIBDIR}" )
 
 
 find_package (Threads REQUIRED)

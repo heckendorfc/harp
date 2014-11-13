@@ -6,4 +6,4 @@ add_library(harpflac MODULE flac.c ../../defs_h.c)
 target_link_libraries (harpflac harpplugin ${FLAC_LIBRARIES})
 
 INSTALL(FILES libharpflac.sql DESTINATION share/harp)
-INSTALL(TARGETS harpflac LIBRARY DESTINATION lib)
+INSTALL(TARGETS harpflac LIBRARY DESTINATION ${INSTALL_LIBDIR})

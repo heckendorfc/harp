@@ -6,4 +6,4 @@ add_library(harpvorbis MODULE vorbis.c ../../defs_h.c)
 target_link_libraries (harpvorbis harpplugin ${VORBIS_LIBRARIES})
 
 INSTALL(FILES libharpvorbis.sql DESTINATION share/harp)
-INSTALL(TARGETS harpvorbis LIBRARY DESTINATION lib)
+INSTALL(TARGETS harpvorbis LIBRARY DESTINATION ${INSTALL_LIBDIR})

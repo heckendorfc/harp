@@ -5,4 +5,4 @@ add_library(harpstream MODULE stream.c ../../defs_h.c)
 target_link_libraries (harpstream harpplugin)
 
 INSTALL(FILES libharpstream.sql DESTINATION share/harp)
-INSTALL(TARGETS harpstream LIBRARY DESTINATION lib)
+INSTALL(TARGETS harpstream LIBRARY DESTINATION ${INSTALL_LIBDIR})
