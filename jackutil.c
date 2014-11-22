@@ -371,9 +371,11 @@ int writei_snd(struct playerHandles *ph, const char *out, const unsigned int siz
 	}
 
 	i=tmpbufsize*sizeof(*ph->tmpbuf);
-	while(jack_ringbuffer_write_space(ph->outbuf[0])<i){
-		//fprintf(stderr,"buffer full\n");
-		usleep(10000);
+	for(c=0;c<ph->dec_chan;c++){
+		while(jack_ringbuffer_write_space(ph->outbuf[c])<i){
+			//fprintf(stderr,"buffer full\n");
+			usleep(10000);
+		}
 	}
 
 	for(c=0;c<ph->dec_chan;c++){
@@ -392,7 +394,7 @@ tryresample:
 		i=ret*sizeof(*ph->tmpbuf_out);
 		//i=tmpbufsize*sizeof(*ph->tmpbuf_out);
 		if((ret=jack_ringbuffer_write(ph->outbuf[c],(char*)ph->tmpbuf_out,i))<i)
-			fprintf(stderr,"JACK | ringbuffer failed write. expected: %d ; got: %d\n",i,ret);
+			fprintf(stderr,"JACK | ringbuffer failed write. expected: %d | %ld ; got: %d \n",i,tmpbufsize*sizeof(*ph->tmpbuf),ret);
 	}
 
 	return 0;
