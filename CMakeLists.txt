@@ -1,10 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (harp)
 
-add_definitions(-DPACKAGE_VERSION="0.6.0")
-add_definitions(-DSHARE_PATH="${CMAKE_INSTALL_PREFIX}/share" )
-add_definitions(-DLIB_PATH="${CMAKE_INSTALL_PREFIX}/lib" )
-
 #SET(CMAKE_C_FLAGS "-g -O0 -Wall")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -36,10 +32,11 @@ if (WITH_JACK)
 endif (WITH_JACK)
 if (WITH_PULSE)
 	add_definitions(-DWITH_PULSE=1)
-	find_package(PulseAudio REQUIRED)
-	include_directories(${PULSEAUDIO_INCLUDE_DIR})
+	#find_package(PulseAudio REQUIRED)
+	find_package(LibPulseSimple REQUIRED)
+	include_directories(${LibPulseSimple_INCLUDE_DIR})
 	set (SOUND_SRC ${SOUND_SRC} pulseutil.c)
-	set (SOUND_LIB ${SOUND_LIB} ${PULSEAUDIO_LIBRARY})
+	set (SOUND_LIB ${SOUND_LIB} ${LibPulseSimple_LIBRARY})
 endif (WITH_PULSE)
 
 find_package(FTW)
@@ -47,6 +44,20 @@ if (FTW_FOUND)
 	add_definitions(-DHAVE_FTW_H=1)
 	include_directories(${FTW_INCLUDE_DIR})
 endif (FTW_FOUND)
+
+
+if (NOT DEFINED INSTALL_MANPREFIX)
+	set(INSTALL_MANPREFIX ${CMAKE_INSTALL_PREFIX})
+endif ()
+
+if (NOT DEFINED INSTALL_LIBDIR)
+	set(INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib)
+endif ()
+
+add_definitions(-DPACKAGE_VERSION="0.6.0")
+add_definitions(-DSHARE_PATH="${CMAKE_INSTALL_PREFIX}/share" )
+add_definitions(-DLIB_PATH="${INSTALL_LIBDIR}" )
+
 
 find_package (Threads REQUIRED)
 find_package(Sqlite REQUIRED)
@@ -84,6 +95,6 @@ SET(shared_files share/defaults.conf share/create.sql)
 SET(doc_files README)
 SET(man_files share/harp.1)
 INSTALL(FILES ${shared_files} DESTINATION share/harp)
-INSTALL(FILES ${man_files} DESTINATION man/man1)
+INSTALL(FILES ${man_files} DESTINATION ${INSTALL_MANPREFIX}/man/man1)
 INSTALL(FILES ${doc_files} DESTINATION share/doc/harp)
 INSTALL(TARGETS harp RUNTIME DESTINATION bin)
