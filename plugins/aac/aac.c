@@ -56,6 +56,7 @@ int filetype_by_data(FILE *ffd){
 }
 
 void plugin_seek(struct playerHandles *ph, int modtime){
+	int ns, nt;
 	if(ph->dechandle==NULL)return;
 
 	struct aacHandles *h=(struct aacHandles *)ph->dechandle;
@@ -66,13 +67,17 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 		return;
 	}
 
-	*h->total+=modtime*(*h->rate);
-	*h->sample+=((*h->rate)*modtime)/(h->framesize);
+	nt=*h->total;
+	ns=*h->sample;
+	nt+=modtime*(*h->rate);
+	ns+=((*h->rate)*modtime)/(h->framesize);
 
-	if(*h->sample<0 || *h->total<0){
-		*h->sample=0;
-		*h->total=0;
+	if(ns<0 || nt<0){
+		ns=nt=0;
 	}
+
+	*h->total=nt;
+	*h->sample=ns;
 
 	snd_clear(ph);
 }
@@ -173,8 +178,8 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 		}
 
 		/* is it a frame? */
-		frame_length = adts_check_frame(bp);
-		next_frame = adts_check_frame(bp+frame_length);
+		frame_length = adts_check_frame((unsigned char*)bp);
+		next_frame = adts_check_frame((unsigned char*)bp+frame_length);
 		if (frame_length == 0 || next_frame == 0) {
 			/* it's just some random 0xff byte; discard it
 			   and continue searching */
@@ -213,7 +218,7 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 }
 
 int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int bufsize){
-	unsigned char *buf=o_buf;
+	unsigned char *buf=(unsigned char*)o_buf;
 	char *out;
 	int track,fmt,ret,channels,retval=DEC_RET_SUCCESS;
 	unsigned int rate;
@@ -255,7 +260,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	else if(fmt==FAAD_FMT_DOUBLE)
 		fmt=64;
 
-	frame_size=adts_find_frame(ph->ffd,buf,buf_filled,bufsize);
+	frame_size=adts_find_frame(ph->ffd,(char*)buf,buf_filled,bufsize);
 	adts_header=(((uint32_t*)buf)[0]) >> 6;
 
 	if((ret=NeAACDecInit(hAac,buf,frame_size,&ratel,&channelchar)) == 0){
@@ -334,7 +339,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 
 		memmove(buf,buf+frame_size,bufsize-frame_size);
 		bufstart=bufsize-frame_size;
-		frame_size=adts_find_frame(ph->ffd,buf,bufstart,bufsize);
+		frame_size=adts_find_frame(ph->ffd,(char*)buf,bufstart,bufsize);
 		if(frame_size==0){
 			//fprintf(stderr,"\nframe_size==0\n");
 			if(ferror(ph->ffd))
