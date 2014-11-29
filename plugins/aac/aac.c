@@ -56,23 +56,36 @@ int filetype_by_data(FILE *ffd){
 }
 
 void plugin_seek(struct playerHandles *ph, int modtime){
+	long ht=0,hs=0;
+
 	if(ph->dechandle==NULL)return;
 
 	struct aacHandles *h=(struct aacHandles *)ph->dechandle;
 	if(modtime==0){
 		*h->sample=0;
-		*h->total=0;
+		if(h->total)
+			*h->total=0;
 		snd_clear(ph);
 		return;
 	}
 
-	*h->total+=modtime*(*h->rate);
-	*h->sample+=((*h->rate)*modtime)/(h->framesize);
-
-	if(*h->sample<0 || *h->total<0){
-		*h->sample=0;
-		*h->total=0;
+	if(h->total){
+		ht=*h->total;
+		ht+=modtime*((int)*h->rate);
 	}
+
+	hs=*h->sample;
+	hs+=(((int)*h->rate)*modtime)/(h->framesize);
+
+	if(hs<0)
+		hs=0;
+	if(ht<0)
+		ht=0;
+
+	*h->sample=hs;
+	if(h->total)
+		*h->total=ht;
+
 
 	snd_clear(ph);
 }
@@ -452,6 +465,9 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	const int outsize=framesize*channels*2;
 #endif
 
+	if(mp4lib_prime_read(ph->ffd,&infile)){
+		fprintf(stderr,"Prime failed\n");
+	}
 	for(sample=0;sample<numsamples;sample++){
 		ret=mp4lib_read_sample(ph->ffd,&infile,sample,&buf,&bufsize);
 		if(ret!=0){

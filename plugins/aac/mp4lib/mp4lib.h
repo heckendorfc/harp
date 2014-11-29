@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2013  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 #define INIT_BUF_SIZE 512
 
-typedef struct mp4handle_t{
+typedef struct mp4track_t{
 	uint32_t *s_size;
 	uint32_t num_samples;
 
@@ -50,10 +50,15 @@ typedef struct mp4handle_t{
 	}*descs;
 	uint32_t num_desc;
 
-	struct sample_buf{
-		unsigned char *buf;
-		int allocated;
-	}s_buf;
+}mp4track_t;
+
+typedef struct mp4tracklist_t{
+	struct mp4tracklist_t *next;
+	struct mp4track_t track;
+}mp4tracklist_t;
+
+typedef struct mp4handle_t{
+	mp4tracklist_t *tracks;
 
 	struct udta{
 		char *title;
@@ -65,8 +70,13 @@ typedef struct mp4handle_t{
 	int in_udta;
 	char *metaptr;
 
-	uint8_t metadone;
+	struct sample_buf{
+		unsigned char *buf;
+		int allocated;
+	}s_buf;
 
+	mp4tracklist_t *cur_track;
+	uint8_t metadone;
 	uint32_t next_sample;
 }mp4handle_t;
 
@@ -83,6 +93,7 @@ int mp4lib_parse_meta(FILE *in, mp4handle_t *h);
 int mp4lib_get_decoder_config(mp4handle_t *h, int track, unsigned char **buf, unsigned int *size);
 int mp4lib_total_tracks(mp4handle_t *h);
 int mp4lib_read_sample(FILE *in, mp4handle_t *h, int sample, unsigned char **buf, unsigned int *size);
+int mp4lib_prime_read(FILE *in, mp4handle_t *h);
 int mp4lib_num_samples(mp4handle_t *h);
 void mp4lib_close(mp4handle_t *h);
 
