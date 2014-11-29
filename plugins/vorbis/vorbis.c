@@ -47,6 +47,7 @@ int filetype_by_data(FILE *ffd){
 }
 
 void plugin_seek(struct playerHandles *ph, int modtime){
+	int newtime;
 	if(ph->dechandle==NULL)return;
 
 	struct vorbisHandles *h=(struct vorbisHandles *)ph->dechandle;
@@ -62,11 +63,12 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 
 	if(ov_time_seek(h->vf,seconds)!=0)
 		return;
-	*h->total=seconds*((h->rate)*(h->sizemod));
+	newtime=seconds*((h->rate)*(h->sizemod));
 
-	if(*h->total<0)
-		*h->total=0;
+	if(newtime<0)
+		newtime=0;
 
+	*h->total=newtime;
 	snd_clear(ph);
 }
 

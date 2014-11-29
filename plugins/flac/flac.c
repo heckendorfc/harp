@@ -166,11 +166,12 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	do{ /* Read and write until everything is through. */
 		if(data.seeking){
-			if(!FLAC__stream_decoder_seek_absolute(decoder,data.nextpos))
+			if(!FLAC__stream_decoder_seek_absolute(decoder,data.nextpos)){
 				if(data.nextpos>=FLAC__stream_decoder_get_total_samples(decoder))
 					break;
 				else
 					fprintf(stderr,"\nSeek to %d failed\n",data.nextpos);
+			}
 			data.seeking=0;
 		}
 		if(FLAC__stream_decoder_process_single(decoder)==(FLAC__bool)false){fprintf(stderr,"Early abort\n");break;}

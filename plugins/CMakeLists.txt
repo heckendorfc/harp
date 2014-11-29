@@ -1,9 +1,10 @@
 add_definitions(-D_HARP_PLUGIN=1)
 include_directories(${CMAKE_SOURCE_DIR})
 
-SET(CMAKE_C_FLAGS "-fPIC -g -O0")
+#SET(CMAKE_C_FLAGS "-fPIC -g -O0")
 
 add_library(harpplugin STATIC plugin.c ../message.c ../sndutil.c ../${SOUND_SRC})
+SET_TARGET_PROPERTIES(harpplugin PROPERTIES POSITION_INDEPENDENT_CODE True)
 
 option (WITH_MP3 "Enable MP3 support" ON)
 option (WITH_AAC "Enable AAC support" ON)
