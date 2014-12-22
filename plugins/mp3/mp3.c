@@ -164,7 +164,7 @@ pthread_mutex_lock(&dechandle_lock);
 
 
 	if(modtime){
-		h->total+=(modtime*h->accuracy);
+		h->total+=modtime;
 		if(h->total<0)h->total=0;
 	}
 	else
