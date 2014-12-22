@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #endif
 */
 
+#include <regex.h>
 #include <ctype.h>
 #include <dlfcn.h>
 #include <getopt.h>
@@ -175,9 +176,18 @@ struct lconf{
 	int exception;
 }extern listconf;
 
+enum insertflag_types{
+	MI_ARTIST=0,
+	MI_ALBUM,
+	MI_TITLE,
+	MI_YEAR,
+	MI_TRACK,
+	MI_NULL,
+};
+
 struct iconf{
-	char **f_root;
-	char **format;
+	int **keyorder;
+	regex_t *pattern;
 	int format_length;
 	int (*first_cb)(struct insert_data *data);
 	int (*second_cb)(struct insert_data *data);

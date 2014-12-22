@@ -24,6 +24,8 @@ struct lconf listconf;
 struct iconf insertconf;
 struct dconf debugconf;
 
+static const char insertflags[]={'r','a','t','y','k',0};
+
 extern struct option longopts[];
 
 static void argConfig(char *buffer){
@@ -129,27 +131,55 @@ static void insertConfig(char *buffer){
 	}
 	else if(strcmp("format",buffer)==0){
 		char *ptr=setting;
+		int koi=0;
+		const char *pflag="(.*)";
+		char *pattern;
+		int pi=0;
+		int ret;
+		int siz;
 		if(++formatsize==ICONF_MAX_FORMAT_SIZE){
 			fprintf(stderr,"Insert format buffer is full. Please check your config file.");
 			return;
 		}
+		insertconf.keyorder[formatsize]=NULL;
+		insertconf.keyorder[formatsize-1]=malloc(MI_NULL*sizeof(int));
 
-		if(*ptr=='*'){
-			*(insertconf.f_root+(formatsize-1))=strdup("*");
-			*(insertconf.format+(formatsize-1))=strdup(ptr+1);
-			*(insertconf.format+formatsize)=NULL;
-			return;
+		siz=strlen(setting)+(strlen(pflag)-2)*MI_NULL;
+		pattern=malloc(siz);
+
+		while(*ptr){
+			do{
+				pattern[pi++]=*ptr;
+			}while(*ptr && *(++ptr)!='%');
+
+			if(*ptr && ptr[1] && koi<MI_NULL){
+				int i;
+				for(i=0;insertflags[i];i++){
+					if(insertflags[i]==ptr[1]){
+						insertconf.keyorder[formatsize-1][koi++]=i;
+						break;
+					}
+				}
+
+				for(i=0;pflag[i];i++)
+					pattern[pi++]=pflag[i];
+
+				ptr++;
+			}
+			else
+				break;
+
+			ptr++;
+		}
+		insertconf.keyorder[formatsize-1][koi]=MI_NULL;
+		pattern[pi++]=0;
+
+		if((ret=regcomp(insertconf.pattern+formatsize-1,pattern,REG_EXTENDED))){
+			regerror(ret,NULL,pattern,siz);
+			fprintf(stderr,"Compile regex failed! (%d) %s\n",ret,pattern);
 		}
 
-		while(*ptr && *(++ptr)!='%');
-
-		*ptr=0;
-		*(insertconf.f_root+(formatsize-1))=tmp=strdup(setting);
-		if(!tmp){fprintf(stderr,"Can't strdup f_root: %s\n",setting);return;};
-		*ptr='%';
-		*(insertconf.format+(formatsize-1))=tmp=strdup(ptr);
-		if(!tmp){fprintf(stderr,"Can't strdup format: %s\n",ptr);return;};
-		*(insertconf.format+formatsize)=NULL;
+		free(pattern);
 	}
 	else if(strcmp("accuratelength",buffer)==0 && *setting=='y'){
 		insertconf.length=0;
@@ -210,10 +240,9 @@ static void debugConfig(char *buffer){
 }
 
 static void configInit(){
-	if((insertconf.format=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE)))
-		*insertconf.format=NULL;
-	if((insertconf.f_root=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE)))
-		*insertconf.f_root=NULL;
+	if((insertconf.keyorder=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE)))
+		*insertconf.keyorder=NULL;
+	insertconf.pattern=malloc(sizeof(char*)*ICONF_MAX_FORMAT_SIZE);
 	insertconf.length=-1;
 	insertconf.second_cb=insertconf.first_cb=NULL;
 

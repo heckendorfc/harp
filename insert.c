@@ -15,6 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <regex.h>
 #include "insert.h"
 #include "defs.h"
 #include "dbact.h"
@@ -320,91 +321,59 @@ int metadataInsert(struct insert_data *data){
 	return 1;
 }
 
-static void filepathinsert_flags(char flag, struct insert_data *data, int *limit, char **dest){
-	switch(flag){
-		case 'r':
-			*limit=MI_ARTIST_SIZE;
-			*dest=data->mi->artist;break;
-		case 'a':
-			*limit=MI_ALBUM_SIZE;
-			*dest=data->mi->album;break;
-		case 't':
-			*limit=MI_TITLE_SIZE;
-			*dest=data->mi->title;break;
-		case 'y':
-			*limit=MI_YEAR_SIZE;
-			*dest=data->mi->year;break;
-		case 'k':
-			*limit=MI_TRACK_SIZE;
-			*dest=data->mi->track;break;
-	}
-}
+void setInsertData(struct musicInfo *mi, char *str, int start, int end, int id){
+	int len=end-start;
+	char *ptr;
 
-static void reverse_filepathInsert(char *orig_format, struct insert_data *data){
-	char *format=orig_format;
-	char *orig_ptr=(char*)data->path;
-	char *ptr=orig_ptr;
-	char *tmp;
-	char *dest=NULL;
-	int limit,x=0;
-	while(*(++ptr)); // terminated
-	while(*(++format)); // terminated
-	while(format>orig_format && *(--format)!='%'); // Get first %
-	while(format>=orig_format){
-		filepathinsert_flags(*(format+1),data,&limit,&dest); // % coefficient
-		if(dest && *(--format)!='%'){ // Char before %
-			tmp=ptr;
-			while((ptr--)>orig_ptr && *ptr!=*format) // Skip back to start of this str
-				;
-			x=(int)(tmp-ptr);
-			limit=x<limit?x:limit;
-			memcpy(dest,ptr+1,limit);
-			x=0;
-			dest=NULL;
-		}
-		while(--format>orig_format && *format!='%' && (ptr--)>orig_ptr);
+	switch(id){
+		case MI_ARTIST:
+			ptr=mi->artist;
+			break;
+		case MI_ALBUM:
+			ptr=mi->album;
+			break;
+		case MI_TITLE:
+			ptr=mi->title;
+			break;
+		case MI_TRACK:
+			ptr=mi->track;
+			break;
+		case MI_YEAR:
+			ptr=mi->year;
+			break;
+		default:
+			ptr=NULL;
 	}
-	return;
+	if(ptr)
+		memcpy(ptr,str+start,len);
 }
 
 int filepathInsert(struct insert_data *data){
-	char **format=insertconf.format;
-	char **f_root=insertconf.f_root;
 	char *ptr=(char*)data->path;
-	char *dest=NULL;
-	char *fptr=*f_root;
-	int limit,x=0;
+	char *fptr;
+	const size_t nrm=9;
+	int **ko=insertconf.keyorder;
+	regex_t *preg=insertconf.pattern;
+	regmatch_t rmatch[nrm];
+	int i,j;
+	int rret;
 
-	if(isURL(data->path)){
-		strncpy(data->mi->title,data->path,MI_TITLE_SIZE);
-		return 1;
-	}
-
-	while(fptr){
-		if(*fptr=='*'){
-			reverse_filepathInsert(*(format+x),data);
+	for(i=0;ko[i];i++){
+		rret=regexec(preg+i,ptr,nrm,rmatch,0);
+		if(rret==0){
+			for(j=0;ko[i][j]<MI_NULL && j<nrm-1;j++){
+				setInsertData(data->mi,ptr,rmatch[j+1].rm_so,rmatch[j+1].rm_eo,ko[i][j]);
+			}
 			return 1;
 		}
-		fptr=*(f_root+x);
-		while(*ptr && *fptr && *(ptr++)==*(fptr++));
-		if(!*fptr)break; // Success
-		x++;
-		ptr=(char*)data->path;
-	}
-	if(!fptr || !*(format+x))return 0;
-	fptr=*(format+x);
-
-	while(*fptr && *(fptr++)!='%');
-	while(*fptr){
-		filepathinsert_flags(*fptr,data,&limit,&dest);
-		if(dest && *(++fptr)!='%'){
-			while(*ptr!=*fptr && x++<limit)
-				*(dest++)=*(ptr++);
-			*dest=x=0;
-			dest=NULL;
+		else if(rret==REG_NOMATCH){
 		}
-		while(*fptr && *(fptr++)!='%' && *(ptr++));
+		else{
+			debug(1,"Regex match error!");
+		}
 	}
+
+	debug(1,"No regex matches.");
 	return 1;
 }
 
