@@ -91,7 +91,7 @@ int atom_trak_step_down(FILE *in, mp4atom_t *at, mp4handle_t *h){
 	h->tracks->track.chunk_off=NULL;
 	h->tracks->track.chunks=NULL;
 	h->tracks->track.descs=NULL;
-	atom_step_down(in,at,h);
+	return atom_step_down(in,at,h);
 }
 
 int atom_udta_start_down(FILE *in, mp4atom_t *at, mp4handle_t *h){

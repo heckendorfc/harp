@@ -81,7 +81,7 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 	const int by=data->size/8;
 	int *bt;
 	//const int by=2;
-	if(!(buffs=malloc(frame->header.blocksize*by*data->channels))){
+	if(!(buffs=malloc(frame->header.blocksize*by*data->channels*2))){ // *2 ~just in case~ ? try to fix sbrk segfault
 		fprintf(stderr,"Malloc failed (decoder buffer)");
 		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	}
@@ -100,6 +100,7 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 	data->curtime=frame->header.number.sample_number;
 	//fprintf(stderr,"%d ",frame->header.blocksize);
 	//writei_snd(data->ph, (void *)buffer[0], frame->header.blocksize);
+	free(buffs);
 	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
 }
 

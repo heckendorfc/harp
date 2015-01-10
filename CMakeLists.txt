@@ -1,7 +1,8 @@
 cmake_minimum_required (VERSION 2.6)
 project (harp)
 
-#SET(CMAKE_C_FLAGS "-g -O0 -Wall")
+SET(CMAKE_C_FLAGS_DEBUG "-g -O0 -Wall")
+SET(CMAKE_C_FLAGS_RELEASE "-O2")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
