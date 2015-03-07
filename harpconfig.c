@@ -153,7 +153,24 @@ static void insertConfig(char *buffer){
 			}while(*ptr && *(++ptr)!='%');
 
 			if(*ptr && ptr[1] && koi<MI_NULL){
-				int i;
+				int i,j,custom=0;
+				if(ptr[1]=='['){
+					custom=1;
+					ptr+=2;
+					pattern[pi++]='(';
+					for(j=1;j>0 && *ptr;ptr++){
+						if(*ptr=='[' && *(ptr-1)!='\\')
+							j++;
+						if(*ptr==']' && *(ptr-1)!='\\')
+							j--;
+						if(j)
+							pattern[pi++]=*ptr;
+					}
+					pattern[pi++]=')';
+					if(*ptr==0)
+						break;
+					ptr--;
+				}
 				for(i=0;insertflags[i];i++){
 					if(insertflags[i]==ptr[1]){
 						insertconf.keyorder[formatsize-1][koi++]=i;
@@ -161,8 +178,10 @@ static void insertConfig(char *buffer){
 					}
 				}
 
-				for(i=0;pflag[i];i++)
-					pattern[pi++]=pflag[i];
+				if(!custom){
+					for(i=0;pflag[i];i++)
+						pattern[pi++]=pflag[i];
+				}
 
 				ptr++;
 			}
