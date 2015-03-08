@@ -271,7 +271,8 @@ static int get_select_type(command_t *c){
 		if(strcmp(selectors[ret],c->cmd->word)==0)
 			return ret;
 	}
-	return -1;
+	//return -1;
+	return 0; /* song default ? */
 }
 
 static int get_templist(arglist_t *a, int ctype){
@@ -372,17 +373,22 @@ arglist_t* make_com_arg(void *data, int flag){
 
 		ret->tltype=c->tltype;
 
-		while(a){
-			atid=get_templist(a,c->tltype);
+		if(c->tlid>=0)
+			cid=c->tlid;
+		else{
+			while(a){
+				atid=get_templist(a,c->tltype);
 
-			if(cid==-1)
-				cid=atid;
-			else
-				mergeTempSelect(cid,atid);
+				if(cid==-1)
+					cid=atid;
+				else
+					mergeTempSelect(cid,atid);
 
-			a=a->next;
+				a=a->next;
+			}
 		}
 
+		ret->words=NULL;
 		ret->tlid=cid;
 	}
 	else{
@@ -433,11 +439,10 @@ void com_act_set_args(command_t *c, arglist_t *a){
 command_t* com_set_args(command_t *c, arglist_t *a, int flag){
 	c->flags=flag;
 
-	if(flag==COM_SEL)
+	//if(flag==COM_SEL)
 		com_sel_set_args(c,a);
-	else
-		com_act_set_args(c,a);
-
+	//else
+		//com_act_set_args(c,a);
 	return c;
 }
 

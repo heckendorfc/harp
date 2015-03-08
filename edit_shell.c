@@ -443,6 +443,11 @@ static int editTagAdd(command_t *sel, command_t *act){
 	char query[300];
 	char *songs_start,*songs_end;
 
+	if(act->tlid>=0){
+		sprintf(query,"INSERT INTO SongTag (SongID,TagID) SELECT SongID,TagID FROM Song,Tag WHERE Song.SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d) AND TagID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",act->tlid,sel->tlid);
+		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+		return HARP_RET_OK;
+	}
 	if(act->args->words->flag==WORD_DEFAULT){
 		songs_start="SongID=";
 		songs_end="";
