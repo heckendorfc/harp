@@ -147,7 +147,6 @@ unsigned int dbInit(){
 		/* Upgrade DB */
 		int vnum=0;
 		harp_sqlite3_exec(conn,"SELECT Version FROM DBInfo",uint_return_cb,&vnum,NULL);
-		fprintf(stderr,"vnum %d\n",vnum);
 		if(vnum!=DB_VERSION){
 			sprintf(temp,"Upgrading database from %d to %d\n",vnum,DB_VERSION);
 			debug(1,temp);

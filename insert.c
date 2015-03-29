@@ -389,8 +389,9 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	}
 
 	debug(1,"Finding file type");
-	if((fmt=fileFormat(plugin_head,arg))<1){
-		if(fmt==0)fprintf(stderr,"Unknown file type\n");
+	if((fmt=fileFormat(plugin_head,arg))>=PLUGIN_NULL){
+		if(fmt==PLUGIN_NULL)
+			fprintf(stderr,"Unknown file type\n");
 		return 0;
 	}
 
