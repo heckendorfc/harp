@@ -32,25 +32,9 @@ Installing harp:
 	make
 	sudo make install
 
-Enable the plugins in harp (this may be done automatically):
-	harp -a
-		select plugin management:
-	Admin> p
-		add a plugin:
-	Plugins> a
-	Library (e.g., libharpmp3): libharpmp3
-	Plugins> a
-	Library (e.g., libharpmp3): libharpaac
-		...
-
-Check that the plugins have been installed:
-		list added plugins:
-	manage plugins> l
-
 (optional) Create a configuration file:
 Note: your paths may be different.
 	cp /usr/local/share/harp/defaults.conf ~/.harp/defaults.conf
-
 
 
 II.	Manager Interface
@@ -221,25 +205,6 @@ Genre commands:
 
 4.	Admin
 
-Manage Plugins (p)
-	a Add
-		Add a plugin to the system. Plugin must already be
-		installed.
-	l List
-		List all plugins in the system
-	r Remove
-		Remove a plugin from the system.
-	t Toggle activation
-		Toggle the activation status of a plugin. Deactivated
-		plugins will only be used if all activated plugins of
-		the correct type are unavailable.
-		PluginID can either be given as:
-			manage plugins> t x
-			  or
-			manage plugins> t
-			PluginID: x
-		where x is the PluginID
-
 Manage Stats (s)
 	r Reset stats
 		a Reset all
@@ -261,7 +226,6 @@ General format for this file:
 	-Comments start with #
 	-Section names are enclosed in []
 	-Options are in the format: option=setting
-
 
 
 IV.	Requirements

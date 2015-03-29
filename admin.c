@@ -218,7 +218,7 @@ static int pluginPortal(char *args, void *data){
 void adminPortal(){
 	struct commandOption portalOptions[]={
 		{'s',statsPortal,"Manage stats",NULL},
-		{'p',pluginPortal,"Manage plugins",NULL},
+		//{'p',pluginPortal,"Manage plugins",NULL},
 		{0,NULL,NULL}
 	};
 	printf("Enter a command. ? for command list.\n");
