@@ -20,6 +20,7 @@
 #include "defs.h"
 #include "dbact.h"
 #include "util.h"
+#include "plugins/plugin.h"
 
 //static int verifySong(const int sid);
 static int insertSong(const char *arg, struct musicInfo *mi);
@@ -235,13 +236,6 @@ static struct musicInfo *getMusicInfo(struct musicInfo *mi){
 	return hold;
 }
 
-static struct pluginitem *getPluginList(struct pluginitem *list){
-	static struct pluginitem *hold;
-	if(list)
-		hold=list;
-	return hold;
-}
-
 #ifdef HAVE_FTW_H
 #include <ftw.h>
 int useFile(const char *fpath, const struct stat *sb, int typeflag) {
@@ -266,13 +260,6 @@ static int directoryInsert(const char *arg){
 
 int batchInsert(char *arg){
 	struct musicInfo mi;
-	struct pluginitem *plugin_head;
-
-	if(!(plugin_head=openPlugins())){
-		fprintf(stderr,"No plugins found. Please add them with harp -a\n");
-		return 0;
-	}
-	getPluginList(plugin_head);
 
 	if(!(mi.title=malloc((MI_TITLE_SIZE*2+1)*sizeof(char))) ||
 		!(mi.track=malloc(((MI_TRACK_SIZE*2)+1)*sizeof(char))) ||
@@ -281,7 +268,6 @@ int batchInsert(char *arg){
 		!(mi.year=malloc(((MI_YEAR_SIZE*2)+1)*sizeof(char))))
 		return 0;
 	getMusicInfo(&mi);
-
 
 	if(arg){//single argv insert
 		if(isURL(arg))
@@ -301,16 +287,15 @@ int batchInsert(char *arg){
 }
 
 int metadataInsert(struct insert_data *data){
-	FILE *ffd;
-	struct pluginitem *pi_ptr;
+	FILE *ffd=NULL;
+	struct pluginitem *pi_ptr=NULL;
 
-	findPluginIDByType(0); // Reset
-	while((pi_ptr=findPluginByID(data->plugin_head,findPluginIDByType(data->fmt)))){
+	//while((pi_ptr=findPluginByID(plugin_head,findPluginIDByType(data->fmt)))){
+	if(data->fmt<PLUGIN_NULL && (pi_ptr=plugin_head[data->fmt])){
 		if((ffd=pi_ptr->modopen(data->path,"rb"))!=NULL){
 			debug(1,data->path);
 			pi_ptr->modmeta(ffd,data->mi);
 			pi_ptr->modclose(ffd);
-			break;
 		}
 	}
 	if(ffd==NULL)
@@ -350,7 +335,6 @@ void setInsertData(struct musicInfo *mi, char *str, int start, int end, int id){
 
 int filepathInsert(struct insert_data *data){
 	char *ptr=(char*)data->path;
-	char *fptr;
 	const size_t nrm=9;
 	int **ko=insertconf.keyorder;
 	regex_t *preg=insertconf.pattern;
@@ -387,7 +371,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	int x;
 	struct insert_data data;
 
-	data.plugin_head=getPluginList(NULL);
+	//data.plugin_head=getPluginList(NULL);
 
 	if(!mi)mi=getMusicInfo(NULL);
 	miClean(mi);
@@ -405,7 +389,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	}
 
 	debug(1,"Finding file type");
-	if((fmt=fileFormat(data.plugin_head,arg))<1){
+	if((fmt=fileFormat(plugin_head,arg))<1){
 		if(fmt==0)fprintf(stderr,"Unknown file type\n");
 		return 0;
 	}

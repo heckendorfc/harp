@@ -18,6 +18,7 @@
 #include "util.h"
 #include "defs.h"
 #include "dbact.h"
+#include "plugins/plugin.h"
 
 int experr(const char *epath, int eerrno){
 	fprintf(stderr,"error: %d on %s\n",eerrno,epath);
@@ -80,48 +81,56 @@ char *expand(char *in){
 	return in;
 }
 
-int fileFormat(struct pluginitem *list, const char *arg){
+int fileFormat(struct pluginitem **list, const char *arg){
 	FILE *ffd=NULL;
 	char query[200];
 	struct dbitem dbi;
-	struct pluginitem *ret=list;
-	int type=0;
+	struct pluginitem **ret=list;
+	int type=PLUGIN_NULL;
+	int x=0;
+	int i,j;
 
 	// Find by magic numbers
 
-	while(!type && ret){
-		if((ffd=ret->modopen(arg,"rb"))!=NULL){
-			if(ret->moddata(ffd)){
-				sprintf(query,"SELECT TypeID FROM PluginType WHERE PluginID=%d",ret->id);
-				harp_sqlite3_exec(conn,query,uint_return_cb,&type,NULL);
+	for(i=0;type==PLUGIN_NULL && i<PLUGIN_NULL;i++){
+		if(ret[i]==NULL)
+			continue;
+
+		if((ffd=ret[i]->modopen(arg,"rb"))!=NULL){
+			if(ret[i]->moddata(ffd)){
+				//sprintf(query,"SELECT TypeID FROM PluginType WHERE PluginID=%d",ret->id);
+				//harp_sqlite3_exec(conn,query,uint_return_cb,&type,NULL);
+				type=i;
 			}
-			ret->modclose(ffd);
+			ret[i]->modclose(ffd);
 		}
-		ret=ret->next;
 	}
 	if(ffd==NULL)
-		type=0;
-	if(type){
+		type=PLUGIN_NULL;
+
+	if(type!=PLUGIN_NULL){
 		return type;
 	}
 
 	// Find by extension
-	dbiInit(&dbi);
-	doQuery("SELECT TypeID,Extension FROM FileExtension",&dbi);
-	int x=0;
+	//dbiInit(&dbi);
+	//doQuery("SELECT TypeID,Extension FROM FileExtension",&dbi);
 	for(x=0;arg[x];x++);
 	//size=x;
 	for(;arg[x-1]!='.' && x>0;x--);
-	while(fetch_row(&dbi)){
-		if(strcmp(arg+x,dbi.row[1])==0){
-			type=(int)strtol(dbi.row[0],NULL,10);
-			break;
-		}
+	for(i=0;i<PLUGIN_NULL;i++){
+		if(ret[i]==NULL)
+			continue;
+
+		for(j=0;ret[i]->extension[j];j++)
+			if(strcasecmp(arg+x,ret[i]->extension[j])==0)
+				return i;
 	}
-	dbiClean(&dbi);
-	return type;
+
+	return PLUGIN_NULL;
 }
 
+#if 0
 int getFileTypeByName(const char *name){
 	char query[200];
 	int type=0;
@@ -238,7 +247,7 @@ static int open_plugin_cb(void *arg, int col_count, char **row, char **titles){
 	}
 	else{
 		if(regPluginFunctions(next)){
-			free(next);
+			gree(nexu);
 			return 1;
 		}
 		else{
@@ -253,8 +262,10 @@ static int open_plugin_cb(void *arg, int col_count, char **row, char **titles){
 	return 0;
 }
 
-struct pluginitem *openPlugins(){
+struct pluginitem **openPlugins(){
 	struct pluginitem prehead,*ptr;
+
+	return plugin_head;
 
 	prehead.next=NULL;
 	ptr=&prehead;
@@ -265,8 +276,9 @@ struct pluginitem *openPlugins(){
 		return NULL;
 	}
 
-	return prehead.next; /* List starts at this next */
+	//return prehead.next; /* List starts at this next */
 }
+#endif
 
 char *getFilename(const char *path){
 	char *filestart=(char *)path;

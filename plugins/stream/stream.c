@@ -77,7 +77,7 @@ static void close_pipe(){
 	}
 }
 
-void plugin_close(FILE *ffd){
+static void plugin_close(FILE *ffd){
 	close_pipe();
 	close(h.sfd);
 }
@@ -144,7 +144,7 @@ static int stream_hello(char *filename){
 	return 0;
 }
 
-FILE *plugin_open(const char *path, const char *mode){
+static FILE *plugin_open(const char *path, const char *mode){
 	int sfd;
 	int ret;
 	int x;
@@ -198,27 +198,35 @@ FILE *plugin_open(const char *path, const char *mode){
 	return h.rfd;
 }
 
-void plugin_seek(struct playerHandles *ph, int modtime){
+static void plugin_seek(struct playerHandles *ph, int modtime){
 	return;
 }
 
-int filetype_by_data(FILE *ffd){
+static int filetype_by_data(FILE *ffd){
 	if(ffd==h.rfd)
 		return 1;
 	return 0;
 }
 
 static void print_stream_meta(struct streamInfo *si){
-	if(si->name && *si->name)
+	if(si->name && *si->name){
 		printf("Name:        %s\n",si->name);
-	if(si->description && *si->description)
+		free(si->name);
+	}
+	if(si->description && *si->description){
 		printf("Description: %s\n",si->description);
-	if(si->genre && *si->genre)
+		free(si->description);
+	}
+	if(si->genre && *si->genre){
 		printf("Genre:       %s\n",si->genre);
+		free(si->genre);
+	}
 	if(si->bitrate)
 		printf("Bitrate:     %d\n",si->bitrate);
-	if(si->type && *si->type)
+	if(si->type && *si->type){
 		printf("Type:        %s\n",si->type);
+		free(si->type);
+	}
 	printf("---------------------\n");
 }
 
@@ -452,7 +460,7 @@ static void streamIO(int parse(char*,int*,void*),void *data){
 	}
 }
 
-void plugin_meta(FILE *ffd, struct musicInfo *mi){
+static void stream_plugin_meta(FILE *ffd, struct musicInfo *mi){
 	h.go=1;
 	streamIO(parse_meta_mi,mi);
 
@@ -471,26 +479,25 @@ static char *nextType(char *type){
 	return NULL;
 }
 
-static struct pluginitem *selectPlugin(struct pluginitem *list, char *type){
-	struct pluginitem *ret=list;
+static struct pluginitem *selectPlugin(struct pluginitem **list, char *type){
 	char buf[S_BUFSIZE],*ptr;
 	int len,tlen,x;
+	int i;
 	if(type==NULL || *type==0)return NULL;
 	len=strlen(type);
 
-	while(ret){
-		ptr=ret->contenttype;
+	for(i=0;i<PLUGIN_NULL;i++){
+		ptr=list[i]->contenttype;
 		while(ptr){
 			if(strncmp(ptr,type,len)==0)
-				return ret;
+				return list[i];
 			ptr=nextType(ptr);
 		}
-		ret=ret->next;
 	}
 	return NULL;
 }
 
-void* sio_thread(void *data){
+static void* sio_thread(void *data){
 	if(h.print_meta && h.metaint)
 		streamIO(write_pipe_parse_meta,data);
 	else
@@ -499,7 +506,7 @@ void* sio_thread(void *data){
 	return (void*)0;
 }
 
-int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
+static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	int ret,temp=-1;
 	struct pluginitem *plugin;
 	struct streamInfo si;
@@ -508,6 +515,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	fd_set fdset;
 	struct timeval timeout;
 	int rfd;
+	int i;
 
 	if(!(si.name=malloc((SI_NAME_SIZE+1)*sizeof(char))) ||
 		!(si.description=malloc((SI_DESCRIPTION_SIZE+1)*sizeof(char))) ||
@@ -528,7 +536,10 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	print_stream_meta(&si);
 	if(!(plugin=selectPlugin(ph->plugin_head,si.type))){
 		fprintf(stderr,"No plugin matches content-type. Trying first plugin.\n");
-		plugin=ph->plugin_head;
+		for(i=0;i<PLUGIN_NULL && ph->plugin_head[i]==NULL;i++)
+		plugin=ph->plugin_head[i];
+		if(plugin==NULL)
+			return -1;
 	}
 
 	ph->ffd=h.rfd;
@@ -561,3 +572,15 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 
 	return ret;
 }
+
+struct pluginitem streamitem={
+	.modopen=plugin_open,
+	.modclose=plugin_close,
+	.moddata=filetype_by_data,
+	.modplay=plugin_run,
+	.modseek=plugin_seek,
+	.modmeta=stream_plugin_meta,
+	.contenttype="null",
+	.extension={"///",NULL},
+	.name="STREAM",
+};

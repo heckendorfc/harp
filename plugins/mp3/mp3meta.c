@@ -30,7 +30,7 @@ int getTagData(unsigned char *buf, struct musicInfo *mi){
 	int x=0,ret=0,y;
 	unsigned char *tag=buf+4;
 	unsigned char *temp=calloc(5,sizeof(char));
-	
+
 	for(x=4;*tag==0 && x>0;x--)tag++;
 	memcpy(temp,tag,x); // Info Size
 	tag+=(x+3);
@@ -62,7 +62,7 @@ int getTagData(unsigned char *buf, struct musicInfo *mi){
 	free(temp);
 	return x+10;
 }
-	
+
 void ID3v2Parse(FILE *ffd, struct musicInfo *mi){
 	int ret,total=3000,next=0;
 	unsigned char buffer[255];
@@ -107,10 +107,10 @@ int mp3Length(FILE *ffd, int quick){
 		fprintf(stderr,"Unable to create mpg123 handle\n");
 		return -1;
 	}
-	mpg123_param(m, MPG123_FLAGS, MPG123_QUIET, 0); 
+	mpg123_param(m, MPG123_FLAGS, MPG123_QUIET, 0);
 	mpg123_open_fd(m,fileno(ffd));
 	if(m == NULL) return -1;
-	
+
 	if(!quick)
 		mpg123_scan(m);
 
@@ -126,7 +126,7 @@ int mp3Length(FILE *ffd, int quick){
 	return len;
 }
 
-void plugin_meta(FILE *ffd, struct musicInfo *mi){
+void mp3_plugin_meta(FILE *ffd, struct musicInfo *mi){
 	int MAX_VERSION=4;
 	int next=0;
 	unsigned char buffer[255];

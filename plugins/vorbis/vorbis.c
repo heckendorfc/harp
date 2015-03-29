@@ -28,15 +28,15 @@ struct vorbisHandles{
 	int sizemod;
 }h;
 
-FILE * plugin_open(const char *path, const char *mode){
+static FILE * plugin_open(const char *path, const char *mode){
 	return plugin_std_fopen(path,mode);
 }
 
-void plugin_close(FILE *ffd){
+static void plugin_close(FILE *ffd){
 	plugin_std_fclose(ffd);
 }
 
-int filetype_by_data(FILE *ffd){
+static int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
 	fseek(ffd,0,SEEK_SET);
 	if(!fread(buf,sizeof(buf),1,ffd))return 0;
@@ -46,7 +46,7 @@ int filetype_by_data(FILE *ffd){
 	return 0;
 }
 
-void plugin_seek(struct playerHandles *ph, int modtime){
+static void plugin_seek(struct playerHandles *ph, int modtime){
 	int newtime;
 	if(ph->dechandle==NULL)return;
 
@@ -74,10 +74,10 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 
 #define DBGPRNT nullprint
 
-void nullprint(void *a,void *b,...){
+static void nullprint(void *a,void *b,...){
 }
 
-int vorbStatus(int ret){
+static int vorbStatus(int ret){
 	switch(ret){
 		case 0:DBGPRNT(stderr,"\nEOF - done\n");return DEC_RET_SUCCESS;
 		case OV_HOLE:DBGPRNT(stderr,"\nOV_HOLE - data interruption\n");return VORB_CONTINUE;
@@ -88,14 +88,14 @@ int vorbStatus(int ret){
 	return DEC_RET_ERROR;
 }
 
-void silencer(){
+static void silencer(){
 	OggVorbis_File vf;
 	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_DEFAULT);
 	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_STREAMONLY);
 	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_STREAMONLY_NOCLOSE);
 }
 
-int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
+static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	size_t size;
 	long ret;
 	const ssize_t len=1600;
@@ -171,3 +171,15 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	*totaltime=details->curtime;
 	return retval;
 }
+
+struct pluginitem vorbisitem={
+	.modopen=plugin_open,
+	.modclose=plugin_close,
+	.moddata=filetype_by_data,
+	.modplay=plugin_run,
+	.modseek=plugin_seek,
+	.modmeta=vorbis_plugin_meta,
+	.contenttype="ogg;vorbis",
+	.extension={"ogg","oga",NULL},
+	.name="VORBIS",
+};

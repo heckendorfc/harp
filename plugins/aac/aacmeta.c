@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void plugin_meta(FILE *ffd, struct musicInfo *mi){
+void aac_plugin_meta(FILE *ffd, struct musicInfo *mi){
 	mp4handle_t handle;
 
 	mi->length=-1;

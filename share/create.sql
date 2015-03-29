@@ -1,3 +1,6 @@
+CREATE TABLE DBInfo(
+Version integer primary key);
+
 CREATE TABLE Category(
 CategoryID integer primary key,
 Name varchar(50) not null,
@@ -97,3 +100,5 @@ INSERT INTO Artist(ArtistID,Name) VALUES (1,'Unknown');
 INSERT INTO Album(AlbumID,Title) VALUES (1,'Unknown');
 INSERT INTO AlbumArtist(ArtistID,AlbumID) VALUES (1,1);
 INSERT INTO Category(CategoryID,Name) VALUES(1,"Unknown");
+
+INSERT INTO DBInfo(Version) VALUES(1);

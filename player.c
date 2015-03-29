@@ -22,6 +22,7 @@
 #include "util.h"
 #include "admin.h"
 #include "sndutil.h"
+#include "plugins/plugin.h"
 
 pthread_mutex_t actkey;
 
@@ -64,18 +65,19 @@ static int play_handle_SongPubInfo(void *data, int col_count, char **row, char *
 	printSongPubInfo(row);
 
 	psargs->totaltime=(int)strtol(row[5],NULL,10);
-	psargs->ph->pflag->rating=(int)strtol(row[7],NULL,10);
-	psargs->filetype=getFileTypeByName(row[4]);
+	psargs->ph->pflag->rating=(int)strtol(row[6],NULL,10);
+	psargs->filetype=(int)strtol(row[4],NULL,10);
 	sprintf(psargs->location,"%s",row[1]);
 
 	return 0;
 }
 
 static int play_handle_plugin(struct play_song_args *psargs){
-	int ret=0;
+	int ret=-1;
 
-	findPluginIDByType(0); // Reset
-	while((psargs->pi_ptr=findPluginByID(psargs->ph->plugin_head,findPluginIDByType(psargs->filetype)))){
+	//findPluginIDByType(0); // Reset
+	//while((psargs->pi_ptr=findPluginByID(psargs->ph->plugin_head,findPluginIDByType(psargs->filetype)))){
+	while(psargs->filetype<PLUGIN_NULL && (psargs->pi_ptr=plugin_head[psargs->filetype])){
 		if((psargs->ph->ffd=psargs->pi_ptr->modopen(psargs->location,"rb"))!=NULL){
 			psargs->pca->decoder=psargs->pi_ptr;
 			ret=psargs->pi_ptr->modplay(psargs->ph,psargs->pca->key,&psargs->totaltime);
@@ -88,8 +90,8 @@ static int play_handle_plugin(struct play_song_args *psargs){
 			return 0;
 		}
 	}
-	if(!psargs->pi_ptr)
-		ret=-1;
+	//if(psargs->filetype>=PLUGIN_NULL || !psargs->pi_ptr)
+		//ret=-1;
 
 	return ret;
 }
@@ -221,8 +223,9 @@ int player(int list){//list - playlist number
 		sprintf(small_query,"SELECT MAX(\"Order\") FROM TempPlaylistSong");
 		harp_sqlite3_exec(conn,small_query,uint_return_cb,&max_list_order,NULL);
 
-		if(!(ph.plugin_head=openPlugins())){
-			fprintf(stderr,"No plugins found. Please add them with harp -a\n");
+		if(!(ph.plugin_head=plugin_head)){
+			//fprintf(stderr,"No plugins found. Please add them with harp -a\n");
+			fprintf(stderr,"No plugins found.\n");
 			return 0;
 		}
 	}
@@ -249,7 +252,6 @@ int player(int list){//list - playlist number
 	// Play the list!
 	if(snd_init(&ph)){
 		fprintf(stderr,"\nsnd_init failed\n");
-		closePluginList(ph.plugin_head);
 		free(query);
 		return 1;
 	}
@@ -292,7 +294,6 @@ int player(int list){//list - playlist number
 		play_next_song_query(query,&pca);
 	}
 
-	closePluginList(ph.plugin_head);
 	snd_close(&ph);
 	pthread_cancel(status_thread);
 	pthread_cancel(control_thread);

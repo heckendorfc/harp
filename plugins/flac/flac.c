@@ -32,15 +32,15 @@ struct snd_data{
 	volatile char seeking;
 };
 
-FILE * plugin_open(const char *path, const char *mode){
+static FILE * plugin_open(const char *path, const char *mode){
 	return plugin_std_fopen(path,mode);
 }
 
-void plugin_close(FILE *ffd){
+static void plugin_close(FILE *ffd){
 	//plugin_std_fclose(ffd);
 }
 
-void plugin_seek(struct playerHandles *ph, int modtime){
+static void plugin_seek(struct playerHandles *ph, int modtime){
 	int modshift;
 	if(ph->dechandle==NULL)return;
 	struct snd_data *data=(struct snd_data*)ph->dechandle;
@@ -73,7 +73,7 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 #define FLAC_SIZE(x) (x*by*data->channels)
 #endif
 
-FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame, const FLAC__int32 *const buffer[], void *client_data){
+static FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame, const FLAC__int32 *const buffer[], void *client_data){
 	struct snd_data *data=(struct snd_data*)client_data;
 	//if(writen_snd(data->ph, (void**)bufs, frame->header.blocksize)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	//int x;for(x=0;x<frame->header.blocksize;x++)if(writei_snd(data->ph, (char *)&buffer[0][x], 1)<0 || writei_snd(data->ph, (char *)&buffer[1][x],1)<0)return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
@@ -104,7 +104,7 @@ FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *decoder, co
 	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
 }
 
-void flac_meta(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *metadata, void *client_data){
+static void flac_meta(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *metadata, void *client_data){
 	struct snd_data *data=(struct snd_data*)client_data;
 	data->channels=metadata->data.stream_info.channels;
 	data->rate=metadata->data.stream_info.sample_rate;
@@ -113,11 +113,11 @@ void flac_meta(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *m
 	*data->totaltime=metadata->data.stream_info.total_samples/data->rate;
 }
 
-void flac_error(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderErrorStatus status, void *client_data){
+static void flac_error(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderErrorStatus status, void *client_data){
 
 }
 
-int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
+static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	struct snd_data data;
 	data.ph=ph;
 	data.totaltime=totaltime;
@@ -199,7 +199,7 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	return retval;
 }
 
-int filetype_by_data(FILE *ffd){
+static int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
 	fseek(ffd,4*sizeof(buf[0]),SEEK_SET);
 	if(!fread(buf,sizeof(buf),1,ffd))return 0;
@@ -208,3 +208,15 @@ int filetype_by_data(FILE *ffd){
 	}
 	return 0;
 }
+
+struct pluginitem flacitem={
+	.modopen=plugin_open,
+	.modclose=plugin_close,
+	.moddata=filetype_by_data,
+	.modplay=plugin_run,
+	.modseek=plugin_seek,
+	.modmeta=flac_plugin_meta,
+	.contenttype="x-flac",
+	.extension={"flac",NULL},
+	.name="FLAC",
+};

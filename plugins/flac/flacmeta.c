@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void plugin_meta(FILE *ffd, struct musicInfo *mi){
+void flac_plugin_meta(FILE *ffd, struct musicInfo *mi){
 	return;
 	/*
 	struct snd_data data;

@@ -23,7 +23,7 @@
 int experr(const char *epath, int eerrno);
 int isURL(const char *in);
 char *expand(char *in);
-int fileFormat(struct pluginitem *list, const char *argv);
+int fileFormat(struct pluginitem **list, const char *argv);
 int getID(const char *arg);
 int strToID(const char *argv);
 char *getFilename(const char *path);
@@ -35,7 +35,7 @@ int findPluginIDByType(int type);
 struct pluginitem *findPluginByID(struct pluginitem *list, int id);
 int getPlugin(struct dbitem *dbi, const int index, void **module);
 int getPluginModule(void **module, char *lib);
-struct pluginitem *openPlugins();
+struct pluginitem **openPlugins();
 struct pluginitem *closePlugin(struct pluginitem *head);
 void closePluginList(struct pluginitem *head);
 

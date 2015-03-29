@@ -80,6 +80,9 @@
 
 #define OUTPUT_TAIL_SIZE (50)
 
+#define varstr(x) cppstr(x)
+#define cppstr(x) #x
+
 #include "message.h"
 
 struct dbitem{
@@ -122,7 +125,9 @@ struct pluginitem{
 	function_seek modseek;
 	int id;
 	char *contenttype;
-	struct pluginitem *next;
+	char *extension[5];
+	char *name;
+	//struct pluginitem *next;
 };
 
 struct argument{
@@ -306,7 +311,7 @@ struct playerHandles{
 	struct playerflag *pflag;
 	void *dechandle;
 	struct outputdetail *outdetail;
-	struct pluginitem *plugin_head;
+	struct pluginitem **plugin_head;
 };
 
 /* */

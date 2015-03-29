@@ -18,6 +18,35 @@
 #include "plugin.h"
 #include "sndutil.h"
 
+struct pluginitem *plugin_head[]={
+#ifdef WITH_MP3
+	&mp3item,
+#else
+	NULL,
+#endif
+#ifdef WITH_AAC
+	&aacitem,
+#else
+	NULL,
+#endif
+#ifdef WITH_VORBIS
+	&vorbisitem,
+#else
+	NULL,
+#endif
+#ifdef WITH_FLAC
+	&flacitem,
+#else
+	NULL,
+#endif
+#ifdef WITH_STREAM
+	&streamitem,
+#else
+	NULL,
+#endif
+	NULL,
+};
+
 FILE *plugin_std_fopen(const char *path, const char *mode){
 	return fopen(path,mode);
 }

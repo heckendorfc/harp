@@ -23,9 +23,9 @@
 
 #define AAC_MAX_CHANNELS (6)
 
-uint32_t read_callback(void *userdata, void *buffer, uint32_t length);
-uint32_t seek_callback(void *userdata, uint64_t position);
-int GetAACTrack(mp4handle_t *infile);
+static uint32_t read_callback(void *userdata, void *buffer, uint32_t length);
+static uint32_t seek_callback(void *userdata, uint64_t position);
+static int GetAACTrack(mp4handle_t *infile);
 
 #include "aacmeta.c"
 
@@ -37,15 +37,15 @@ struct aacHandles{
 	int channels;
 }h;
 
-FILE * plugin_open(const char *path, const char *mode){
+static FILE * plugin_open(const char *path, const char *mode){
 	return plugin_std_fopen(path,mode);
 }
 
-void plugin_close(FILE *ffd){
+static void plugin_close(FILE *ffd){
 	plugin_std_fclose(ffd);
 }
 
-int filetype_by_data(FILE *ffd){
+static int filetype_by_data(FILE *ffd){
 	unsigned char buf[10];
 	fseek(ffd,4*sizeof(buf[0]),SEEK_SET);
 	if(!fread(buf,sizeof(buf),1,ffd))return 0;
@@ -55,7 +55,7 @@ int filetype_by_data(FILE *ffd){
 	return 0;
 }
 
-void plugin_seek(struct playerHandles *ph, int modtime){
+static void plugin_seek(struct playerHandles *ph, int modtime){
 	long ht=0,hs=0;
 
 	if(ph->dechandle==NULL)return;
@@ -89,18 +89,18 @@ void plugin_seek(struct playerHandles *ph, int modtime){
 	snd_clear(ph);
 }
 
-uint32_t read_callback(void *userdata, void *buffer, uint32_t length){
+static uint32_t read_callback(void *userdata, void *buffer, uint32_t length){
 	//fprintf(stderr,"Reading %d\n",length);
 	return fread(buffer,sizeof(unsigned char),length,(FILE*)userdata);
 }
 
-uint32_t seek_callback(void *userdata, uint64_t position){
+static uint32_t seek_callback(void *userdata, uint64_t position){
 	//fprintf(stderr,"Seeking %d\n",position);
 	return fseek((FILE*)userdata,position,SEEK_SET);
 }
 
 
-int GetAACTrack(mp4handle_t *infile){
+static int GetAACTrack(mp4handle_t *infile){
 	int i,ret;
 	int numtracks=mp4lib_total_tracks(infile);
 
@@ -224,7 +224,7 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 	return 0;
 }
 
-int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int bufsize){
+static int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int bufsize){
 	unsigned char *buf=(unsigned char*)o_buf;
 	char *out;
 	int track,fmt,ret,channels,retval=DEC_RET_SUCCESS;
@@ -365,7 +365,7 @@ int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 
 }
 
-int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int buf_len){
+static int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int buf_len){
 	unsigned char *buf=NULL;
 	char *out;
 	ssize_t len;
@@ -502,7 +502,7 @@ int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, 
 	return retval;
 }
 
-int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
+static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	char *buf=NULL;
 	int bufsize=FAAD_MIN_STREAMSIZE * AAC_MAX_CHANNELS;
 	int frame_size;
@@ -520,3 +520,15 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		return decodeAAC(ph,key,totaltime,buf,frame_size,bufsize);
 	}
 }
+
+struct pluginitem aacitem={
+	.modopen=plugin_open,
+	.modclose=plugin_close,
+	.modmeta=aac_plugin_meta,
+	.moddata=filetype_by_data,
+	.modplay=plugin_run,
+	.modseek=plugin_seek,
+	.contenttype="aac;aacp;mp4",
+	.extension={"m4a","m4b","aac","mp4",NULL},
+	.name="AAC",
+};

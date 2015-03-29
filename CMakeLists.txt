@@ -89,7 +89,7 @@ lex.c
 lex_dfa.c
 sndutil.c)
 
-target_link_libraries (harp ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS} ${SOUND_LIB} ${SQLITE_LIBRARIES})
+target_link_libraries (harp harpplugin ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS} ${SOUND_LIB} ${SQLITE_LIBRARIES})
 
 #FILE(GLOB shared_files share/*)
 SET(shared_files share/defaults.conf share/create.sql)

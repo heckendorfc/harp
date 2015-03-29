@@ -58,6 +58,23 @@ struct musicInfo{
 #include "../defs.h"
 #include "../sndutil.h"
 
+extern struct pluginitem mp3item;
+extern struct pluginitem aacitem;
+extern struct pluginitem vorbisitem;
+extern struct pluginitem flacitem;
+extern struct pluginitem streamitem;
+
+enum plugin_ids{
+	PLUGIN_MP3=0,
+	PLUGIN_AAC,
+	PLUGIN_VORBIS,
+	PLUGIN_FLAC,
+	PLUGIN_STREAM,
+	PLUGIN_NULL
+};
+
+extern struct pluginitem *plugin_head[];
+
 FILE *plugin_std_fopen(const char *path, const char *mode);
 void plugin_std_fclose(FILE *fd);
 

@@ -287,3 +287,15 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	*totaltime=details->curtime;
 	return retval;
 }
+
+struct pluginitem mp3item={
+	.modopen=plugin_open,
+	.modclose=plugin_close,
+	.moddata=filetype_by_data,
+	.modplay=plugin_run,
+	.modseek=plugin_seek,
+	.modmeta=mp3_plugin_meta,
+	.contenttype="mpeg",
+	.extension={"mp3",NULL},
+	.name="MP3",
+};

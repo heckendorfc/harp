@@ -19,6 +19,7 @@
 #include "defs.h"
 #include "util.h"
 #include "admin.h"
+#include "plugins/plugin.h"
 
 
 int harp_sqlite3_exec(sqlite3 *connection, const char *sql, int (*callback)(void*,int,char**,char**), void *arg, char **errmsg){
@@ -81,6 +82,40 @@ int db_exec_file(char *file){
 	return ret;
 }
 
+static void upgrade_0(){
+	int i;
+	int type;
+	char query[200];
+	char *newview="CREATE VIEW SongPubInfo AS \
+SELECT Song.Title AS SongTitle, Song.Location AS Location, \
+Album.Title AS AlbumTitle, Artist.Name AS ArtistName, \
+Song.TypeID AS PluginID, Song.Length AS Length, \
+Song.Rating AS Rating, \
+Song.SongID AS SongID, Song.Track AS SongTrack \
+FROM Song \
+INNER JOIN Album ON Song.AlbumID=Album.AlbumID \
+NATURAL JOIN AlbumArtist \
+INNER JOIN Artist ON AlbumArtist.ArtistID=Artist.ArtistID";
+
+	for(i=0;i<PLUGIN_NULL;i++){
+		if(plugin_head[i]==NULL)
+			type=-1;
+		else
+			type=i;
+
+		sprintf(query,"UPDATE Song SET TypeID=%d WHERE TypeID=(SELECT TypeID FROM FileType WHERE Name='%s' LIMIT 1)",i,plugin_head[i]->name);
+		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
+	}
+
+	harp_sqlite3_exec(conn,"DROP VIEW SongPubInfo",NULL,NULL,NULL);
+	harp_sqlite3_exec(conn,newview,NULL,NULL,NULL);
+}
+
+typedef void (*db_up)();
+static db_up upgrade_db_from[]={
+	upgrade_0,
+};
+
 unsigned int dbInit(){
 	char temp[255];
 	//strcpy(temp,DB);
@@ -106,6 +141,22 @@ unsigned int dbInit(){
 		}
 		if(autoAddPlugins()!=HARP_RET_OK){
 			fprintf(stderr,"Automatic plugin loading failed.\nPlease add any installed plugins to the database with harp -a\n");
+		}
+	}
+	else{
+		/* Upgrade DB */
+		int vnum=0;
+		harp_sqlite3_exec(conn,"SELECT Version FROM DBInfo",uint_return_cb,&vnum,NULL);
+		fprintf(stderr,"vnum %d\n",vnum);
+		if(vnum!=DB_VERSION){
+			sprintf(temp,"Upgrading database from %d to %d\n",vnum,DB_VERSION);
+			debug(1,temp);
+			while(vnum<DB_VERSION){
+				upgrade_db_from[vnum++]();
+			}
+			harp_sqlite3_exec(conn,"CREATE TABLE IF NOT EXISTS DBInfo(Version integer primary key)",uint_return_cb,&vnum,NULL);
+			harp_sqlite3_exec(conn,"DELETE FROM DBInfo",NULL,NULL,NULL);
+			harp_sqlite3_exec(conn,"INSERT INTO DBInfo(Version) VALUES(" varstr(DB_VERSION) ")",NULL,NULL,NULL);
 		}
 	}
 	return 1;

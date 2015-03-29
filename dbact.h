@@ -26,6 +26,8 @@ struct insert_tps_arg{
 	char *query;
 };
 
+#define DB_VERSION 1
+
 unsigned int dbInit();
 void dbiInit(struct dbitem *dbi);
 void dbiClean(struct dbitem *dbi);

@@ -16,7 +16,7 @@
  */
 
 
-void plugin_meta(FILE *ffd, struct musicInfo *mi){
+void vorbis_plugin_meta(FILE *ffd, struct musicInfo *mi){
 	OggVorbis_File *vf;
 	if(!(vf=malloc(sizeof(OggVorbis_File)))){
 		fprintf(stderr,"Malloc failed (vf).");
