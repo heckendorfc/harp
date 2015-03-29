@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,10 +22,6 @@
 #include <stdio.h>
 
 #define AAC_MAX_CHANNELS (6)
-
-static uint32_t read_callback(void *userdata, void *buffer, uint32_t length);
-static uint32_t seek_callback(void *userdata, uint64_t position);
-static int GetAACTrack(mp4handle_t *infile);
 
 #include "aacmeta.c"
 
@@ -57,10 +53,10 @@ static int filetype_by_data(FILE *ffd){
 
 static void plugin_seek(struct playerHandles *ph, int modtime){
 	long ht=0,hs=0;
+	struct aacHandles *h=(struct aacHandles *)ph->dechandle;
 
 	if(ph->dechandle==NULL)return;
 
-	struct aacHandles *h=(struct aacHandles *)ph->dechandle;
 	if(modtime==0){
 		*h->sample=0;
 		if(h->total)
@@ -88,17 +84,6 @@ static void plugin_seek(struct playerHandles *ph, int modtime){
 
 	snd_clear(ph);
 }
-
-static uint32_t read_callback(void *userdata, void *buffer, uint32_t length){
-	//fprintf(stderr,"Reading %d\n",length);
-	return fread(buffer,sizeof(unsigned char),length,(FILE*)userdata);
-}
-
-static uint32_t seek_callback(void *userdata, uint64_t position){
-	//fprintf(stderr,"Seeking %d\n",position);
-	return fseek((FILE*)userdata,position,SEEK_SET);
-}
-
 
 static int GetAACTrack(mp4handle_t *infile){
 	int i,ret;
@@ -148,7 +133,7 @@ static size_t fill_buffer(FILE *ffd, char *buf, const int buf_len){
  * found or if not enough data is available.
  */
 static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int buf_len){
-	char *data, *p, *bp;
+	char *p, *bp;
 	size_t tmp, bp_len, length, frame_length, next_frame;
 
 	bp=buf;
@@ -227,7 +212,7 @@ static size_t adts_find_frame(FILE *ffd, char *buf, const int start, const int b
 static int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int bufsize){
 	unsigned char *buf=(unsigned char*)o_buf;
 	char *out;
-	int track,fmt,ret,channels,retval=DEC_RET_SUCCESS;
+	int fmt,ret,channels,retval=DEC_RET_SUCCESS;
 	unsigned int rate;
 	unsigned char channelchar;
 	unsigned long ratel;
@@ -368,11 +353,18 @@ static int decodeAAC(struct playerHandles *ph, char *key, int *totaltime, char *
 static int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *o_buf, const int buf_filled, const int buf_len){
 	unsigned char *buf=NULL;
 	char *out;
-	ssize_t len;
 	int track,fmt,ret,channels,retval=DEC_RET_SUCCESS;
 	unsigned int rate,bufsize;
 	//mp4ff_t infile;
 	mp4handle_t infile;
+	unsigned char channelchar;
+	unsigned long ratel;
+	char tail[OUTPUT_TAIL_SIZE];
+	unsigned int framesize=1024;
+	volatile unsigned int total=0,sample;
+	unsigned int numsamples;
+	struct outputdetail *details;
+	int outsize;
 
 	mp4lib_open(&infile);
 
@@ -417,9 +409,6 @@ static int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *
 
 	mp4lib_get_decoder_config(&infile,track,&buf,&bufsize);
 
-	unsigned char channelchar;
-	unsigned long ratel;
-	char tail[OUTPUT_TAIL_SIZE];
 	if((ret=NeAACDecInit2(hAac,buf,bufsize,&ratel,&channelchar)) == 0){
 		channels=(int)channelchar;
 		rate=(unsigned int)ratel;
@@ -434,7 +423,6 @@ static int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *
 	addStatusTail(tail,ph->outdetail);
 
 	mp4AudioSpecificConfig mp4cfg;
-	unsigned int framesize=1024;
 	if(buf){
 		if(NeAACDecAudioSpecificConfig(buf,bufsize,&mp4cfg)>=0){
 			if(mp4cfg.frameLengthFlag==1)framesize=960;
@@ -445,9 +433,8 @@ static int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *
 
 	snd_param_init(ph,&fmt,&channels,&rate);
 
-	volatile unsigned int total=0,sample;
-	unsigned int numsamples=mp4lib_num_samples(&infile);
-	struct outputdetail *details=ph->outdetail;
+	numsamples=mp4lib_num_samples(&infile);
+	details=ph->outdetail;
 	details->totaltime=*totaltime;
 
 	h.total=&total;
@@ -459,9 +446,9 @@ static int decodeMP4(struct playerHandles *ph, char *key, int *totaltime, char *
 	ph->dechandle=&h;
 
 #if WITH_ALSA==1
-	const int outsize=framesize;
+	outsize=framesize;
 #else
-	const int outsize=framesize*channels*2;
+	outsize=framesize*channels*2;
 #endif
 
 	if(mp4lib_prime_read(ph->ffd,&infile)){

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -80,7 +80,6 @@ void ID3v2Parse(FILE *ffd, struct musicInfo *mi){
 
 void ID3v1Parse(FILE *ffd, struct musicInfo *mi){
 	int next=-125;
-	char buffer[31],safe[61];
 	fseek(ffd,next,SEEK_END);
 	if(fread(mi->title,sizeof(char),30,ffd)<30)return;
 	next+=30;

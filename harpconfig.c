@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -80,7 +80,6 @@ static void listConfig(char *buffer){
 
 static void insertConfig(char *buffer){
 	char *setting=buffer;
-	char *tmp;
 	static int formatsize=0;
 	while(*setting!='=' && *setting)setting++;
 	*(setting++)=0;

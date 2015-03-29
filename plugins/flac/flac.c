@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -42,8 +42,12 @@ static void plugin_close(FILE *ffd){
 
 static void plugin_seek(struct playerHandles *ph, int modtime){
 	int modshift;
-	if(ph->dechandle==NULL)return;
-	struct snd_data *data=(struct snd_data*)ph->dechandle;
+	struct snd_data *data;
+
+	if(ph->dechandle==NULL)
+		return;
+
+	data=(struct snd_data*)ph->dechandle;
 	modshift=-(modtime*data->rate);
 	if(modtime==0 || (modshift>0 && data->curtime<modshift))
 		data->nextpos=0;
@@ -80,12 +84,12 @@ static FLAC__StreamDecoderWriteStatus flac_write(const FLAC__StreamDecoder *deco
 	char *buffs;
 	const int by=data->size/8;
 	int *bt;
+	int i,j,num;
 	//const int by=2;
 	if(!(buffs=malloc(frame->header.blocksize*by*data->channels*2))){ // *2 ~just in case~ ? try to fix sbrk segfault
 		fprintf(stderr,"Malloc failed (decoder buffer)");
 		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	}
-	int i,j,k,num;
 	num=frame->header.blocksize;
 	for(i=0;i<num;i++){
 		for(j=0;j<data->channels;j++){
@@ -119,6 +123,10 @@ static void flac_error(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderEr
 
 static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	struct snd_data data;
+	unsigned int retval=DEC_RET_SUCCESS;
+	struct outputdetail *details=ph->outdetail;
+	char tail[OUTPUT_TAIL_SIZE];
+
 	data.ph=ph;
 	data.totaltime=totaltime;
 	data.curtime=0;
@@ -146,9 +154,6 @@ static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		return DEC_RET_ERROR;
 	}
 
-	unsigned int retval=DEC_RET_SUCCESS,total=0;
-	struct outputdetail *details=ph->outdetail;
-
 	if(!FLAC__stream_decoder_process_until_end_of_metadata(decoder)){
 		fprintf(stderr,"flac decoder metadata failed");
 		FLAC__stream_decoder_finish(decoder);
@@ -156,7 +161,6 @@ static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		return DEC_RET_ERROR;
 	}
 	//fprintf(stderr,"New format: %d Hz, %i channels, encoding value %d\n", data.rate, data.channels, data.size);
-	char tail[OUTPUT_TAIL_SIZE];
 	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbit",data.rate, data.channels, data.size);
 	addStatusTail(tail,ph->outdetail);
 	snd_param_init(ph,&data.size,&data.channels,&data.rate);

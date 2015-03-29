@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -186,14 +186,8 @@ int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	int mret=MPG123_NEED_MORE;
 	int retval=DEC_RET_SUCCESS;
 	struct outputdetail *details=ph->outdetail;
-	long ratel;
-	int channels, enc,enc_bit=2;
-	unsigned int rate;
 	unsigned char *out;
 	int outsize;
-	int metaret;
-	int metacount;
-	char *icymeta;
 
 	if(mp3Init(ph)<0)return DEC_RET_ERROR;
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 #include <glob.h>
 
+#if 0
 static int addPlugin(char *args, void *data){
 	char lib[200];
 	int size,x;
@@ -118,6 +119,7 @@ static int removePlugin(char *args, void *data){
 
 	return PORTAL_RET_PREV;
 }
+#endif
 
 int write_stats_cb(void *data, int col_count, char **row, char **titles){
 	FILE *ffd=(FILE*)data;
@@ -204,6 +206,7 @@ static int statsPortal(char *args, void *data){
 	return portal(portalOptions,"Stats");
 }
 
+#if 0
 static int pluginPortal(char *args, void *data){
 	struct commandOption portalOptions[]={
 		{'a',addPlugin,"Add plugin",NULL},
@@ -214,6 +217,7 @@ static int pluginPortal(char *args, void *data){
 	};
 	return portal(portalOptions,"Plugins");
 }
+#endif
 
 void adminPortal(){
 	struct commandOption portalOptions[]={

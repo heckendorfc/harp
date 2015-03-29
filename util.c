@@ -83,23 +83,18 @@ char *expand(char *in){
 
 int fileFormat(struct pluginitem **list, const char *arg){
 	FILE *ffd=NULL;
-	char query[200];
-	struct dbitem dbi;
 	struct pluginitem **ret=list;
 	int type=PLUGIN_NULL;
 	int x=0;
 	int i,j;
 
 	// Find by magic numbers
-
 	for(i=0;type==PLUGIN_NULL && i<PLUGIN_NULL;i++){
 		if(ret[i]==NULL)
 			continue;
 
 		if((ffd=ret[i]->modopen(arg,"rb"))!=NULL){
 			if(ret[i]->moddata(ffd)){
-				//sprintf(query,"SELECT TypeID FROM PluginType WHERE PluginID=%d",ret->id);
-				//harp_sqlite3_exec(conn,query,uint_return_cb,&type,NULL);
 				type=i;
 			}
 			ret[i]->modclose(ffd);
@@ -113,10 +108,7 @@ int fileFormat(struct pluginitem **list, const char *arg){
 	}
 
 	// Find by extension
-	//dbiInit(&dbi);
-	//doQuery("SELECT TypeID,Extension FROM FileExtension",&dbi);
 	for(x=0;arg[x];x++);
-	//size=x;
 	for(;arg[x-1]!='.' && x>0;x--);
 	for(i=0;i<PLUGIN_NULL;i++){
 		if(ret[i]==NULL)

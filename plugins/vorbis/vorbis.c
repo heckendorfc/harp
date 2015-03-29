@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -48,9 +48,13 @@ static int filetype_by_data(FILE *ffd){
 
 static void plugin_seek(struct playerHandles *ph, int modtime){
 	int newtime;
-	if(ph->dechandle==NULL)return;
+	int seconds;
+	struct vorbisHandles *h;
 
-	struct vorbisHandles *h=(struct vorbisHandles *)ph->dechandle;
+	if(ph->dechandle==NULL)
+		return;
+
+	h=(struct vorbisHandles *)ph->dechandle;
 	if(modtime==0){
 		ov_time_seek(h->vf,0);
 		*h->total=0;
@@ -58,7 +62,7 @@ static void plugin_seek(struct playerHandles *ph, int modtime){
 		return;
 	}
 
-	int seconds=(*h->total)/((h->rate)*(h->sizemod));
+	seconds=(*h->total)/((h->rate)*(h->sizemod));
 	seconds+=modtime;
 
 	if(ov_time_seek(h->vf,seconds)!=0)
@@ -88,20 +92,29 @@ static int vorbStatus(int ret){
 	return DEC_RET_ERROR;
 }
 
+#if 0
 static void silencer(){
 	OggVorbis_File vf;
 	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_DEFAULT);
 	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_STREAMONLY);
 	(void)ov_open_callbacks(0,&vf,NULL,0,OV_CALLBACKS_STREAMONLY_NOCLOSE);
 }
+#endif
 
 static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	size_t size;
 	long ret;
 	const ssize_t len=1600;
 	char buf[len];  /* input buffer  */
-
+	unsigned int total=0;
+	int channels, enc, retval=DEC_RET_SUCCESS;
+	unsigned int rate;
+	vorbis_info *vi;
 	OggVorbis_File *vf;
+	struct outputdetail *details=ph->outdetail;
+	int sizemod;
+	char tail[OUTPUT_TAIL_SIZE];
+
 	if(!(vf=malloc(sizeof(OggVorbis_File)))){
 		fprintf(stderr,"Malloc failed (vf).");
 		return DEC_RET_ERROR;
@@ -112,11 +125,6 @@ static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 		free(vf);
 		return DEC_RET_ERROR;
 	}
-	unsigned int total=0;
-	int channels, enc, retval=DEC_RET_SUCCESS;
-	unsigned int rate;
-	vorbis_info *vi;
-	struct outputdetail *details=ph->outdetail;
 	details->totaltime=*totaltime;
 	details->percent=-1;
 
@@ -125,8 +133,7 @@ static int plugin_run(struct playerHandles *ph, char *key, int *totaltime){
 	channels=(unsigned int)vi->channels;
 	enc=16;
 
-	const int sizemod=2*channels;
-	char tail[OUTPUT_TAIL_SIZE];
+	sizemod=2*channels;
 
 	snprintf(tail,OUTPUT_TAIL_SIZE,"New format: %dHz %dch %dbps",rate, channels, (int)vi->bitrate_nominal);
 	addStatusTail(tail,ph->outdetail);

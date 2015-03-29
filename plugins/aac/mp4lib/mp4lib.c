@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2013-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2013-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -247,7 +247,6 @@ int atom_parse_mp4a(FILE *in, mp4atom_t *at, mp4handle_t *h){
 int atom_parse_stco(FILE *in, mp4atom_t *at, mp4handle_t *h){
 	uint32_t i;
 	uint32_t num;
-	mp4atom_t cur_at;
 
 	checked_fread(&i,4,1,in); // version and flags?
 	checked_fread(&num,4,1,in); // num chunk

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -51,10 +51,6 @@ struct streamInfo{
 	int bitrate;
 };
 
-static int open_decoder_plugin(struct playerHandles *ph){
-	return 0;
-}
-
 static int open_pipe(){
 	int pipefd[2];
 	if(pipe(pipefd)){
@@ -86,7 +82,6 @@ static int parse_url(const char *path, char **orig_url, char **orig_port, char *
 	int x;
 	char *url=*orig_url;
 	char *port=*orig_port;
-	char *ptr;
 
 	if(strncmp("http://",path,7)!=0){
 		//url=strdup(path);
@@ -147,7 +142,6 @@ static int stream_hello(char *filename){
 static FILE *plugin_open(const char *path, const char *mode){
 	int sfd;
 	int ret;
-	int x;
 	struct addrinfo hints,*rp,*result;
 	char *url,*port,*filename;
 
@@ -230,10 +224,6 @@ static void print_stream_meta(struct streamInfo *si){
 	printf("---------------------\n");
 }
 
-static int empty_parse(char *buf, int *len, void *data){
-	return 0;
-}
-
 static char *get_line(char *buf, int len){
 	int x;
 	int nl=0;
@@ -281,7 +271,6 @@ static int parse_meta_si(char *buf, int *orig_len, void *data){
 	int len=*orig_len;
 	char *ptr=buf;
 	char *val;
-	int x;
 	struct streamInfo *si=(struct streamInfo*)data;
 
 	if(*buf<32 || *buf>126)return 0;
@@ -335,7 +324,6 @@ static int parse_meta_mi(char *buf, int *orig_len, void *data){
 	int len=*orig_len;
 	char *ptr=buf;
 	char *val;
-	int x;
 	struct musicInfo *mi=(struct musicInfo*)data;
 
 	if(*buf<32 || *buf>126)return 0;
@@ -443,7 +431,7 @@ static int write_pipe(char *buf, int *len, void *data){
 }
 
 static void streamIO(int parse(char*,int*,void*),void *data){
-	int len,ret,x;
+	int len,ret;
 	char buf[S_BUFSIZE+1];
 	buf[S_BUFSIZE]=0;
 
@@ -480,8 +468,8 @@ static char *nextType(char *type){
 }
 
 static struct pluginitem *selectPlugin(struct pluginitem **list, char *type){
-	char buf[S_BUFSIZE],*ptr;
-	int len,tlen,x;
+	char *ptr;
+	int len;
 	int i;
 	if(type==NULL || *type==0)return NULL;
 	len=strlen(type);
