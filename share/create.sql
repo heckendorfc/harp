@@ -86,11 +86,10 @@ ORDER BY Active DESC;
 CREATE VIEW SongPubInfo AS
 SELECT Song.Title AS SongTitle, Song.Location AS Location,
 Album.Title AS AlbumTitle, Artist.Name AS ArtistName,
-FilePlugin.Name AS FilePluginName, Song.Length AS Length,
-FilePlugin.Library AS Library, Song.Rating AS Rating,
+Song.TypeID AS PluginID, Song.Length AS Length,
+Song.Rating AS Rating,
 Song.SongID AS SongID, Song.Track AS SongTrack
-FROM FilePlugin
-INNER JOIN Song ON FilePlugin.TypeID=Song.TypeID
+FROM Song
 INNER JOIN Album ON Song.AlbumID=Album.AlbumID
 NATURAL JOIN AlbumArtist
 INNER JOIN Artist ON AlbumArtist.ArtistID=Artist.ArtistID;
