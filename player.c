@@ -62,7 +62,9 @@ static int play_handle_key(char *key){
 static int play_handle_SongPubInfo(void *data, int col_count, char **row, char **titles){
 	struct play_song_args *psargs=(struct play_song_args *)data;
 
-	printSongPubInfo(row);
+	pthread_mutex_lock(&outstatus);
+		printSongPubInfo(row);
+	pthread_mutex_unlock(&outstatus);
 
 	psargs->totaltime=(int)strtol(row[5],NULL,10);
 	psargs->ph->pflag->rating=(int)strtol(row[6],NULL,10);

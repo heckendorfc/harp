@@ -17,6 +17,7 @@
 
 #include "message.h"
 #include "defs.h"
+#include "plugins/plugin.h"
 
 void debug(const int level, const char *msg){
 #ifndef _HARP_PLUGIN
@@ -43,7 +44,7 @@ void printSongPubInfo(char **row){
 			"Location:  %s\n"
 			"File Type: %s\n"
 			"---------------------\n",
-			row[0],row[3],row[2],row[1],row[4]);
+			row[0],row[3],row[2],row[1],plugin_head[strtol(row[4],NULL,10)]->name);
 	if(debugconf.log==1 && debugconf.playfd){
 		fprintf(debugconf.playfd,"%s\t%s\t%s\t%s\t%s\n",row[0],row[3],row[2],row[1],row[4]);
 		fflush(debugconf.playfd);
