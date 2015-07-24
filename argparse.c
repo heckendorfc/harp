@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ struct option longopts[]={
 static unsigned int argSearch(int argc, char *argv[]);
 
 static void printVersion(){
-	printf("HARP %s  Copyright (C) 2009-2014 Christian Heckendorf\n",PACKAGE_VERSION);
+	printf("HARP %s  Copyright (C) 2009-2015 Christian Heckendorf\n",PACKAGE_VERSION);
 	cleanExit();
 	exit(1);
 }
