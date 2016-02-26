@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 int experr(const char *epath, int eerrno);
 int isURL(const char *in);
-char *expand(char *in);
+char *expand(char *in, const int size);
 int fileFormat(struct pluginitem **list, const char *argv);
 int getID(const char *arg);
 int strToID(const char *argv);

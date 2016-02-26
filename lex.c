@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2014-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -199,7 +199,7 @@ TokenList* create_tokens(char *str){
 			}
 
 			INIT_MEM(t->token.word,2);
-			sprintf(t->token.word,"%c",quote);
+			snprintf(t->token.word,2,"%c",quote);
 			t->token.type=TOK_QUOTE;
 			INIT_MEM(t->next,1);
 			t=t->next;
@@ -221,7 +221,7 @@ TokenList* create_tokens(char *str){
 			}
 
 			INIT_MEM(t->token.word,2);
-			sprintf(t->token.word,"%c",quote);
+			snprintf(t->token.word,2,"%c",quote);
 			t->token.type=TOK_QUOTE;
 			INIT_MEM(t->next,1);
 			t=t->next;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,15 +36,15 @@ struct play_song_args{
 	struct pluginitem *pi_ptr;
 };
 
-static int initList(int list, char *query){
+static int initList(int list, char *query, const int qsize){
 	// If we shuffled, TempPlaylistSong will be a temp table. list will be 0.
 	if(list){ /* Should be unused */
-		sprintf(query,"CREATE TEMP VIEW IF NOT EXISTS TempPlaylistSong AS SELECT PlaylistSongID, SongID, \"Order\" FROM PlaylistSong WHERE PlaylistID=%d ORDER BY \"Order\"",list);
+		snprintf(query,qsize,"CREATE TEMP VIEW IF NOT EXISTS TempPlaylistSong AS SELECT PlaylistSongID, SongID, \"Order\" FROM PlaylistSong WHERE PlaylistID=%d ORDER BY \"Order\"",list);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
-		sprintf(query,"SELECT Song.SongID, \"Order\" FROM Song, PlaylistSong WHERE Song.SongID=PlaylistSong.SongID AND PlaylistSong.PlaylistID=%d ORDER BY \"Order\"",list);
+		snprintf(query,qsize,"SELECT Song.SongID, \"Order\" FROM Song, PlaylistSong WHERE Song.SongID=PlaylistSong.SongID AND PlaylistSong.PlaylistID=%d ORDER BY \"Order\"",list);
 	}
 	else{
-		sprintf(query,"SELECT Song.SongID,\"Order\" FROM Song, TempPlaylistSong WHERE Song.SongID=TempPlaylistSong.SongID ORDER BY \"Order\" LIMIT 1");
+		snprintf(query,qsize,"SELECT Song.SongID,\"Order\" FROM Song, TempPlaylistSong WHERE Song.SongID=TempPlaylistSong.SongID ORDER BY \"Order\" LIMIT 1");
 	}
 	return 0;
 }
@@ -69,7 +69,7 @@ static int play_handle_SongPubInfo(void *data, int col_count, char **row, char *
 	psargs->totaltime=(int)strtol(row[5],NULL,10);
 	psargs->ph->pflag->rating=(int)strtol(row[6],NULL,10);
 	psargs->filetype=(int)strtol(row[4],NULL,10);
-	sprintf(psargs->location,"%s",row[1]);
+	snprintf(psargs->location,250,"%s",row[1]);
 
 	return 0;
 }
@@ -105,27 +105,27 @@ static void play_update_stats(struct play_song_args *psargs, int ret){
 		switch(ret){
 			case DEC_RET_SUCCESS: // Normal play.
 				if(psargs->totaltime>0)
-					sprintf(query,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, Length=%d WHERE SongID=%d",(int)time(NULL),psargs->totaltime,psargs->songid);
+					snprintf(query,300,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, Length=%d WHERE SongID=%d",(int)time(NULL),psargs->totaltime,psargs->songid);
 				else
-					sprintf(query,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, WHERE SongID=%d",(int)time(NULL),psargs->songid);
+					snprintf(query,300,"UPDATE Song SET PlayCount=PlayCount+1, LastPlay=%d, WHERE SongID=%d",(int)time(NULL),psargs->songid);
 				break;
 			case DEC_RET_NEXT: // Next key
-				sprintf(query,"UPDATE Song SET SkipCount=SkipCount+1, LastPlay=%d WHERE SongID=%d",(int)time(NULL),psargs->songid);
+				snprintf(query,300,"UPDATE Song SET SkipCount=SkipCount+1, LastPlay=%d WHERE SongID=%d",(int)time(NULL),psargs->songid);
 				break;
 			case DEC_RET_NEXT_NOUP: // Next key without update[playcount]
 			default:
-				sprintf(query,"UPDATE Song SET LastPlay=%d WHERE SongID=%d",(int)time(NULL),psargs->songid);
+				snprintf(query,300,"UPDATE Song SET LastPlay=%d WHERE SongID=%d",(int)time(NULL),psargs->songid);
 				break;
 		}
 		debug(3,query);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
-	sprintf(query,"UPDATE Song SET Rating=%d WHERE SongID=%d",psargs->ph->pflag->rating,psargs->songid);
+	snprintf(query,300,"UPDATE Song SET Rating=%d WHERE SongID=%d",psargs->ph->pflag->rating,psargs->songid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 }
 
-void play_next_song_query(char *query, struct playercontrolarg *pca){
-	sprintf(query,"SELECT Song.SongID,\"Order\" FROM Song NATURAL JOIN TempPlaylistSong WHERE \"Order\">=%d ORDER BY \"Order\" LIMIT 1",pca->next_order);
+void play_next_song_query(char *query, const int qsize, struct playercontrolarg *pca){
+	snprintf(query,qsize,"SELECT Song.SongID,\"Order\" FROM Song NATURAL JOIN TempPlaylistSong WHERE \"Order\">=%d ORDER BY \"Order\" LIMIT 1",pca->next_order);
 }
 
 int play_song(void *data, int col_count, char **row, char **titles){
@@ -136,7 +136,7 @@ int play_song(void *data, int col_count, char **row, char **titles){
 	psargs->pca->next_order=psargs->pca->cur_order=strtol(row[1],NULL,10);
 	psargs->pca->next_order++;
 
-	sprintf(query,"SELECT * FROM SongPubInfo WHERE SongID=%d LIMIT 1",psargs->songid);
+	snprintf(query,200,"SELECT * FROM SongPubInfo WHERE SongID=%d LIMIT 1",psargs->songid);
 	if(harp_sqlite3_exec(conn,query,play_handle_SongPubInfo,psargs,NULL)!=SQLITE_OK)
 		return 0;
 
@@ -191,17 +191,17 @@ static void playerControl(void *arg){
 	debug(2,"playerControl quitting");
 
 	// Reset term settings
-	tcsetattr(0,TCSANOW,&orig);
+	//tcsetattr(0,TCSANOW,&orig);
 
 	pthread_exit((void *) 0);
 }
 
 int player(int list){//list - playlist number
+	char small_query[128];
 	unsigned int max_list_order;
 	int oldupdate;
 	int ret;
 	char *query; // Why aren't we using []?
-
 	// Create playerControl thread
 	char key=KEY_NULL;
 	struct play_song_args psargs;
@@ -210,6 +210,7 @@ int player(int list){//list - playlist number
 	struct playerHandles ph;
 	struct playerflag pflag={0,0,1,0,DEC_RET_SUCCESS,32,32};
 	struct outputdetail outdetail;
+
 	bzero(&outdetail,sizeof(outdetail));
 
 	if(!(query=malloc(sizeof(char)*320))){
@@ -217,12 +218,10 @@ int player(int list){//list - playlist number
 		return 1;
 	}
 	else{
-		char small_query[128];
-
-		if(initList(list,query))
+		if(initList(list,query,320))
 			return 0;
 
-		sprintf(small_query,"SELECT MAX(\"Order\") FROM TempPlaylistSong");
+		snprintf(small_query,128,"SELECT MAX(\"Order\") FROM TempPlaylistSong");
 		harp_sqlite3_exec(conn,small_query,uint_return_cb,&max_list_order,NULL);
 
 		if(!(ph.plugin_head=plugin_head)){
@@ -268,7 +267,7 @@ int player(int list){//list - playlist number
 			else{ /* Error opening file */
 				if(play_handle_key(psargs.pca->key))
 					break;
-				play_next_song_query(query,&pca);
+				play_next_song_query(query,320,&pca);
 				continue;
 			}
 		}
@@ -293,7 +292,7 @@ int player(int list){//list - playlist number
 				arglist[AREPEAT].active--;
 		}
 
-		play_next_song_query(query,&pca);
+		play_next_song_query(query,320,&pca);
 	}
 
 	snd_close(&ph);
@@ -321,19 +320,19 @@ static void writelist_file(char *com, struct playercontrolarg *pca){
 	if(limit<=0)limit=50;
 	switch(com[1]){
 		case 'h':
-			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
+			snprintf(query,200,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 		case 't':
 			harp_sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
-			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
+			snprintf(query,200,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 		case 'r':
 		default:
 			harp_sqlite3_exec(conn,query,uint_return_cb,&order,NULL);
-			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
+			snprintf(query,200,"SELECT \"Order\" AS \"#\",SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay FROM Song NATURAL JOIN TempPlaylistSong ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 	}
-	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
+	snprintf(filename,30,"harp_stats_%d.csv",(int)time(NULL));
 	if((ffd=fopen(filename,"w"))==NULL){
 		fprintf(stderr,"Failed to open file\n");
 		return;
@@ -347,17 +346,17 @@ static void writelist_db(char *com, struct playercontrolarg *pca){
 	char query[200];
 	unsigned int pid=0;
 
-	sprintf(query,"SELECT PlaylistID FROM Playlist WHERE Title='"SAVED_PLAYLIST_NAME"' LIMIT 1");
+	snprintf(query,200,"SELECT PlaylistID FROM Playlist WHERE Title='"SAVED_PLAYLIST_NAME"' LIMIT 1");
 	harp_sqlite3_exec(conn,query,uint_return_cb,&pid,NULL);
 
 	if(!pid){
-		sprintf(query,SAVED_PLAYLIST_NAME);
+		snprintf(query,200,SAVED_PLAYLIST_NAME);
 		pid=getPlaylist(query);
 	}
 
-	sprintf(query,"DELETE FROM PlaylistSong WHERE PlaylistID=%d",pid);
+	snprintf(query,200,"DELETE FROM PlaylistSong WHERE PlaylistID=%d",pid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
-	sprintf(query,"INSERT INTO PlaylistSong (PlaylistID,SongID,\"Order\") SELECT %d,SongID,\"Order\" FROM TempPlaylistSong",pid);
+	snprintf(query,200,"INSERT INTO PlaylistSong (PlaylistID,SongID,\"Order\") SELECT %d,SongID,\"Order\" FROM TempPlaylistSong",pid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 }
 
@@ -386,14 +385,14 @@ static void jump(char *com, struct playercontrolarg *pca){
 	char query[200];
 	int y,dest,max_dest;
 
-	sprintf(query,"SELECT MAX(\"Order\") FROM TempPlaylistSong");
+	snprintf(query,200,"SELECT MAX(\"Order\") FROM TempPlaylistSong");
 	harp_sqlite3_exec(conn,query,uint_return_cb,&max_dest,NULL);
 
 	for(y=1;y<ADV_COM_ARG_LEN && com[y] && (com[y]<'0' || com[y]>'9');y++);
 	if((dest=(int)strtol(&com[y],NULL,10))<=0)return;
 
 	if(com[1]=='s'){ // Jump by SongID. Find the Order first,
-		sprintf(query,"SELECT \"Order\" FROM TempPlaylistSong WHERE SongID=%d",dest);
+		snprintf(query,200,"SELECT \"Order\" FROM TempPlaylistSong WHERE SongID=%d",dest);
 		debug(3,query);
 		dest=0;
 		harp_sqlite3_exec(conn,query,uint_return_cb,&dest,NULL);
@@ -421,15 +420,15 @@ static void listtemp(char *com, struct playercontrolarg *pca){
 	if(limit<=0)limit=30;
 	switch(com[1]){
 		case 'h': // Head
-			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY \"Order\" LIMIT %d",limit);
+			snprintf(query,200,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo ORDER BY \"Order\" LIMIT %d",limit);
 			break;
 		case 't': // Tail
 			harp_sqlite3_exec(conn,"SELECT MAX(\"Order\") FROM TempPlaylistSong",uint_return_cb,&order,NULL);
-			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE \"Order\">%d ORDER BY \"Order\" LIMIT %d",order-limit,limit);
+			snprintf(query,200,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE \"Order\">%d ORDER BY \"Order\" LIMIT %d",order-limit,limit);
 			break;
 		case 'r': // Relative
 		default:
-			sprintf(query,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE \"Order\">=%d ORDER BY \"Order\" LIMIT %d",pca->cur_order,limit);
+			snprintf(query,200,"SELECT \"Order\" AS \"#\",SongID,SongTitle,AlbumTitle,ArtistName FROM TempPlaylistSong NATURAL JOIN SongPubInfo WHERE \"Order\">=%d ORDER BY \"Order\" LIMIT %d",pca->cur_order,limit);
 			break;
 	}
 	debug(3,query);
@@ -445,7 +444,7 @@ static int remitem_order_shift_cb(void *arg, int col_count, char **row, char **t
 		if(pca->cur_order>=order)pca->cur_order--;
 		if(pca->next_order>=order)pca->next_order--;
 	}
-	sprintf(query,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"-1 WHERE \"Order\">=%s",*row);
+	snprintf(query,150,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"-1 WHERE \"Order\">=%s",*row);
 	debug(3,query);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	return 0;
@@ -462,10 +461,10 @@ static void remitem(char *com, struct playercontrolarg *pca){
 			fprintf(stderr,"Improper command format\n");
 			return;
 		}
-		sprintf(query,"DELETE FROM TempPlaylistSong WHERE \"Order\"=%d",order);
+		snprintf(query,250,"DELETE FROM TempPlaylistSong WHERE \"Order\"=%d",order);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 		printf("Removed %d songs.\n",sqlite3_changes(conn));
-		sprintf(query,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"-1 WHERE \"Order\">%d",order);
+		snprintf(query,250,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"-1 WHERE \"Order\">%d",order);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 		if(pca->cur_order>order)pca->cur_order--;
 		if(pca->next_order>order)pca->next_order--;
@@ -475,10 +474,10 @@ static void remitem(char *com, struct playercontrolarg *pca){
 		if(getGroupSongIDs(com+x,ADV_COM_ARG_LEN,&id_struct)==HARP_RET_ERR)
 			return;
 
-		sprintf(query,"SELECT DISTINCT \"Order\",SongID FROM TempPlaylistSong WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d) ORDER BY \"Order\" DESC",id_struct.tempselectid);
+		snprintf(query,250,"SELECT DISTINCT \"Order\",SongID FROM TempPlaylistSong WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d) ORDER BY \"Order\" DESC",id_struct.tempselectid);
 		harp_sqlite3_exec(conn,query,remitem_order_shift_cb,pca,NULL);
 
-		sprintf(query,"DELETE FROM TempPlaylistSong WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",id_struct.tempselectid);
+		snprintf(query,250,"DELETE FROM TempPlaylistSong WHERE SongID IN (SELECT SelectID FROM TempSelect WHERE TempID=%d)",id_struct.tempselectid);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 
 		printf("Removed %d songs.\n",id_struct.length);
@@ -511,16 +510,17 @@ static void additem(char *com, struct playercontrolarg *pca){
 	if(dest<1)
 		dest=pca->next_order;
 
-	sprintf(query,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"+%d WHERE \"Order\">=%d",id_struct.length,dest);
+	snprintf(query,150,"UPDATE TempPlaylistSong SET \"Order\"=\"Order\"+%d WHERE \"Order\">=%d",id_struct.length,dest);
 	printf("Added %d songs starting at order %d.\n",id_struct.length,dest);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	if(pca->cur_order>=dest)pca->cur_order+=id_struct.length;
 	if(pca->next_order>dest)pca->next_order+=id_struct.length;
 
 	data.query=cb_query;
+	data.querysize=150;
 	data.order=dest;
 	data.count=0;
-	sprintf(query,"SELECT SelectID FROM TempSelect WHERE TempID=%d",id_struct.tempselectid);
+	snprintf(query,150,"SELECT SelectID FROM TempSelect WHERE TempID=%d",id_struct.tempselectid);
 	harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 
 	cleanTempSelect(id_struct.tempselectid);
@@ -558,7 +558,7 @@ static void getCommand(struct playercontrolarg *pca){
 	pthread_mutex_unlock(&outstatus);
 	printStatus(&psa);
 	pthread_mutex_lock(&outstatus);
-		sprintf(psa.outdetail->tail,":");
+		snprintf(psa.outdetail->tail,OUTPUT_TAIL_SIZE,":");
 	pthread_mutex_unlock(&outstatus);
 	printStatus(&psa);
 
@@ -581,7 +581,7 @@ static void getCommand(struct playercontrolarg *pca){
 	old.c_cc[VMIN]=1;
 	tcsetattr(0,TCSANOW,&old);
 	pthread_mutex_lock(&outstatus);
-		sprintf(psa.outdetail->tail,"\r");
+		snprintf(psa.outdetail->tail,OUTPUT_TAIL_SIZE,"\r");
 	pthread_mutex_unlock(&outstatus);
 	pca->ph->pflag->update=oldupdate;
 }
@@ -622,7 +622,7 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 			oldrating=pca->ph->pflag->rating;
 			pca->ph->pflag->rating=pca->ph->pflag->rating==10?10:pca->ph->pflag->rating+1;
 			pthread_mutex_lock(&outstatus);
-				sprintf(tail,"Rating: %d/10 -> %d/10",oldrating,pca->ph->pflag->rating);
+				snprintf(tail,OUTPUT_TAIL_SIZE,"Rating: %d/10 -> %d/10",oldrating,pca->ph->pflag->rating);
 			pthread_mutex_unlock(&outstatus);
 			addStatusTail(tail,pca->ph->outdetail);
 			break;
@@ -630,7 +630,7 @@ int getSystemKey(char key, struct playercontrolarg *pca){
 			oldrating=pca->ph->pflag->rating;
 			pca->ph->pflag->rating=pca->ph->pflag->rating==0?0:pca->ph->pflag->rating-1;
 			pthread_mutex_lock(&outstatus);
-				sprintf(tail,"Rating: %d/10 -> %d/10",oldrating,pca->ph->pflag->rating);
+				snprintf(tail,OUTPUT_TAIL_SIZE,"Rating: %d/10 -> %d/10",oldrating,pca->ph->pflag->rating);
 			pthread_mutex_unlock(&outstatus);
 			addStatusTail(tail,pca->ph->outdetail);
 			break;

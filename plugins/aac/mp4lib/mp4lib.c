@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2013-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2013-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -190,11 +190,15 @@ int atom_udta_parse_track(FILE *in, mp4atom_t *at, mp4handle_t *h){
 	int ret;
 	uint16_t *t;
 	uint32_t size=at->len;
+	char tmp[10];
 	ret=atom_udta_parse_meta(in,at,h,&h->meta.track); // TODO: Binary track to string?
 	if(size>=8+4+4+4){
 		t=((uint16_t*)h->meta.track)+1; // Skip leader
 		*t=swap_endianness16(*t);
-		sprintf(h->meta.track,"%d",*t);
+		snprintf(tmp,10,"%d",*t);
+		if(h->meta.track)
+			free(h->meta.track);
+		h->meta.track=strdup(tmp);
 	}
 	return ret;
 }

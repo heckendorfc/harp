@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -208,8 +208,8 @@ static void create_logfile(char *template, char *dir, char **dst_filename, FILE 
 		char tmp[256];
 		int fid;
 
-		sprintf(tmp,template,dir);
-		expand(tmp);
+		snprintf(tmp,256,template,dir);
+		expand(tmp,256);
 
 		if((fid=mkstemp(tmp))==-1)
 			return;
@@ -305,15 +305,15 @@ void setDefaultConfig(){
 
 	configInit();
 
-	sprintf(temp,"%s/harp/defaults.conf",SHARE_PATH);
+	snprintf(temp,250,"%s/harp/defaults.conf",SHARE_PATH);
 	if((ffd=fopen(temp,"r"))==NULL){
 		exit(1);
 	}
 	parseConfig(ffd);
 	fclose(ffd);
 
-	strcpy(temp,"~/.harp/defaults.conf");
-	expand(temp);
+	strlcpy(temp,"~/.harp/defaults.conf",250);
+	expand(temp,250);
 	if((ffd=fopen(temp,"r"))!=NULL){
 		parseConfig(ffd);
 		fclose(ffd);

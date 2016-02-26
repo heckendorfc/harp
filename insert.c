@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,13 +27,13 @@ static int insertSong(const char *arg, struct musicInfo *mi);
 
 static void db_insert_safe(char *str, char *data, const size_t size){
 	if(!*data){
-		strcpy(str,"Unknown");
+		strlcpy(str,"Unknown",size);
 		return;
 	}
 	db_clean(str,data,size);
-	strcpy(data,str);
+	strlcpy(data,str,size);
 	db_safe(str,data,size);
-	if(!*str)strcpy(str,"Unknown");
+	if(!*str)strlcpy(str,"Unknown",size);
 }
 
 int getArtist(const char *arg){
@@ -41,13 +41,13 @@ int getArtist(const char *arg){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT COUNT(ArtistID), ArtistID FROM Artist WHERE Name=\'%s\'",arg);
+	snprintf(query,301,"SELECT COUNT(ArtistID), ArtistID FROM Artist WHERE Name=\'%s\'",arg);
 	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create artist
 		dbiClean(&dbi);
-		sprintf(query,"INSERT INTO Artist (Name) VALUES (\'%s\')",arg);
+		snprintf(query,301,"INSERT INTO Artist (Name) VALUES (\'%s\')",arg);
 		debug(3,query);
 		if(harp_sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
@@ -63,17 +63,17 @@ int getAlbum(const char *arg, const int id){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT COUNT(Album.AlbumID), Album.AlbumID FROM Album,AlbumArtist WHERE Album.Title=\'%s\' AND Album.AlbumID = AlbumArtist.AlbumID AND AlbumArtist.ArtistID=%d",arg,id);
+	snprintf(query,401,"SELECT COUNT(Album.AlbumID), Album.AlbumID FROM Album,AlbumArtist WHERE Album.Title=\'%s\' AND Album.AlbumID = AlbumArtist.AlbumID AND AlbumArtist.ArtistID=%d",arg,id);
 	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create album
 		dbiClean(&dbi);
-		sprintf(query,"INSERT INTO Album (Title) VALUES (\'%s\')",arg);
+		snprintf(query,401,"INSERT INTO Album (Title) VALUES (\'%s\')",arg);
 		debug(3,query);
 		if(harp_sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
-		sprintf(query,"INSERT INTO AlbumArtist (ArtistID,AlbumID) VALUES (%d,%d)",id,(int)sqlite3_last_insert_rowid(conn));
+		snprintf(query,401,"INSERT INTO AlbumArtist (ArtistID,AlbumID) VALUES (%d,%d)",id,(int)sqlite3_last_insert_rowid(conn));
 		debug(3,query);
 		if(harp_sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
@@ -89,13 +89,13 @@ int getSong(const char *arg, const char *loc, const int id){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT COUNT(Song.SongID), Song.SongID FROM Song, Album WHERE Song.Location=\'%s\' AND Song.AlbumID = Album.AlbumID AND Album.AlbumID=%d",loc,id);
+	snprintf(query,401,"SELECT COUNT(Song.SongID), Song.SongID FROM Song, Album WHERE Song.Location=\'%s\' AND Song.AlbumID = Album.AlbumID AND Album.AlbumID=%d",loc,id);
 	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create song
 		dbiClean(&dbi);
-		sprintf(query,"INSERT INTO Song (Title,Location,AlbumID,TypeID) VALUES (\'%s\',\'%s\',%d,%d)",arg,loc,id,-1);
+		snprintf(query,401,"INSERT INTO Song (Title,Location,AlbumID,TypeID) VALUES (\'%s\',\'%s\',%d,%d)",arg,loc,id,-1);
 		debug(3,query);
 		if(harp_sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
@@ -111,13 +111,13 @@ int getPlaylist(const char *arg){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT COUNT(Playlist.PlaylistID), Playlist.PlaylistID FROM Playlist WHERE Playlist.Title=\'%s\'",arg);
+	snprintf(query,401,"SELECT COUNT(Playlist.PlaylistID), Playlist.PlaylistID FROM Playlist WHERE Playlist.Title=\'%s\'",arg);
 	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create playlist
 		dbiClean(&dbi);
-		sprintf(query,"INSERT INTO Playlist (Title) VALUES ('%s')",arg);
+		snprintf(query,401,"INSERT INTO Playlist (Title) VALUES ('%s')",arg);
 		debug(3,query);
 		if(harp_sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
@@ -133,12 +133,12 @@ int getPlaylistSong(const int sid, const int pid){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT COUNT(PlaylistSong.PlaylistSongID), PlaylistSong.PlaylistSongID FROM PlaylistSong WHERE PlaylistSong.PlaylistID=%d AND PlaylistSong.SongID=%d",pid,sid);
+	snprintf(query,201,"SELECT COUNT(PlaylistSong.PlaylistSongID), PlaylistSong.PlaylistSongID FROM PlaylistSong WHERE PlaylistSong.PlaylistID=%d AND PlaylistSong.SongID=%d",pid,sid);
 	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create playlistsong
-		sprintf(query,"SELECT \"Order\" FROM PlaylistSong WHERE PlaylistID=%d ORDER BY \"Order\" DESC LIMIT 1",pid);
+		snprintf(query,201,"SELECT \"Order\" FROM PlaylistSong WHERE PlaylistID=%d ORDER BY \"Order\" DESC LIMIT 1",pid);
 		debug(3,query);
 		doQuery(query,&dbi);
 		int order;
@@ -148,7 +148,7 @@ int getPlaylistSong(const int sid, const int pid){
 			order=1;
 
 		dbiClean(&dbi);
-		sprintf(query,"INSERT INTO PlaylistSong(SongID,PlaylistID,\"Order\") VALUES(%d,%d,%d)",sid,pid,order);
+		snprintf(query,201,"INSERT INTO PlaylistSong(SongID,PlaylistID,\"Order\") VALUES(%d,%d,%d)",sid,pid,order);
 		debug(3,query);
 		if(harp_sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
@@ -164,13 +164,13 @@ int getCategory(const char *arg){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT COUNT(CategoryID), CategoryID FROM Category WHERE Name=\'%s\'",arg);
+	snprintf(query,401,"SELECT COUNT(CategoryID), CategoryID FROM Category WHERE Name=\'%s\'",arg);
 	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create playlist
 		dbiClean(&dbi);
-		sprintf(query,"INSERT INTO Category (Name) VALUES ('%s')",arg);
+		snprintf(query,401,"INSERT INTO Category (Name) VALUES ('%s')",arg);
 		debug(3,query);
 		if(harp_sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
@@ -186,13 +186,13 @@ int getSongCategory(const int sid, const int cid){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT COUNT(SongCatID), SongCatID FROM SongCategory WHERE CategoryID=%d AND SongID=%d",cid,sid);
+	snprintf(query,201,"SELECT COUNT(SongCatID), SongCatID FROM SongCategory WHERE CategoryID=%d AND SongID=%d",cid,sid);
 	debug(3,query);
 	doQuery(query,&dbi);
 	fetch_row(&dbi);
 	if(strtol(dbi.row[0],NULL,10)==0){//create songcategory
 		dbiClean(&dbi);
-		sprintf(query,"INSERT INTO SongCategory(SongID,CategoryID) VALUES(%d,%d)",sid,cid);
+		snprintf(query,201,"INSERT INTO SongCategory(SongID,CategoryID) VALUES(%d,%d)",sid,cid);
 		debug(3,query);
 		if(harp_sqlite3_exec(conn,query,NULL,NULL,NULL)!=SQLITE_OK)
 			return -1;
@@ -260,6 +260,7 @@ static int directoryInsert(const char *arg){
 
 int batchInsert(char *arg){
 	struct musicInfo mi;
+	char temp[250];
 
 	if(!(mi.title=malloc((MI_TITLE_SIZE*2+1)*sizeof(char))) ||
 		!(mi.track=malloc(((MI_TRACK_SIZE*2)+1)*sizeof(char))) ||
@@ -270,15 +271,17 @@ int batchInsert(char *arg){
 	getMusicInfo(&mi);
 
 	if(arg){//single argv insert
-		if(isURL(arg))
+		if(isURL(arg)){
 			(void)insertSong(arg,&mi);
-		else
-			directoryInsert(expand(arg));
+		}
+		else{
+			strlcpy(temp,arg,250);
+			directoryInsert(expand(temp,250));
+		}
 	}
 	else{//batch insert
-		char temp[250];
 		while(printf("File Location: ") && fgets(temp,sizeof(temp),stdin) && *temp!='\n'){
-			expand(temp);
+			expand(temp,250);
 			(void)insertSong(temp,&mi);
 		}
 	}
@@ -381,7 +384,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 
 	dbiInit(&dbi);
 	//chack for dupicate
-	sprintf(query,"SELECT SongID FROM Song WHERE Location='%s' LIMIT 1",dbfilename);
+	snprintf(query,350,"SELECT SongID FROM Song WHERE Location='%s' LIMIT 1",dbfilename);
 	harp_sqlite3_exec(conn,query,uint_return_cb,&songid,NULL);
 	if(songid){
 		debug(1,"Duplicate entry -- skipping");
@@ -411,31 +414,31 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	dbiClean(&dbi);
 
 	db_insert_safe(tempname,mi->artist,MI_ARTIST_SIZE);
-	strcpy(mi->artist,tempname);
+	strlcpy(mi->artist,tempname,MI_ARTIST_SIZE);
 	if((artistid=getArtist(mi->artist))==-1){
 		fprintf(stderr,"Error inserting artist: %s\n",mi->artist);
 		return 0;
 	}
 
 	db_insert_safe(tempname,mi->album,MI_ALBUM_SIZE);
-	strcpy(mi->album,tempname);
+	strlcpy(mi->album,tempname,MI_ALBUM_SIZE);
 	if((albumid=getAlbum(mi->album,artistid))==-1){
 		fprintf(stderr,"Error inserting album: %s\n",mi->album);
 		return 0;
 	}
 	if(strcmp(mi->album,"Unknown") && *mi->year){
-		sprintf(query,"UPDATE Album SET \"Date\"=%s WHERE AlbumID=%d",mi->year,albumid);
+		snprintf(query,350,"UPDATE Album SET \"Date\"=%s WHERE AlbumID=%d",mi->year,albumid);
 		debug(3,query);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 
 	if(!*mi->title){
-		strcpy(tempname,getFilename((char *)arg));
+		strlcpy(tempname,getFilename((char *)arg),MI_TITLE_SIZE);
 		db_insert_safe(mi->title,tempname,MI_TITLE_SIZE);
 	}
 	else{
 		db_insert_safe(tempname,mi->title,MI_TITLE_SIZE);
-		strcpy(mi->title,tempname);
+		strlcpy(mi->title,tempname,MI_TITLE_SIZE);
 	}
 	if((songid=getSong(mi->title,dbfilename,albumid))==-1){
 		fprintf(stderr,"Error inserting song: %s\n",mi->title);
@@ -445,7 +448,7 @@ static int insertSong(const char *arg, struct musicInfo *mi){
 	// This prints escaped strings. Is it worth fixing?
 	printf("%s | %s | %s \n",mi->title,mi->album,mi->artist);
 
-	sprintf(query,"UPDATE Song SET Track=%d, Length=%d, Rating=3, TypeID=%d WHERE SongID=%d",(int)strtol(mi->track,NULL,10),mi->length,fmt,songid);
+	snprintf(query,350,"UPDATE Song SET Track=%d, Length=%d, Rating=3, TypeID=%d WHERE SongID=%d",(int)strtol(mi->track,NULL,10),mi->length,fmt,songid);
 	debug(3,query);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 

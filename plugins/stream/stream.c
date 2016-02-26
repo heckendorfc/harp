@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -110,7 +110,7 @@ static int parse_url(const char *path, char **orig_url, char **orig_port, char *
 
 	}
 	else{
-		strcpy(port,S_DEF_PORT_STR);
+		strlcpy(port,S_DEF_PORT_STR,10);
 def_filename:
 		if(!(*orig_filename=malloc(1))){
 			fprintf(stderr,"Malloc failed.");
@@ -127,9 +127,9 @@ static int stream_hello(char *filename){
 	int hello_len;
 
 	if(*filename!=0)
-		sprintf(hello,"GET %s HTTP/1.0\r\nUser-Agent: HARP\r\nIcy-MetaData:%d\r\n\r\n",filename,h.print_meta);
+		snprintf(hello,300,"GET %s HTTP/1.0\r\nUser-Agent: HARP\r\nIcy-MetaData:%d\r\n\r\n",filename,h.print_meta);
 	else
-		sprintf(hello,"GET / HTTP/1.0\r\nUser-Agent: HARP\r\nIcy-MetaData:%d\r\n\r\n",h.print_meta);
+		snprintf(hello,300,"GET / HTTP/1.0\r\nUser-Agent: HARP\r\nIcy-MetaData:%d\r\n\r\n",h.print_meta);
 
 	hello_len=strlen(hello);
 	if(write(h.sfd,hello,hello_len)<hello_len){

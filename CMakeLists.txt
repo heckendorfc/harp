@@ -6,11 +6,18 @@ SET(CMAKE_C_FLAGS_RELEASE "-O2")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+option (WITH_SNDIOD "Use sndio for sound output.")
 option (WITH_OSS "Use OSS for sound output.")
 option (WITH_ALSA "Use ALSA for sound output.")
 option (WITH_JACK "Use JACK for sound output.")
 option (WITH_PULSE "Use PulseAudio for sound output.")
 
+if (WITH_SNDIO)
+	find_package(Sndio REQUIRED)
+	add_definitions(-DWITH_SNDIO=1)
+	set (SOUND_SRC ${SOUND_SRC} sndioutil.c)
+	set (SOUND_LIB ${SOUND_LIB} ${Sndio_LIBRARIES})
+endif (WITH_SNDIO)
 if (WITH_OSS)
 	add_definitions(-DWITH_OSS=1)
 	set (SOUND_SRC ${SOUND_SRC} ossutil.c)

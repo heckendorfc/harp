@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2012  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -60,15 +60,16 @@ struct dbnode *dbnodeClean(struct dbnode *node){
 int *getGenreHeadPath(int head){
 	int x=0;
 	int *path;
+	char query[100],*qptr;
+	struct dbitem dbi;
+
 	if(!(path=malloc(sizeof(int)*2))){
 		debug(2,"Malloc failed (path).");
 		return NULL;
 	}
-	char query[100],*qptr;
-	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT ParentID FROM Category WHERE CategoryID=%d",head);
+	snprintf(query,100,"SELECT ParentID FROM Category WHERE CategoryID=%d",head);
 	qptr=&query[47];
 
 	path[0]=head;
@@ -80,7 +81,7 @@ int *getGenreHeadPath(int head){
 		}
 		path[x]=(int)strtol(dbi.row[0],NULL,10);
 		path[x+1]=0;
-		sprintf(qptr,"%d",path[x]);
+		snprintf(qptr,100-(qptr-query),"%d",path[x]);
 	}
 	dbiClean(&dbi);
 	return path;
@@ -92,11 +93,11 @@ void printGenreHeadPath(int *path){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 
-	sprintf(query,"SELECT Name FROM Category WHERE CategoryID=");
+	snprintf(query,100,"SELECT Name FROM Category WHERE CategoryID=");
 	qptr=&query[43];
 	for(x=0;path[x];x++);
 	for(x--;x>=0;x--){
-		sprintf(qptr,"%d",path[x]);
+		snprintf(qptr,100-(qptr-query),"%d",path[x]);
 		if(doQuery(query,&dbi) && fetch_row(&dbi))
 			printf("%s -> ",dbi.row[0]);
 	}
@@ -104,18 +105,19 @@ void printGenreHeadPath(int *path){
 }
 
 void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnode*)){
+	char query[100];
+	int nextid;
+	struct dbnode *child;
+
 	if(!cur)return;
 
-	char query[100];
-	sprintf(query,"SELECT CategoryID,Name FROM Category WHERE CategoryID=%d",curid);
+	snprintf(query,100,"SELECT CategoryID,Name FROM Category WHERE CategoryID=%d",curid);
 	if(doQuery(query,&cur->dbi) && fetch_row(&cur->dbi))
 		action(cur); // Do self
 
-	sprintf(query,"SELECT CategoryID FROM Category WHERE ParentID=%d",curid);
+	snprintf(query,100,"SELECT CategoryID FROM Category WHERE ParentID=%d",curid);
 	doQuery(query,&cur->dbi);
 
-	int nextid;
-	struct dbnode *child;
 	while(fetch_row(&cur->dbi)){
 		if(!(child=dbnodeAdd(cur)))return;
 		nextid=(int)strtol(cur->dbi.row[0],NULL,10);
@@ -129,35 +131,43 @@ void printGenreChildren(struct dbnode *cur, int curid, void *action(struct dbnod
 
 void tierChildPrint(struct dbnode *cur){
 	int x;
+	char *prefix;
+	int psize;
+	char query[200];
+
 	if(!cur->dbi.row_count)return;
+
 	if(cur->depth>0){
-		char *prefix;
-		if(!(prefix=malloc(sizeof(char)*((cur->depth*2)+1)))){
+		psize=(cur->depth*2)+1;
+		if(!(prefix=malloc(sizeof(char)*psize))){
 			debug(2,"Malloc failed (prefix).");
 			return;
 		}
-		for(x=0;x<cur->depth;x++)sprintf(prefix+x,"\t");
+		for(x=0;x<cur->depth;x++)snprintf(prefix+x,psize-x,"\t");
 		printf("\n%s[%s] %s\n%s- - - - - - -\n",prefix,cur->dbi.row[0],cur->dbi.row[1],prefix);
 		free(prefix);
 	}
 	else
 		printf("\n[%s] %s\n- - - - - - -\n",cur->dbi.row[0],cur->dbi.row[1]);
 
-	char query[200];
-	sprintf(query,"SELECT SongID,SongTitle,AlbumTitle,ArtistName FROM SongCategory NATURAL JOIN SongPubInfo WHERE CategoryID=%s ORDER BY ArtistName,AlbumTitle",cur->dbi.row[0]);
+	snprintf(query,200,"SELECT SongID,SongTitle,AlbumTitle,ArtistName FROM SongCategory NATURAL JOIN SongPubInfo WHERE CategoryID=%s ORDER BY ArtistName,AlbumTitle",cur->dbi.row[0]);
 	doTitleQuery(query,NULL,listconf.maxwidth);
 }
 
 void tierCatPrint(struct dbnode *cur){
 	int x;
+	char *prefix;
+	int psize;
+
 	if(!cur->dbi.row_count)return;
+
 	if(cur->depth>0){
-		char *prefix;
-		if(!(prefix=malloc(sizeof(char)*((cur->depth*2)+1)))){
+		psize=(cur->depth*2)+1;
+		if(!(prefix=malloc(sizeof(char)*psize))){
 			debug(2,"Malloc failed (prefix).");
 			return;
 		}
-		for(x=0;x<cur->depth;x++)sprintf(prefix+x,"\t");
+		for(x=0;x<cur->depth;x++)snprintf(prefix+x,psize-x,"\t");
 		printf("%s[%s] %s\n",prefix,cur->dbi.row[0],cur->dbi.row[1]);
 		free(prefix);
 	}
@@ -168,6 +178,8 @@ void tierCatPrint(struct dbnode *cur){
 void printGenreTree(int head, void *action(struct dbnode *)){
 	int x,depth,*headpath;
 	struct dbitem dbi;
+	struct dbnode *cur;
+
 	dbiInit(&dbi);
 
 	if(!(headpath=getGenreHeadPath(head))){
@@ -181,7 +193,6 @@ void printGenreTree(int head, void *action(struct dbnode *)){
 	if(headpath[0])printf("\n");
 	free(headpath);
 
-	struct dbnode *cur;
 	if(!(cur=dbnodeAdd(NULL)))return;
 	cur->depth=depth;
 	printGenreChildren(cur,head,action);

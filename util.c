@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2014  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,15 +29,19 @@ int isURL(const char *in){
 	return strncmp("http://",in,7)==0;
 }
 
-char *expand(char *in){
-	char tmp[250];
-	char *in_ptr=in-1;
-	char *tmp_ptr=tmp;
+char *expand(char *in, const int size){
+	char *tmp;
+	char *in_ptr=in;
+	char *tmp_ptr;
 	int url=0,x;
+
+	tmp_ptr=tmp=malloc(size);
+	if(tmp==NULL)
+		return NULL;
 
 	if(isURL(in))url=1; /* Clean \n but do no globbing */
 
-	for(x=0;x<249 && in[x];x++);
+	for(x=0;x<size-1 && in[x];x++);
 	if(x>0 && in[x-1]=='\n')
 		in[x-1]=0;
 	if(x>1 && in[x-2]=='\r')
@@ -47,24 +51,24 @@ char *expand(char *in){
 	if(url)return in;
 
 	if(in[0]=='~'){
-		strcpy(tmp,getenv("HOME"));
-		strcat(tmp,"/");
-		strcat(tmp,in+2);
-		strcpy(in,tmp);
+		strlcpy(tmp,getenv("HOME"),size);
+		strlcat(tmp,"/",size);
+		strlcat(tmp,in+2,size);
+		strlcpy(in,tmp,size);
 	}
 	else if(in[0]!='/'){
-		strcpy(tmp,getenv("PWD"));
-		strcat(tmp,"/");
+		getcwd(tmp,size);
+		strlcat(tmp,"/",size);
 		if(in[0]=='.' && in[1]=='/')
-			strcat(tmp,in+2);
+			strlcat(tmp,in+2,size);
 		else
-			strcat(tmp,in);
-		strcpy(in,tmp);
+			strlcat(tmp,in,size);
+		strlcpy(in,tmp,size);
 	}
-	while(*(++in_ptr)){
+	while(*in_ptr){
 		if(*in_ptr=='[' || *in_ptr=='\'' || *in_ptr=='\"')
 			*(tmp_ptr++)='\\';
-		*(tmp_ptr++)=*in_ptr;
+		*(tmp_ptr++)=*(in_ptr++);
 	}
 	*tmp_ptr=0;
 
@@ -78,6 +82,7 @@ char *expand(char *in){
 	else
 		debug(1,"No files match");
 	globfree(&pglob);
+	free(tmp);
 	return in;
 }
 
@@ -333,12 +338,12 @@ int strToID(const char *argv){ // TODO: add type param
 	dbiInit(&dbi);
 
 	switch(arglist[ATYPE].subarg[0]){
-		case 's':sprintf(query,"SELECT SongID,SongTitle,ArtistName,AlbumTitle FROM SongPubInfo WHERE SongTitle LIKE '%%%s%%'",clean_str);break;
-		case 'p':sprintf(query,"SELECT PlaylistID,Title FROM Playlist WHERE Title LIKE '%%%s%%'",clean_str);break;
-		case 'r':sprintf(query,"SELECT ArtistID,Name FROM Artist WHERE Name LIKE '%%%s%%'",clean_str);break;
-		case 'a':sprintf(query,"SELECT AlbumID,Title,Artist.Name FROM Album NATURAL JOIN AlbumArtist NATURAL JOIN Artist WHERE Title LIKE '%%%s%%'",clean_str);break;
-		case 'g':sprintf(query,"SELECT CategoryID,Name FROM Category WHERE Name LIKE '%%%s%%'",clean_str);break;
-		case 't':sprintf(query,"SELECT TagID,Value FROM Tag WHERE Value LIKE '%%%s%%'",clean_str);break;
+		case 's':snprintf(query,351,"SELECT SongID,SongTitle,ArtistName,AlbumTitle FROM SongPubInfo WHERE SongTitle LIKE '%%%s%%'",clean_str);break;
+		case 'p':snprintf(query,351,"SELECT PlaylistID,Title FROM Playlist WHERE Title LIKE '%%%s%%'",clean_str);break;
+		case 'r':snprintf(query,351,"SELECT ArtistID,Name FROM Artist WHERE Name LIKE '%%%s%%'",clean_str);break;
+		case 'a':snprintf(query,351,"SELECT AlbumID,Title,Artist.Name FROM Album NATURAL JOIN AlbumArtist NATURAL JOIN Artist WHERE Title LIKE '%%%s%%'",clean_str);break;
+		case 'g':snprintf(query,351,"SELECT CategoryID,Name FROM Category WHERE Name LIKE '%%%s%%'",clean_str);break;
+		case 't':snprintf(query,351,"SELECT TagID,Value FROM Tag WHERE Value LIKE '%%%s%%'",clean_str);break;
 		default:return -1;
 	}
 
@@ -357,12 +362,12 @@ int verifyID(const int id){
 	struct dbitem dbi;
 	dbiInit(&dbi);
 	switch(arglist[ATYPE].subarg[0]){
-		case 's':sprintf(query,"SELECT SongID FROM Song WHERE SongID=%d",id);break;
-		case 'p':sprintf(query,"SELECT PlaylistID FROM Playlist WHERE PlaylistID=%d",id);break;
-		case 'r':sprintf(query,"SELECT ArtistID FROM Artist WHERE ArtistID=%d",id);break;
-		case 'a':sprintf(query,"SELECT AlbumID FROM Album WHERE AlbumID=%d",id);break;
-		case 'g':sprintf(query,"SELECT CategoryID FROM Category WHERE CategoryID=%d",id);break;
-		case 't':sprintf(query,"SELECT TagID FROM Tag WHERE TagID=%d",id);break;
+		case 's':snprintf(query,100,"SELECT SongID FROM Song WHERE SongID=%d",id);break;
+		case 'p':snprintf(query,100,"SELECT PlaylistID FROM Playlist WHERE PlaylistID=%d",id);break;
+		case 'r':snprintf(query,100,"SELECT ArtistID FROM Artist WHERE ArtistID=%d",id);break;
+		case 'a':snprintf(query,100,"SELECT AlbumID FROM Album WHERE AlbumID=%d",id);break;
+		case 'g':snprintf(query,100,"SELECT CategoryID FROM Category WHERE CategoryID=%d",id);break;
+		case 't':snprintf(query,100,"SELECT TagID FROM Tag WHERE TagID=%d",id);break;
 		default:return 0;
 	}
 	if(doQuery(query,&dbi)==1){
@@ -444,26 +449,26 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 	switch(args[x]){
 		case 'a':
 			arglist[ATYPE].subarg[0]='a';
-			sprintf(query,"SELECT SongID FROM Song INNER JOIN Album ON Album.AlbumID=Song.AlbumID WHERE Album.AlbumID=");
-			sprintf(query_tail,"ORDER BY Track");
+			snprintf(query,200,"SELECT SongID FROM Song INNER JOIN Album ON Album.AlbumID=Song.AlbumID WHERE Album.AlbumID=");
+			snprintf(query_tail,100,"ORDER BY Track");
 			ptr=&query[91];
 			break;
 		case 'r':
 			arglist[ATYPE].subarg[0]='r';
-			sprintf(query,"SELECT SongID FROM Song NATURAL JOIN AlbumArtist WHERE ArtistID=");
-			sprintf(query_tail,"ORDER BY Song.AlbumID,Track");
+			snprintf(query,200,"SELECT SongID FROM Song NATURAL JOIN AlbumArtist WHERE ArtistID=");
+			snprintf(query_tail,100,"ORDER BY Song.AlbumID,Track");
 			ptr=&query[64];
 			break;
 		case 't':
 			arglist[ATYPE].subarg[0]='t';
-			sprintf(query,"SELECT Song.SongID FROM Song NATURAL JOIN SongTag WHERE TagID=");
-			sprintf(query_tail,"ORDER BY Song.AlbumID,Track");
+			snprintf(query,200,"SELECT Song.SongID FROM Song NATURAL JOIN SongTag WHERE TagID=");
+			snprintf(query_tail,100,"ORDER BY Song.AlbumID,Track");
 			ptr=&query[62];
 			break;
 		case 'g':
 			arglist[ATYPE].subarg[0]='g';
-			sprintf(query,"SELECT SongID FROM Song NATURAL JOIN SongCategory WHERE CategoryID=");
-			sprintf(query_tail,"ORDER BY Song.AlbumID,Track");
+			snprintf(query,200,"SELECT SongID FROM Song NATURAL JOIN SongCategory WHERE CategoryID=");
+			snprintf(query_tail,100,"ORDER BY Song.AlbumID,Track");
 			ptr=&query[67];
 			break;
 		case 's':
@@ -491,7 +496,7 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 		return HARP_RET_ERR;
 	}
 	for(song_idlen=x=0;x<group_idlen;x++){
-		sprintf(ptr,"%d %s",group_ids[x],query_tail);
+		snprintf(ptr,200-(ptr-query),"%d %s",group_ids[x],query_tail);
 		if(doQuery(query,&dbi)<1)continue;
 		y=song_idlen;
 		song_idlen+=dbi.row_count;
@@ -521,7 +526,7 @@ int getGroupSongIDs(char *args, const int arglen, struct IDList *id_struct){
 
 void cleanTempSelect(const int tempid){
 	char query[100];
-	sprintf(query,"DELETE FROM TempSelect WHERE TempID=%d",tempid);
+	snprintf(query,100,"DELETE FROM TempSelect WHERE TempID=%d",tempid);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 }
 
@@ -543,7 +548,7 @@ int mergeTempSelect(int ida, int idb){
 	if(ida==idb)
 		return ida;
 
-	sprintf(query,"UPDATE TempSelect SET TempID=%d where TempID=%d",ida,idb);
+	snprintf(query,150,"UPDATE TempSelect SET TempID=%d where TempID=%d",ida,idb);
 	harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 
 	return ida;
@@ -564,7 +569,7 @@ int insertTempSelect(const int *ids, const int idlen){
 		if((currentlimit+=DB_BATCH_SIZE)>idlen)currentlimit=idlen;
 		harp_sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 		for(;x<currentlimit;x++){
-			sprintf(query,"INSERT INTO TempSelect(TempID,SelectID) VALUES(%d,%d)",tempid,ids[x]);
+			snprintf(query,150,"INSERT INTO TempSelect(TempID,SelectID) VALUES(%d,%d)",tempid,ids[x]);
 			harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 		}
 		harp_sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
@@ -577,8 +582,9 @@ int insertTempSelectQuery(const char *query){
 	const char *ins_q="INSERT INTO TempSelect(TempID,SelectID) ";
 	unsigned int tempid;
 	char *temp_q,*ptr;
+	const int qsize=strlen(ins_q)+strlen(query)+1;
 
-	if(!(temp_q=malloc(strlen(ins_q)+strlen(query)+1))){
+	if(!(temp_q=malloc(qsize))){
 		debug(2,"Malloc failed (tempquery)");
 		exit(1);
 	}
@@ -586,9 +592,9 @@ int insertTempSelectQuery(const char *query){
 	createTempSelect();
 
 	tempid=getNextTempSelectID();
-	sprintf(temp_q,query,tempid);
+	snprintf(temp_q,qsize,query,tempid);
 	ptr=strdup(temp_q);
-	sprintf(temp_q,"%s%s",ins_q,ptr);
+	snprintf(temp_q,qsize,"%s%s",ins_q,ptr);
 	debug(2,temp_q);
 
 	harp_sqlite3_exec(conn,temp_q,NULL,NULL,NULL);

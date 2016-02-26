@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -141,13 +141,13 @@ static int exportStats(char *args, void *data){
 	debug(2,args);
 	debug(2,num);
 	if(*num=='*')
-		sprintf(args,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location");
+		snprintf(args,PORTAL_ARG_LEN,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location");
 	else{
 		if((limit=strtol(num,NULL,10))<1)return PORTAL_RET_PREV;
-		sprintf(args,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location LIMIT %d",limit);
+		snprintf(args,PORTAL_ARG_LEN,"SELECT SongID,Title,Location,Rating,PlayCount,SkipCount,LastPlay,Active FROM Song ORDER BY Location LIMIT %d",limit);
 	}
 
-	sprintf(filename,"harp_stats_%d.csv",(int)time(NULL));
+	snprintf(filename,30,"harp_stats_%d.csv",(int)time(NULL));
 	if((ffd=fopen(filename,"w"))==NULL){
 		fprintf(stderr,"Failed to open file\n");
 		return PORTAL_RET_PREV;

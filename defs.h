@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -48,7 +48,9 @@
 
 #include <sqlite3.h>
 
-#if WITH_ALSA==1
+#if WITH_SNDIO==1
+	#include <sndio.h>
+#elif WITH_ALSA==1
 	#include <alsa/asoundlib.h>
 #elif WITH_JACK==1
 	#include <jack/jack.h>
@@ -283,7 +285,10 @@ struct outputdetail{
 struct playerHandles{
 	FILE *ffd;
 	char *device;
-#if WITH_ALSA==1
+#if WITH_SNDIO==1
+	struct sio_hdl *sndfd;
+	int sndio_started;
+#elif WITH_ALSA==1
 	snd_pcm_t *sndfd;
 	snd_pcm_hw_params_t *params;
 #elif WITH_JACK==1

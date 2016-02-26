@@ -1,3 +1,6 @@
+Changes in HARP-0.7.0:
+- Sndio support
+
 Changes in HARP-0.6.0:
 - Moved to GitHub.
 - Replaced mp4ff with new MP4 parsing library for AAC.

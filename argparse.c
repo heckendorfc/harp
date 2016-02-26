@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -105,50 +105,55 @@ static void printHelp(){
 }
 
 static void genreToPlaylistSong(struct dbnode *cur){
-	if(!cur->dbi.row_count)return;
 	char query[150],cb_query[150];
-	static struct insert_tps_arg data={1,0,NULL};
+	static struct insert_tps_arg data={1,0,NULL,0};
+
+	if(!cur->dbi.row_count)
+		return;
+
 	data.query=cb_query;
-	sprintf(query,"SELECT Song.SongID FROM SongCategory NATURAL JOIN Song WHERE Active=1 AND CategoryID=%s",cur->dbi.row[0]);
+	data.querysize=150;
+
+	snprintf(query,150,"SELECT Song.SongID FROM SongCategory NATURAL JOIN Song WHERE Active=1 AND CategoryID=%s",cur->dbi.row[0]);
 	harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 }
 
 static void makeTempPlaylist(int *multilist, int multi){
 	int mx;
 	char query[250],cb_query[150];
-	struct insert_tps_arg data={1,0,cb_query};
+	struct insert_tps_arg data={1,0,cb_query,150};
 
 	createTempPlaylistSong();
 
 	switch(*arglist[ATYPE].subarg){
 		case 'p':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM PlaylistSong NATURAL JOIN Song WHERE Active=1 AND PlaylistID=%d ORDER BY \"Order\"",multilist[mx]);
+				snprintf(query,250,"SELECT Song.SongID FROM PlaylistSong NATURAL JOIN Song WHERE Active=1 AND PlaylistID=%d ORDER BY \"Order\"",multilist[mx]);
 				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
 		case 's':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT SongID FROM Song WHERE SongID=%d",multilist[mx]);
+				snprintf(query,250,"SELECT SongID FROM Song WHERE SongID=%d",multilist[mx]);
 				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
 		case 'a':
 			for(mx=0;mx<multi;mx++){
 				//sprintf(query,"SELECT Song.SongID FROM Album INNER JOIN Song USING(AlbumID) WHERE Active=1 AND Album.AlbumID=%d ORDER BY Track",multilist[mx]);
-				sprintf(query,"SELECT SongID FROM Song WHERE Active=1 AND AlbumID=%d ORDER BY Track",multilist[mx]);
+				snprintf(query,250,"SELECT SongID FROM Song WHERE Active=1 AND AlbumID=%d ORDER BY Track",multilist[mx]);
 				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
 		case 'r':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM AlbumArtist NATURAL JOIN Song WHERE Active=1 AND AlbumArtist.ArtistID=%d ORDER BY AlbumArtist.AlbumID,Track",multilist[mx]);
+				snprintf(query,250,"SELECT Song.SongID FROM AlbumArtist NATURAL JOIN Song WHERE Active=1 AND AlbumArtist.ArtistID=%d ORDER BY AlbumArtist.AlbumID,Track",multilist[mx]);
 				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;
 		case 't':
 			for(mx=0;mx<multi;mx++){
-				sprintf(query,"SELECT Song.SongID FROM SongTag NATURAL JOIN Song WHERE Active=1 AND TagID=%d ORDER BY TagID,Track",multilist[mx]);
+				snprintf(query,250,"SELECT Song.SongID FROM SongTag NATURAL JOIN Song WHERE Active=1 AND TagID=%d ORDER BY TagID,Track",multilist[mx]);
 				harp_sqlite3_exec(conn,query,batch_tempplaylistsong_insert_cb,&data,NULL);
 			}
 			break;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2014-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -284,12 +284,12 @@ static int get_templist(arglist_t *a, int ctype){
 		char query[300];
 		int ret,num;
 		if(a->words->flag==WORD_DQUOT)
-			sprintf(query,"SELECT %%d,%s FROM %s WHERE %s LIKE '%%%%%s%%%%'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
+			snprintf(query,300,"SELECT %%d,%s FROM %s WHERE %s LIKE '%%%%%s%%%%'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
 		else
-			sprintf(query,"SELECT %%d,%s FROM %s WHERE %s='%s'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
+			snprintf(query,300,"SELECT %%d,%s FROM %s WHERE %s='%s'",selectfield[ctype],selecttable[ctype],selectcomp[ctype],a->words->word);
 		ret=insertTempSelectQueryCount(query,&num);
 		if(num==0 && shouldmake[ctype]){
-			sprintf(query,"INSERT INTO %s(%s) VALUES(\"%s\")",selecttable[ctype],selectcomp[ctype],a->words->word);
+			snprintf(query,300,"INSERT INTO %s(%s) VALUES(\"%s\")",selecttable[ctype],selectcomp[ctype],a->words->word);
 			harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 			num=sqlite3_last_insert_rowid(conn);
 			return insertTempSelect(&num,1);
@@ -345,8 +345,8 @@ static int translate_templist(int toid, int totype, int fromid, int fromtype, in
 			newid=toid;
 		}
 		else{
-			sprintf(subquery,"SELECT SelectID FROM TempSelect WHERE TempID=%d",fromid);
-			sprintf(query,translatequery[fromtype*numtypes+totype],subquery);
+			snprintf(subquery,300,"SELECT SelectID FROM TempSelect WHERE TempID=%d",fromid);
+			snprintf(query,300,translatequery[fromtype*numtypes+totype],subquery);
 			newid=insertTempSelectQuery(query);
 			//mergeTempSelect(toid,newid);
 		}

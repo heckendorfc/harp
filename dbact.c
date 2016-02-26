@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2015  Christian Heckendorf <heckendorfc@gmail.com>
+ *  Copyright (C) 2009-2016  Christian Heckendorf <heckendorfc@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -103,7 +103,7 @@ INNER JOIN Artist ON AlbumArtist.ArtistID=Artist.ArtistID";
 		else
 			type=i;
 
-		sprintf(query,"UPDATE Song SET TypeID=%d WHERE TypeID=(SELECT TypeID FROM FileType WHERE Name='%s' LIMIT 1)",i,plugin_head[i]->name);
+		snprintf(query,200,"UPDATE Song SET TypeID=%d WHERE TypeID=(SELECT TypeID FROM FileType WHERE Name='%s' LIMIT 1)",i,plugin_head[i]->name);
 		harp_sqlite3_exec(conn,query,NULL,NULL,NULL);
 	}
 
@@ -118,22 +118,22 @@ static db_up upgrade_db_from[]={
 
 unsigned int dbInit(){
 	char temp[255];
-	//strcpy(temp,DB);
-	sprintf(temp,"%s%s",DB_PATH,DB);
-	expand(temp);
+
+	snprintf(temp,255,"%s%s",DB_PATH,DB);
+	expand(temp,255);
 	if(sqlite3_open_v2(temp,&conn,SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE,NULL)!=SQLITE_OK){
 		printf("Database not found. Attempting to create\n");
 		// Try creating
-		strcpy(temp,DB_PATH);
-		expand(temp);
+		strlcpy(temp,DB_PATH,255);
+		expand(temp,255);
 		mkdir(temp,0700);
-		sprintf(temp,"%s%s",DB_PATH,DB);
-		expand(temp);
+		snprintf(temp,255,"%s%s",DB_PATH,DB);
+		expand(temp,255);
 		if(sqlite3_open(temp,&conn)!=SQLITE_OK){
 			printf("Database connection error: %s\n",sqlite3_errmsg(conn));
 			return 0;
 		}
-		sprintf(temp,"%s/harp/create.sql",SHARE_PATH);
+		snprintf(temp,255,"%s/harp/create.sql",SHARE_PATH);
 		if(db_exec_file(temp)){
 			printf("Error creating database from file:\n\t%s\n",temp);
 			sqlite3_close(conn);
@@ -150,7 +150,7 @@ unsigned int dbInit(){
 		int vnum=0;
 		harp_sqlite3_exec(conn,"SELECT Version FROM DBInfo",uint_return_cb,&vnum,NULL);
 		if(vnum!=DB_VERSION){
-			sprintf(temp,"Upgrading database from %d to %d\n",vnum,DB_VERSION);
+			snprintf(temp,255,"Upgrading database from %d to %d\n",vnum,DB_VERSION);
 			debug(1,temp);
 			while(vnum<DB_VERSION){
 				upgrade_db_from[vnum++]();
@@ -330,7 +330,7 @@ int doTitleQuery(const char *querystr,int *exception, int maxwidth){
 int batch_tempplaylistsong_insert_cb(void *arg, int col_count, char **row, char **titles){
 	struct insert_tps_arg *data=(struct insert_tps_arg*)arg;
 
-	sprintf(data->query,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,data->order);
+	snprintf(data->query,data->querysize,"INSERT INTO TempPlaylistSong(SongID,\"Order\") VALUES(%s,%d)",*row,data->order);
 	harp_sqlite3_exec(conn,data->query,NULL,NULL,NULL);
 
 	data->order++;
